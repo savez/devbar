@@ -143,6 +143,11 @@ Domande aperte:
 - Come si sovrappone allo stile di output **Concise** (anche lui accorcia le
   risposte) e a RTK (che accorcia l'output dei comandi, non le risposte)?
 - RTK: quanto risparmia, con `rtk gain` e `rtk gain --history`.
+- Misura approssimativa: `scripts/token-compare.py --since "2026-11-23 18:00"`
+  confronta i token di output per risposta prima e dopo l'attivazione. Al
+  23/11 c'erano solo 7 risposte dopo (media 721 contro 1.620 prima), e lo
+  stile Concise è stato attivato alle 18:33, quindi i due effetti sono mescolati.
+  Da rilanciare dopo una settimana di uso.
 - Cosa personalizzare: modalità per progetto, esclusioni, disattivazione per
   certi agenti.
 
