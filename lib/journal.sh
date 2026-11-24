@@ -10,7 +10,7 @@
 #              cartella: tar; link: solo il target in meta).
 # Tutto lo stato è su disco: le scritture avvengono anche in sottoshell (pipeline).
 # journal_before si chiama prima di scrivere (devbar_write_file, mv/ln/cp/rm, strumenti
-# esterni); journal_settle (trap EXIT di `run`) aggiorna sha256After e toglie i percorsi
+# esterni); journal_settle (alla fine di `run`, trap EXIT come ripiego) aggiorna sha256After e toglie i percorsi
 # rimasti uguali; una voce senza cambiamenti sparisce. Non registrati: config e cache di
 # devbar, il registro stesso. Tiene le ultime $JOURNAL_KEEP voci.
 #

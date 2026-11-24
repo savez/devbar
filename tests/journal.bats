@@ -514,3 +514,24 @@ STUB
   [ "$status" -eq 2 ]
   [[ "$(jq -r .error <<<"$output")" == *"non trovata"* ]]
 }
+
+@test "journal: settle esplicito dopo l'azione, anche se l'azione sostituisce la trap EXIT" {
+  # copia del motore con un'azione di prova che scrive un file e mette la sua trap EXIT
+  R="$BATS_TEST_TMPDIR/root"
+  mkdir -p "$R/bin"
+  cp "$DEVBAR_REPO/bin/devbar" "$R/bin/devbar"
+  cp -R "$DEVBAR_REPO/lib" "$R/lib"
+  cat >"$R/lib/zz-test.sh" <<'SH'
+action_trap_test() {
+  trap 'true' EXIT
+  journal_before "$HOME/f.txt"
+  echo nuovo >"$HOME/f.txt"
+  echo '{"applied":true}'
+}
+SH
+  echo vecchio >"$HOME/f.txt"
+  run --separate-stderr "$R/bin/devbar" run trap-test
+  [ "$status" -eq 0 ]
+  d="$(find "$J" -mindepth 1 -maxdepth 1 -type d)"
+  [ "$(jq -r '.files[0].sha256After' "$d/meta.json")" = "$(shasum -a 256 "$HOME/f.txt" | cut -d' ' -f1)" ]
+}

@@ -51,10 +51,15 @@ case "$cmd" in
       echo "devbar: azione sconosciuta: $name" >&2
       exit 2
     fi
-    # Registro: una voce per invocazione (lib/journal.sh), sistemata all'uscita.
+    # Registro: una voce per invocazione (lib/journal.sh), sistemata quando l'azione torna.
+    # La trap EXIT è solo il ripiego per un'azione che esce da sé (emit, set -e): with_lock
+    # o audit_repos la sostituiscono con la loro. Mai `"$fn" || …`: spegnerebbe set -e nell'azione.
     journal_begin run "$name" "$@"
     trap 'journal_settle </dev/null || echo "devbar: registro delle modifiche non aggiornato" >&2' EXIT
     "$fn" "$@"
+    journal_settle </dev/null || echo "devbar: registro delle modifiche non aggiornato" >&2
+    # la trap resta (può essere quella dell'azione): la nostra, se c'è ancora, non rifà nulla
+    export DEVBAR_JOURNAL_ENTRY=""
     ;;
   detect | repos | check-timeouts | journal | undo)
     fn="cmd_${cmd//-/_}"
