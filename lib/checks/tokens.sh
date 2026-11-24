@@ -40,7 +40,7 @@ check_caveman() {
   dir="$HOME/.claude/plugins/cache/caveman/caveman"
   ver=""
   if [ -d "$dir" ]; then
-    ver="$(find "$dir" -mindepth 1 -maxdepth 1 -type d -exec basename {} ; 2>/dev/null | sort -V | tail -n 1)"
+    ver="$(find "$dir" -mindepth 1 -maxdepth 1 -type d -exec basename {} + 2>/dev/null | sort -V | tail -n 1)"
   fi
   if [ -f "$cfg" ]; then
     mode="$(jq -r 'if type == "object" then (.defaultMode // "") else "" end' "$cfg" 2>/dev/null)" || mode=""
