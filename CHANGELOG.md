@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.2](https://github.com/savez/devbar/compare/v0.4.1...v0.4.2) (2026-11-24)
+
+
+### Bug Fixes
+
+* **app:** posizione iniziale dell'icona (Hidden Bar) ([3d956e5](https://github.com/savez/devbar/commit/3d956e5651c2bb83cb261cbee9c6ee04fe3730d3))
+* **app:** posizione iniziale dell'icona a destra nella barra dei menu, così Hidden Bar non la nasconde ([f8bce5f](https://github.com/savez/devbar/commit/f8bce5f9375993f28985398a80f60d2baeb0aa2b))
+
 ## [0.4.1](https://github.com/savez/devbar/compare/v0.4.0...v0.4.1) (2026-11-24)
 
 
