@@ -55,7 +55,8 @@ normalize() {
   for p in "/private$TMP" "$TMP"; do
     sed -i '' "s#$p#/tmp/devbar-contract#g" "$f"
   done
-  jq 'walk(if type == "object" and has("checkedAt") then .checkedAt = "2026-01-01T00:00:00Z" else . end)' "$f" >"$f.n"
+  jq 'walk(if type == "object" and has("checkedAt") then .checkedAt = "2026-01-01T00:00:00Z" else . end
+    | if type == "object" and (.time | type) == "string" then .time = "2026-01-01T00:00:00Z" else . end)' "$f" >"$f.n"
   mv "$f.n" "$f"
   if grep -qiE "$(id -un)|$TMP" "$f"; then
     echo "contract-fixtures: dati locali in $f" >&2
@@ -122,9 +123,15 @@ fixture project-status run project-status "$REPO_P"
 
 # Azioni che scrivono (solo su HOME e config temporanei, separati da quelli dei check).
 (
-  export HOME="$TMP/home2" DEVBAR_CONFIG="$TMP/config2.json"
+  # id fisso della voce di registro (la data la fissa normalize)
+  export HOME="$TMP/home2" DEVBAR_CONFIG="$TMP/config2.json" DEVBAR_JOURNAL_ID=contract
   mkdir -p "$HOME"
   fixture caveman-mode.plan run caveman-mode megacave
   fixture caveman-mode run caveman-mode megacave --yes
   fixture tool-install run tool-install claude-usage --yes
+  # registro e undo della scrittura di caveman-mode
+  fixture journal journal
+  fixture undo.plan undo
+  fixture undo undo --yes
+  fixture undo.error undo --yes
 )

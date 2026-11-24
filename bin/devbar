@@ -24,7 +24,7 @@ for f in "$DEVBAR_ROOT"/lib/*.sh "$DEVBAR_ROOT"/lib/*/*.sh; do
 done
 
 usage() {
-  echo "uso: devbar check <nome> [--force] | run <azione> [args...] | detect | repos | check-timeouts | version" >&2
+  echo "uso: devbar check <nome> [--force] | run <azione> [args...] | detect | repos | check-timeouts | journal | undo [<id>] [--yes] [--force] | version" >&2
 }
 
 cmd="${1:-}"
@@ -51,9 +51,12 @@ case "$cmd" in
       echo "devbar: azione sconosciuta: $name" >&2
       exit 2
     fi
+    # Registro: una voce per invocazione (lib/journal.sh), sistemata all'uscita.
+    journal_begin run "$name" "$@"
+    trap 'journal_settle </dev/null || echo "devbar: registro delle modifiche non aggiornato" >&2' EXIT
     "$fn" "$@"
     ;;
-  detect | repos | check-timeouts)
+  detect | repos | check-timeouts | journal | undo)
     fn="cmd_${cmd//-/_}"
     if [ "$(type -t "$fn")" != "function" ]; then
       echo "devbar: $cmd non ancora implementato" >&2

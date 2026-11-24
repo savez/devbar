@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "undo",
+  "description": "Uscita di `devbar undo [<id>] [--yes] [--force]` (lib/journal.sh cmd_undo): senza --yes il piano (forma comune più id, needsForce e i file con l'azione), con --yes {applied,id,commands}. Errori (file cambiati senza --force, ripristino fallito): engineError, rc 2.",
+  "oneOf": [
+    {
+      "description": "Senza --yes: piano, nessuna scrittura.",
+      "$ref": "defs.schema.json#/$defs/planBase",
+      "required": ["plan", "commands", "id", "time", "command", "needsForce", "files"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+        "time": { "type": "string" },
+        "command": { "type": "string" },
+        "needsForce": { "type": "boolean" },
+        "commands": { "minItems": 1 },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["path", "action", "changed"],
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "action": { "enum": ["restore", "remove", "none"] },
+              "changed": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    {
+      "description": "Con --yes: ripristinato.",
+      "type": "object",
+      "required": ["applied", "id", "commands"],
+      "properties": {
+        "applied": { "const": true },
+        "id": { "type": "string" },
+        "commands": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    { "$ref": "defs.schema.json#/$defs/engineError" }
+  ]
+}

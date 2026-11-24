@@ -131,6 +131,8 @@ devbar_write_file() {
     [ "$n" -le 20 ] || { echo "devbar: troppi symlink: $1" >&2; return 1; }
   done
   dir="$(dirname "$target")"
+  # registro delle modifiche (lib/journal.sh): stato di prima, backup; se fallisce non si scrive
+  if declare -F journal_before >/dev/null; then journal_before "$target" </dev/null || return 1; fi
   mkdir -p "$dir" || return 1
   tmp="$(mktemp "$dir/.devbar-write.XXXXXX")" || return 1
   if [ -e "$target" ]; then

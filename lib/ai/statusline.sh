@@ -55,6 +55,7 @@ ai_statusline_install() {
     backup="$f.devbar-$stamp"
     while [ -e "$backup" ]; do n=$((n + 1)); backup="$f.devbar-$stamp-$n"; done
     # cp -p: il backup eredita il modo (settings.json è spesso 600)
+    journal_before "$backup" </dev/null || return 1
     cp -p "$f" "$backup" || return 1
     echo "devbar: backup in $backup" >&2
     new="$(jq --arg c "$cmd" '.statusLine = {type:"command",command:$c}' "$f")" || return 1

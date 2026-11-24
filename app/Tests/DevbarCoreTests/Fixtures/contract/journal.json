@@ -1,0 +1,20 @@
+{
+  "entries": [
+    {
+      "id": "contract",
+      "time": "2026-01-01T00:00:00Z",
+      "command": "run caveman-mode megacave --yes",
+      "undone": false,
+      "files": [
+        {
+          "path": "/Users/example2/.config/caveman/config.json",
+          "kind": "file",
+          "existed": false,
+          "sha256Before": null,
+          "sha256After": "a25532b13e513b2f8f810ebae48200d1fb88f232f74cf80ba270f44d5e58ffaa",
+          "changed": false
+        }
+      ]
+    }
+  ]
+}

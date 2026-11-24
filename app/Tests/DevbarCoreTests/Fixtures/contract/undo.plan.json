@@ -1,0 +1,17 @@
+{
+  "plan": true,
+  "id": "contract",
+  "time": "2026-01-01T00:00:00Z",
+  "command": "run caveman-mode megacave --yes",
+  "needsForce": false,
+  "commands": [
+    "rimuove ~/.config/caveman/config.json (creato da devbar)"
+  ],
+  "files": [
+    {
+      "path": "/Users/example2/.config/caveman/config.json",
+      "action": "remove",
+      "changed": false
+    }
+  ]
+}

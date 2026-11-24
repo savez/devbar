@@ -108,3 +108,18 @@ neg() {
   neg caveman-mode.plan '.value = "commit"'
 }
 @test "negativo: tool-install" { neg tool-install 'del(.terminal)'; neg tool-install '.terminal = false'; }
+@test "negativo: journal" {
+  neg journal 'del(.entries)'
+  neg journal 'del(.entries[0].id)'
+  neg journal 'del(.entries[0].undone)'
+  neg journal '.entries[0].files[0].changed = "no"'
+  neg journal 'del(.entries[0].files[0].sha256After)'
+}
+@test "negativo: undo" {
+  neg undo.plan 'del(.needsForce)'
+  neg undo.plan 'del(.files)'
+  neg undo.plan '.files[0].action = "delete"'
+  neg undo.plan 'del(.id)'
+  neg undo 'del(.applied)'
+  neg undo.error 'del(.error)'
+}

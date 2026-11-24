@@ -218,6 +218,15 @@ action_project_apply() {
   done < <(_proj_caveman_targets)
   # tokensave: init (indice + hook del repo) oppure solo hook se l'indice c'è.
   # `tokensave install --git-hook yes` non va bene: configura anche gli agenti.
+  # tokensave scrive da sé: si registra prima lo stato dei percorsi che tocca (willWrite).
+  case "$ts" in
+    noindex | nohook)
+      local h snap=()
+      [ "$ts" = nohook ] || snap+=("$root/.tokensave" "$(_proj_gitpath "$root" info/exclude)")
+      for h in $_PROJ_TS_HOOKS; do snap+=("$(_proj_gitpath "$root" "hooks/$h")"); done
+      journal_before "${snap[@]}" </dev/null || { _ai_error "backup prima di tokensave fallito"; return 2; }
+      ;;
+  esac
   case "$ts" in
     noindex) (cd "$root" && tokensave init --git-hook </dev/null) >&2 || rc=$? ;;
     nohook) (cd "$root" && tokensave githooks on --local </dev/null) >&2 || rc=$? ;;

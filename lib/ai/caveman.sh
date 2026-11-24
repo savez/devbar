@@ -172,12 +172,24 @@ _caveman_write_default_config() {
 
 # --- Claude Code / OpenCode (installer nativo) ---
 
+# _caveman_native_paths <claude|opencode>: file noti scritti dall'installer nativo (uno per riga).
+# Limite: l'installer può toccare altro (cache dei plugin, comandi): non registrato.
+_caveman_native_paths() {
+  case "$1" in
+    claude) printf '%s\n' "$(_caveman_claude_dir)/settings.json" ;;
+    opencode) printf '%s\n' "$HOME/.config/opencode/opencode.json" "$HOME/.config/opencode/plugins/caveman" ;;
+  esac
+}
+
 _caveman_setup_native() {
   local target="$1" installer
   if ! installer="$(_caveman_installer_path)"; then
     echo "devbar: installer caveman non trovato in $(_caveman_cache) (package.json bin, installer/install.js, bin/install.js, cli/install.js)" >&2
     return 1
   fi
+  # l'installer scrive da sé: si registra prima lo stato dei file noti che tocca
+  # shellcheck disable=SC2046 # un percorso per riga
+  journal_before $(_caveman_native_paths "$target") </dev/null || return 1
   node "$installer" --only "$target" --force --non-interactive --no-mcp-shrink </dev/null || {
     echo "devbar: installer caveman fallito per $target" >&2
     return 1
@@ -193,6 +205,7 @@ _caveman_setup_opencode() {
   # l'avvio (https://github.com/JuliusBrussee/caveman/issues/386).
   for f in cavecrew-investigator.md cavecrew-builder.md cavecrew-reviewer.md; do
     if [ -f "$agents_dir/$f" ]; then
+      journal_before "$agents_dir/$f" </dev/null || return 1
       rm -f "${agents_dir:?}/${f:?}"
       echo "devbar: rimosso agent incompatibile: $agents_dir/$f" >&2
     fi
@@ -253,6 +266,7 @@ _caveman_backup() {
   local p="$1" b n=1
   b="$p.devbar-$(date +%Y%m%d-%H%M%S)"
   while [ -e "$b" ] || [ -L "$b" ]; do b="$p.devbar-$(date +%Y%m%d-%H%M%S)-$n"; n=$((n + 1)); done
+  journal_before "$p" "$b" </dev/null || return 1
   mv "$p" "$b" || return 1
   echo "devbar: $p sostituito, backup in $b" >&2
 }
@@ -263,6 +277,9 @@ _caveman_setup_copilot() {
   src="$cache/skills/caveman"
   dest="$(_caveman_skills_dir)/caveman"
   [ -d "$src" ] || { echo "devbar: skill caveman non trovata: $src" >&2; return 1; }
+  # registro: skill e link come sono ora (cartelle in tar, link come target)
+  # shellcheck disable=SC2046 # un percorso per riga, senza spazi in $HOME attesi
+  journal_before "$dest" $(_caveman_copilot_links) </dev/null || return 1
   # Cartella diversa dalla skill: backup, poi copia nuova. Uguale: niente da fare.
   if { [ -e "$dest" ] || [ -L "$dest" ]; } && ! diff -rq "$src" "$dest" >/dev/null 2>&1; then
     _caveman_backup "$dest" || return 1

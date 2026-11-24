@@ -59,9 +59,25 @@ ai_rtk_install_cmds() {
   done
 }
 
+# _rtk_init_paths <harness>: file noti scritti da `rtk init` (uno per riga), da `rtk init --show`.
+# Limite: rtk può toccare altro (es. script di hook): non registrato.
+_rtk_init_paths() {
+  local c="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+  case "$1" in
+    claude | opencode) printf '%s\n' "$c/settings.json" "$c/RTK.md" "$c/CLAUDE.md" ;;
+  esac
+  case "$1" in
+    opencode) printf '%s\n' "$HOME/.config/opencode/plugins/rtk.ts" ;;
+    cursor) printf '%s\n' "$HOME/.cursor/hooks.json" ;;
+  esac
+}
+
 ai_rtk_install() {
   local h
   for h in "$@"; do
+    # rtk init scrive da sé: si registra prima lo stato dei file noti (lib/journal.sh)
+    # shellcheck disable=SC2046 # un percorso per riga
+    journal_before $(_rtk_init_paths "$h") </dev/null || return 1
     case "$h" in
       claude) rtk init -g --auto-patch </dev/null || return 1 ;;
       opencode)
