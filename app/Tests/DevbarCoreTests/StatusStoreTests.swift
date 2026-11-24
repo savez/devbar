@@ -77,9 +77,8 @@ func rows(_ overrides: [String: String]) -> [String: String] {
 @MainActor
 struct StatusStoreTests {
     func makeStore(_ runner: FakeRunner, clock: FakeClock = FakeClock(),
-                   allTimeout: TimeInterval = 5, checkTimeout: TimeInterval = 5) -> StatusStore {
-        StatusStore(runner: runner, now: { clock.now },
-                    allTimeout: allTimeout, checkTimeout: checkTimeout, actionTimeout: 5)
+                   allTimeout: TimeInterval = 5) -> StatusStore {
+        StatusStore(runner: runner, now: { clock.now }, allTimeout: allTimeout, actionTimeout: 5)
     }
 
     @Test func testSevereVulnsMakeBadgeError() async {
@@ -146,25 +145,61 @@ struct StatusStoreTests {
     }
 
     @Test func testHangingCheckBecomesErrorOthersUpdated() async {
-        // `check all` non termina: si ripiega sui check singoli; npm-audit non termina neppure lì.
-        var replies: [String: FakeRunner.Reply] = ["check all": .init(rc: 1, stdout: "", delay: 30)]
-        for (name, json) in rows(["brew-outdated": row("action", rc: 0, count: 4)]) {
-            // Il motore esce con l'rc del check: lo si ricava dallo stato della riga.
-            let rc: Int32 = json.contains(#""status":"action""#) ? 0 : json.contains(#""status":"ok""#) ? 1 : 3
-            replies["check \(name)"] = .init(rc: rc, stdout: json)
-        }
-        replies["check npm-audit"] = .init(rc: 0, stdout: "", delay: 30)
-        let runner = FakeRunner(replies)
-        let store = makeStore(runner, allTimeout: 0.05, checkTimeout: 0.05)
-        let start = Date()
+        // Il motore uccide il check bloccato e lo riporta come riga "timeout".
+        let runner = FakeRunner(["check all": .init(rc: 1, stdout: allJSON(rows([
+            "brew-outdated": row("action", rc: 0, count: 4),
+            "npm-audit": #"{"rc":2,"status":"error","summary":"timeout"}"#,
+        ])))])
+        let store = makeStore(runner)
         await store.refresh(force: false)
-        #expect(Date().timeIntervalSince(start) < 2)
         #expect(store.results["npm-audit"]?.state == .error)
+        #expect(store.results["npm-audit"]?.summary == "timeout")
         #expect(store.results["brew-outdated"]?.state == .action)
         #expect(store.results["brew-outdated"]?.count == 4)
         #expect(store.results["colima"]?.state == .ok)
-        #expect(store.results.count == StatusStore.checkNames.count)
+        #expect(store.refreshError == nil)
         #expect(store.badge.count == 4)
+        #expect(await runner.calls.count == 1)
+    }
+
+    @Test func testBackstopTimeoutKeepsPreviousResults() async {
+        let runner = FakeRunner(["check all": .init(rc: 1, stdout: allJSON(rows([
+            "brew-outdated": row("action", rc: 0, count: 6),
+        ])))])
+        let clock = FakeClock()
+        let store = makeStore(runner, clock: clock, allTimeout: 0.05)
+        await store.refresh(force: false)
+        let first = store.lastRefresh
+        clock.advance(60)
+        await runner.set("check all", .init(rc: 1, stdout: allJSON(quietRows), delay: 30))
+        let start = Date()
+        await store.refresh(force: false)
+        #expect(Date().timeIntervalSince(start) < 2)
+        #expect(store.refreshError != nil)
+        #expect(!store.engineBusy)
+        #expect(store.results["brew-outdated"]?.count == 6)
+        #expect(store.badge.count == 6)
+        #expect(store.lastRefresh == first)
+        #expect(await runner.calls.count == 2)
+    }
+
+    @Test func testGlobalNonBusyErrorIsRefreshError() async {
+        let runner = FakeRunner(["check all": .init(rc: 1, stdout: allJSON(rows([
+            "brew-outdated": row("action", rc: 0, count: 6),
+        ])))])
+        let store = makeStore(runner)
+        await store.refresh(force: false)
+        await runner.set("check all", .init(rc: 2, stdout: #"{"status":"error","error":"jq mancante"}"#))
+        await store.refresh(force: false)
+        #expect(!store.engineBusy)
+        #expect(store.refreshError == "jq mancante")
+        #expect(store.results["_all"] == nil)
+        #expect(store.results["brew-outdated"]?.count == 6)
+        // Un refresh riuscito azzera l'errore.
+        await runner.set("check all", .init(rc: 1, stdout: allJSON(quietRows)))
+        await store.refresh(force: false)
+        #expect(store.refreshError == nil)
+        #expect(store.badge.count == 0)
     }
 
     @Test func testPanelOpenedTwiceWithinFiveMinutesRunsOnce() async {
@@ -199,6 +234,7 @@ struct StatusStoreTests {
         await runner.set("check all", .init(rc: 2, stdout: #"{"status":"error","error":"busy"}"#))
         await store.refresh(force: true)
         #expect(store.engineBusy)
+        #expect(store.refreshError == nil)
         #expect(store.results["_all"] == nil)
         #expect(store.results["brew-outdated"]?.count == 6)
         #expect(store.badge.count == 6)
@@ -318,12 +354,23 @@ struct CLIRunnerTests {
     }
 
     @Test func testTimeoutKillsProcessTree() async throws {
-        let (dir, bin) = try script("sleep 60 & sleep 60")
+        let (dir, bin) = try script("sleep 60 & echo $! > \"$(dirname \"$0\")/bg.pid\"; sleep 60")
         defer { try? FileManager.default.removeItem(at: dir) }
         let start = Date()
         let r = await CLIRunner(environment: ["DEVBAR_BIN": bin]).run([], timeout: 0.3)
         #expect(r.rc == 2)
         #expect(Date().timeIntervalSince(start) < 3)
+        let text = try String(contentsOf: dir.appendingPathComponent("bg.pid"), encoding: .utf8)
+        let bg = try #require(pid_t(text.trimmingCharacters(in: .whitespacesAndNewlines)))
+        // Il nipote in background muore con il gruppo (con un semplice kill(pid) resterebbe vivo).
+        // Breve attesa: l'orfano ucciso va raccolto da launchd prima che kill(…, 0) fallisca.
+        var alive = true
+        for _ in 0..<20 where alive {
+            alive = kill(bg, 0) == 0
+            if alive { try await Task.sleep(nanoseconds: 50_000_000) }
+        }
+        if alive { kill(bg, SIGKILL) }
+        #expect(!alive)
     }
 
     @Test func testTimeoutEscalatesToKill() async throws {

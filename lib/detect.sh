@@ -75,19 +75,68 @@ check_harnesses() {
 
 DEVBAR_ALL_CHECKS="brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave caveman claude-usage harnesses"
 
-# check_all_run [--force]: esegue ogni check in un processo a parte.
+# Timeout di ogni check dentro check all (secondi); override DEVBAR_CHECK_TIMEOUT.
+DEVBAR_CHECK_TIMEOUT_DEFAULT=60
+
+check_timeout_secs() {
+  local t="${DEVBAR_CHECK_TIMEOUT:-}"
+  if [[ "$t" =~ ^[0-9]+$ ]] && [ "$t" -gt 0 ]; then echo "$t"; else echo "$DEVBAR_CHECK_TIMEOUT_DEFAULT"; fi
+}
+
+# tree_pids <pid>: il pid e tutti i discendenti (figli prima del padre).
+tree_pids() {
+  local c
+  for c in $(pgrep -P "$1" 2>/dev/null); do tree_pids "$c"; done
+  echo "$1"
+}
+
+# run_timed <secs> <outfile> <cmd...>: stdout su <outfile>, rc del comando;
+# allo scadere (macOS non ha `timeout`) TERM all'albero, KILL dopo 1 s, rc 124.
+run_timed() {
+  local secs="$1" outf="$2" pid pids i=0 rc=0
+  shift 2
+  "$@" >"$outf" 2>/dev/null &
+  pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$i" -ge $((secs * 10)) ]; then
+      # elenco preso prima di uccidere: i nipoti orfani non sarebbero più figli
+      pids="$(tree_pids "$pid")"
+      # shellcheck disable=SC2086
+      kill -TERM $pids 2>/dev/null || true
+      sleep 1
+      # shellcheck disable=SC2086
+      kill -KILL $pids 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+      return 124
+    fi
+    sleep 0.1
+    i=$((i + 1))
+  done
+  wait "$pid" || rc=$?
+  return "$rc"
+}
+
+# check_all_run [--force]: esegue ogni check in un processo a parte, con timeout.
 check_all_run() {
-  local name out rc res all="{}" fargs=()
+  local name out rc res all="{}" fargs=() secs tmp
   [ "${1:-}" = "--force" ] && fargs=(--force)
+  secs="$(check_timeout_secs)"
+  tmp="$(mktemp "${TMPDIR:-/tmp}/devbar-check.XXXXXX")"
   for name in $DEVBAR_ALL_CHECKS; do
     rc=0
-    out="$("$DEVBAR_ROOT/bin/devbar" check "$name" ${fargs[@]+"${fargs[@]}"} 2>/dev/null)" || rc=$?
+    run_timed "$secs" "$tmp" "$DEVBAR_ROOT/bin/devbar" check "$name" ${fargs[@]+"${fargs[@]}"} || rc=$?
+    if [ "$rc" -eq 124 ]; then
+      all="$(jq -c --arg k "$name" '. + {($k):{rc:2,status:"error",summary:"timeout"}}' <<<"$all")"
+      continue
+    fi
+    out="$(cat "$tmp")"
     res="$(jq -ce --argjson rc "$rc" 'select(type == "object") | . + {rc:$rc}' <<<"$out" 2>/dev/null)" || res=""
     if [ -z "$res" ]; then
       res="$(jq -nc --argjson rc "$rc" '{rc:$rc,status:"error",summary:"output non valido"}')"
     fi
     all="$(jq -c --arg k "$name" --argjson v "$res" '. + {($k):$v}' <<<"$all")"
   done
+  rm -f "$tmp"
   printf '%s\n' "$all"
   return 1
 }

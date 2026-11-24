@@ -89,3 +89,37 @@ setup() {
   run --separate-stderr "$DEVBAR" check all
   [ ! -e "$DEVBAR_CACHE_DIR/devbar.lock.d" ]
 }
+
+@test "check all: check oltre DEVBAR_CHECK_TIMEOUT -> riga timeout, altre presenti, lock rilasciato" {
+  # rtk finto che non termina; registra il pid del suo figlio per verificare che muoia.
+  cat >"$BATS_TEST_TMPDIR/stubs/rtk" <<STUB
+#!/usr/bin/env bash
+sleep 30 &
+echo \$! >"$BATS_TEST_TMPDIR/rtk-child.pid"
+wait
+STUB
+  chmod +x "$BATS_TEST_TMPDIR/stubs/rtk"
+  export DEVBAR_CHECK_TIMEOUT=1
+  local start=$SECONDS
+  run --separate-stderr "$DEVBAR" check all
+  [ "$status" -eq 1 ]
+  [ $((SECONDS - start)) -lt 10 ]
+  [ "$(jq -c '.rtk' <<<"$output")" = '{"rc":2,"status":"error","summary":"timeout"}' ]
+  for k in brew-outdated brew-vulns npm-audit composer-audit colima tokensave caveman claude-usage harnesses; do
+    [ "$(jq -r --arg k "$k" '.[$k]|has("rc")' <<<"$output")" = true ]
+    [ "$(jq -r --arg k "$k" '.[$k].summary' <<<"$output")" != timeout ]
+  done
+  [ ! -e "$DEVBAR_CACHE_DIR/devbar.lock.d" ]
+  local child
+  child="$(cat "$BATS_TEST_TMPDIR/rtk-child.pid")"
+  [ -n "$child" ]
+  run kill -0 "$child"
+  [ "$status" -ne 0 ]
+}
+
+@test "check all: DEVBAR_CHECK_TIMEOUT non valido -> default, nessun timeout" {
+  export DEVBAR_CHECK_TIMEOUT=abc
+  run --separate-stderr "$DEVBAR" check all
+  [ "$status" -eq 1 ]
+  [ "$(jq '[.[] | select(.summary == "timeout")] | length' <<<"$output")" = 0 ]
+}

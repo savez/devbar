@@ -6,9 +6,6 @@ import Network
 /// Stato dei check per la UI. Esegue solo la CLI: nessuna logica di check qui.
 @Observable @MainActor
 public final class StatusStore {
-    /// Check di `devbar check all`, nell'ordine di visualizzazione.
-    public static let checkNames = ["brew-outdated", "brew-vulns", "npm-audit", "composer-audit",
-                                    "colima", "rtk", "tokensave", "caveman", "claude-usage", "harnesses"]
     /// Check solo informativi: non contribuiscono mai al badge.
     public static let informative: Set<String> = ["colima", "rtk", "tokensave", "caveman", "claude-usage"]
     /// `panelOpened()` rilancia solo se l'ultimo refresh è più vecchio di così.
@@ -21,6 +18,9 @@ public final class StatusStore {
     public private(set) var lastRefresh: Date?
     /// Ultimo `check all` trovato occupato (lock del motore): risultati precedenti mantenuti.
     public private(set) var engineBusy = false
+    /// Ultimo refresh fallito (timeout di riserva, output non valido, errore globale del
+    /// motore): risultati precedenti mantenuti. nil dopo un refresh riuscito.
+    public private(set) var refreshError: String?
     public private(set) var config = DevbarConfig()
     /// "config non valida: …" da mostrare nelle impostazioni.
     public private(set) var configError: String?
@@ -29,7 +29,6 @@ public final class StatusStore {
     private let now: @Sendable () -> Date
     private let configStore: ConfigStore
     private let allTimeout: TimeInterval
-    private let checkTimeout: TimeInterval
     private let actionTimeout: TimeInterval
 
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
@@ -37,20 +36,18 @@ public final class StatusStore {
     @ObservationIgnored private var dailyTask: Task<Void, Never>?
 
     /// - Parameters:
-    ///   - allTimeout: `check all` (120 s).
-    ///   - checkTimeout: ogni check singolo, quando `check all` non termina (60 s).
+    ///   - allTimeout: `check all`, 600 s: solo riserva, il motore dà già 60 s a ogni
+    ///     check (DEVBAR_CHECK_TIMEOUT) e mette "timeout" nella riga bloccata.
     ///   - actionTimeout: azioni non interattive (30 s).
     public init(runner: any CLIRunning = CLIRunner(),
                 now: @escaping @Sendable () -> Date = { Date() },
                 configStore: ConfigStore = ConfigStore(),
-                allTimeout: TimeInterval = 120,
-                checkTimeout: TimeInterval = 60,
+                allTimeout: TimeInterval = 600,
                 actionTimeout: TimeInterval = 30) {
         self.runner = runner
         self.now = now
         self.configStore = configStore
         self.allTimeout = allTimeout
-        self.checkTimeout = checkTimeout
         self.actionTimeout = actionTimeout
     }
 
@@ -75,62 +72,35 @@ public final class StatusStore {
     // MARK: - Refresh
 
     /// `devbar check all [--force]`. Se è già in corso un refresh, la chiamata è ignorata.
-    /// Se `check all` non termina entro il timeout, ripiega sui check singoli in parallelo,
-    /// ognuno col suo timeout: la riga bloccata va in errore, le altre si aggiornano.
+    /// Un check bloccato arriva dal motore come riga in errore ("timeout"); le altre righe
+    /// si aggiornano. Motore occupato o refresh fallito: risultati precedenti mantenuti.
     public func refresh(force: Bool) async {
         guard !isRefreshing else { return }
         isRefreshing = true
         defer { isRefreshing = false }
 
-        let flag = force ? ["--force"] : []
-        let r = await runner.run(["check", "all"] + flag, timeout: allTimeout)
-        if let all = try? AllChecks.decode(r.stdout) {
-            if all.rows["_all"] != nil {
-                // Motore occupato (o errore globale): si tengono i risultati precedenti.
-                engineBusy = true
-                return
-            }
+        let r = await runner.run(["check", "all"] + (force ? ["--force"] : []), timeout: allTimeout)
+        guard let all = try? AllChecks.decode(r.stdout) else {
             engineBusy = false
-            results = all.rows
-            raw = all.raw
-            lastRefresh = now()
+            let detail = r.stderr.split(separator: "\n").last.map(String.init) ?? ""
+            refreshError = detail.isEmpty ? "devbar: output non valido (rc \(r.rc))" : detail
             return
         }
-
+        if let global = all.rows["_all"] {
+            if case .object(let o)? = all.raw["_all"], o["error"] == .string("busy") {
+                // Lock del motore: un altro check all è in corso.
+                engineBusy = true
+            } else {
+                engineBusy = false
+                refreshError = global.summary.isEmpty ? "devbar: errore" : global.summary
+            }
+            return
+        }
         engineBusy = false
-        var newResults: [String: CheckResult] = [:]
-        var newRaw: [String: JSONValue] = [:]
-        let runner = self.runner, timeout = checkTimeout
-        await withTaskGroup(of: (String, CheckResult, JSONValue?).self) { group in
-            for name in Self.checkNames {
-                group.addTask {
-                    let r = await runner.run(["check", name] + flag, timeout: timeout)
-                    return Self.decodeSingle(name: name, rc: r.rc, stdout: r.stdout, stderr: r.stderr)
-                }
-            }
-            for await (name, result, json) in group {
-                newResults[name] = result
-                if let json { newRaw[name] = json }
-            }
-        }
-        results = newResults
-        raw = newRaw
+        refreshError = nil
+        results = all.rows
+        raw = all.raw
         lastRefresh = now()
-    }
-
-    /// Output di `devbar check <name>`: un oggetto senza `rc`, si aggiunge quello di uscita.
-    nonisolated static func decodeSingle(name: String, rc: Int32, stdout: Data, stderr: String)
-        -> (String, CheckResult, JSONValue?) {
-        if case .object(var obj)? = try? JSONDecoder().decode(JSONValue.self, from: stdout) {
-            obj["rc"] = .number(Double(rc))
-            let json = JSONValue.object(obj)
-            if let data = try? JSONEncoder().encode(json),
-               let result = try? JSONDecoder().decode(CheckResult.self, from: data) {
-                return (name, result, json)
-            }
-        }
-        let msg = stderr.split(separator: "\n").last.map(String.init) ?? ""
-        return (name, .failure(msg.isEmpty ? "output non valido: \(name)" : msg), nil)
     }
 
     /// Apertura del pannello: rilancia solo se l'ultimo refresh ha più di 5 minuti.
