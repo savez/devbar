@@ -66,9 +66,11 @@ check_caveman() {
   fi
   mode="$(_caveman_canonical_mode "$raw")"
   if [ "$enabled" = true ] && [ "$mode" != off ]; then active=true; fi
-  local extra
-  extra="$(jq -nc --arg m "$mode" --arg r "$raw" --arg v "$ver" --argjson e "$enabled" --argjson a "$active" \
-    '{pluginEnabled:$e, mode:$m, rawMode:$r, version:$v, active:$a}')"
+  local last extra
+  last="$(_caveman_canonical_mode "$(config_get '.cavemanLastMode // ""' 2>/dev/null)")"
+  [ "$last" != off ] || last=caveman
+  extra="$(jq -nc --arg m "$mode" --arg r "$raw" --arg v "$ver" --arg l "$last" --argjson e "$enabled" --argjson a "$active" \
+    '{pluginEnabled:$e, mode:$m, rawMode:$r, version:$v, lastMode:$l, active:$a}')"
   emit ok 0 "caveman ${ver:+$ver }($mode)" "[]" "$extra"
 }
 

@@ -250,6 +250,6 @@ struct DetailsTests {
         #expect(m.rtkAllDaily.count == 7)
         #expect(m.rtkSaved == 193_742)
         #expect(m.tokensave?.missedTurns == 53)
-        #expect(m.cavemanMode == "full")
+        #expect(m.cavemanMode == "caveman")
     }
 }

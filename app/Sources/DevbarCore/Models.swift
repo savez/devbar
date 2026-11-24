@@ -305,14 +305,24 @@ public struct TokensaveGain: Decodable, Equatable, Sendable {
 
 public struct CavemanStatus: Decodable, Equatable, Sendable {
     public var result: CheckResult
-    /// nil se assente o "".
+    /// Modalità canonica (valori legacy già mappati dal motore). nil se assente o "".
     public var mode: String?
+    /// Come scritta nel config del plugin.
+    public var rawMode: String?
     public var version: String?
+    /// Ultima modalità non spenta (per riaccendere), canonica.
+    public var lastMode: String?
+    public var pluginEnabled: Bool
+    public var active: Bool
     public init(from decoder: Decoder) throws {
         result = try CheckResult(from: decoder)
         let c = try top(decoder)
         mode = c.optText("mode")
+        rawMode = c.optText("rawMode")
         version = c.optText("version")
+        lastMode = c.optText("lastMode")
+        pluginEnabled = c.opt("pluginEnabled") ?? false
+        active = c.opt("active") ?? false
     }
 }
 

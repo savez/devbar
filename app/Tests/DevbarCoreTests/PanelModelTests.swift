@@ -85,11 +85,40 @@ struct PanelModelTests {
         #expect(PanelModel(all: try all(), detect: detect(claude: false)).aiTools == ["RTK", "caveman", "tokensave"])
     }
 
-    @Test func cavemanEmptyModeHidden() throws {
-        let a = try mutate("caveman") { $0["mode"] = .string(""); $0["version"] = .string("") }
-        #expect(PanelModel(all: a, detect: detect()).cavemanLine == nil)
-        let b = try all()
-        #expect(PanelModel(all: b, detect: detect()).cavemanLine == "caveman full, 4.2.0")
+    @Test func cavemanPanelFromCheck() throws {
+        let c = try #require(PanelModel(all: try all(), detect: detect()).caveman)
+        #expect(c.mode == .caveman)
+        #expect(c.active)
+        #expect(c.statusText == "attivo")
+        #expect(c.tone == .ok)
+        #expect(c.version == "4.2.0")
+    }
+
+    @Test func cavemanHiddenWhenNotInstalled() throws {
+        let a = try mutate("caveman") { $0["status"] = .string("unconfigured"); $0["rc"] = .number(3) }
+        let m = PanelModel(all: a, detect: detect())
+        #expect(m.caveman == nil)
+        #expect(!m.showsTokenSection || m.rtkState != .hidden)
+    }
+
+    @Test func cavemanOffAndPluginDisabled() throws {
+        let off = try mutate("caveman") { $0["mode"] = .string("off"); $0["active"] = .bool(false) }
+        let o = try #require(PanelModel(all: off, detect: detect()).caveman)
+        #expect(o.statusText == "spento")
+        #expect(o.tone == .info)
+        #expect(o.toggleTarget(turningOn: true) == .caveman)
+        #expect(o.toggleTarget(turningOn: false) == .off)
+        let dis = try mutate("caveman") { $0["pluginEnabled"] = .bool(false); $0["active"] = .bool(false) }
+        let d = try #require(PanelModel(all: dis, detect: detect()).caveman)
+        #expect(d.statusText == "plugin disattivato")
+        #expect(d.tone == .action)
+        #expect(!d.canToggle)
+    }
+
+    @Test func cavemanTurningOnRestoresLastMode() throws {
+        let a = try mutate("caveman") { $0["mode"] = .string("off"); $0["active"] = .bool(false); $0["lastMode"] = .string("ultracave") }
+        let c = try #require(PanelModel(all: a, detect: detect()).caveman)
+        #expect(c.toggleTarget(turningOn: true) == .ultracave)
     }
 
     @Test func claudeUsageConfigured() throws {

@@ -65,6 +65,10 @@ struct PanelView: View {
             Divider()
             TokensRow(model: model, actions: actions, open: open)
         }
+        if let cv = model.caveman {
+            Divider()
+            CavemanRow(panel: cv, control: actions.caveman)
+        }
         if model.showsAISetup {
             Divider()
             AISetupRow(model: model, actions: actions)
@@ -180,6 +184,48 @@ struct TokensRow: View {
         if model.tokensaveState == .initOnly { out.append(("tokensave", "tokensave")) }
         if model.usageState == .initOnly { out.append(("claude-usage", "claude-usage")) }
         return out
+    }
+}
+
+/// caveman: attivo globalmente, interruttore e modalità di default. Nessuna statistica.
+struct CavemanRow: View {
+    let panel: CavemanPanel
+    let control: CavemanControl
+
+    var body: some View {
+        let busy = control.busy
+        ReadoutRow(title: "caveman", subtitle: subtitle, busy: busy, content: {
+            HStack(spacing: 8) {
+                Circle().fill(panel.tone.color).frame(width: 8, height: 8)
+                Text(panel.statusText).font(Typo.note).foregroundStyle(.secondary).fixedSize()
+                Spacer(minLength: 8)
+                Menu {
+                    ForEach(CavemanMode.allCases, id: \.self) { m in
+                        Button { Task { await control.set(m) } } label: {
+                            if m == panel.mode { Label(m.menuTitle, systemImage: "checkmark") } else { Text(m.menuTitle) }
+                        }
+                    }
+                } label: {
+                    Text(panel.mode.label)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .disabled(busy)
+            }
+        }, accessory: {
+            Toggle("caveman", isOn: Binding(
+                get: { panel.active },
+                set: { on in Task { await control.set(panel.toggleTarget(turningOn: on)) } }))
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .disabled(busy || !panel.canToggle)
+        })
+    }
+
+    /// Esito dell'ultima modifica (o errore); altrimenti la nota fissa.
+    private var subtitle: String {
+        control.error ?? control.note ?? CavemanPanel.note
     }
 }
 

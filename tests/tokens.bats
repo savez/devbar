@@ -114,6 +114,15 @@ absent() { # absent <tool> <check>
   [ "$(jq -r .active <<<"$output")" = false ]
 }
 
+@test "caveman: lastMode da config devbar, default caveman" {
+  mkdir -p "$HOME/.claude/plugins/cache/caveman/caveman/4.2.0"
+  run --separate-stderr "$DEVBAR" check caveman
+  [ "$(jq -r .lastMode <<<"$output")" = caveman ]
+  write_config '{"cavemanLastMode":"megacave"}'
+  run --separate-stderr "$DEVBAR" check caveman
+  [ "$(jq -r .lastMode <<<"$output")" = megacave ]
+}
+
 @test "caveman: plugin senza config -> modalità di default caveman" {
   mkdir -p "$HOME/.claude/plugins/cache/caveman/caveman/4.2.0"
   echo '{"enabledPlugins":{"caveman@caveman":true}}' >"$HOME/.claude/settings.json"

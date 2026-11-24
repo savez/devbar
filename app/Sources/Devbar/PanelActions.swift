@@ -28,13 +28,17 @@ final class PanelActions {
     let aiSetup: AISetupModel
     let projectInit: ProjectInitModel
     let settings: SettingsModel
+    /// Riga caveman del pannello: scrive la modalità di default (esecuzione diretta).
+    let caveman: CavemanControl
 
     init(store: StatusStore, configStore: ConfigStore = ConfigStore()) {
         self.store = store
         aiSetup = AISetupModel(runner: store)
+        caveman = CavemanControl(runner: store)
         projectInit = ProjectInitModel(runner: store)
         settings = SettingsModel(configStore: configStore, runner: store, login: LaunchAgentManager())
         aiSetup.onApplied = { [weak self] in await self?.refreshAfterChange(force: true) }
+        caveman.onApplied = { [weak self] in await self?.refreshAfterChange(force: true) }
         settings.onSaved = { [store] in store.reloadConfig() }
         settings.onApplied = { [weak self] in await self?.refreshAfterChange(force: false) }
     }

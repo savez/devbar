@@ -145,10 +145,10 @@ public struct PanelModel: Equatable, Sendable {
     /// "tokensave 0 risparmiati, 53 occasioni perse".
     public var tokensaveLine: String
     public var tokensave: TokensaveGain?
-    /// "caveman full, 4.2.0".
-    public var cavemanLine: String?
-    public var cavemanMode: String?
-    public var cavemanVersion: String?
+    /// Controllo caveman (attivo, modalità): nil se non installato.
+    public var caveman: CavemanPanel?
+    public var cavemanMode: String? { caveman?.mode.rawValue }
+    public var cavemanVersion: String? { caveman?.version }
     public var usageState: SectionKind
     public var usageFiveHour: Double?
     public var usageWeek: Double?
@@ -156,7 +156,7 @@ public struct PanelModel: Equatable, Sendable {
     public var usageWeekReset: String?
     public var usageNote: String?
     public var showsTokenSection: Bool {
-        rtkState != .hidden || tokensaveState != .hidden || cavemanLine != nil || usageState != .hidden
+        rtkState != .hidden || tokensaveState != .hidden || usageState != .hidden
     }
 
     // AI setup
@@ -224,13 +224,11 @@ public struct PanelModel: Equatable, Sendable {
         tokensaveLine = ts.map { "tokensave \(Fmt.tokens($0.saved)) risparmiati, \($0.missedTurns) occasioni perse" }
             ?? (all.rows["tokensave"]?.summary ?? "")
 
-        // caveman: solo se ha mode o version
-        if let cv = all.typed(CavemanStatus.self, "caveman"), cv.result.state != .unconfigured,
-           cv.mode != nil || cv.version != nil {
-            cavemanLine = "caveman " + [cv.mode, cv.version].compactMap { $0 }.joined(separator: ", ")
-            cavemanMode = cv.mode; cavemanVersion = cv.version
+        // caveman: solo se installato
+        if let cv = all.typed(CavemanStatus.self, "caveman"), cv.result.state != .unconfigured {
+            caveman = CavemanPanel(status: cv)
         } else {
-            cavemanLine = nil
+            caveman = nil
         }
 
         // claude-usage
