@@ -92,7 +92,7 @@
             "type": "string",
             "minLength": 1
           },
-          "description": "Versioni di altri programmi conservate (<file>.devbar-undo-<data>) con --force."
+          "description": "Versioni di altri programmi conservate con --force, nella voce del registro: <voce>/kept/<percorso assoluto> (cancellate con la voce dalla rotazione)."
         }
       },
       "additionalProperties": false

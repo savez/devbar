@@ -218,9 +218,33 @@ fake_caveman_repo() {
   [ "$(cat "$REPO/AGENTS.md")" = utente ]
   [ ! -e "$REPO/.cursor/rules/caveman.mdc" ]
   kept="$(jq -r '.kept[0]' <<<"$output")"
-  [[ "$kept" == "$REPO/AGENTS.md.devbar-undo-"* ]]
+  d="$(find "$J" -mindepth 1 -maxdepth 1 -type d)"
+  # conservata nella voce del registro, non accanto all'originale (sarebbe un file non tracciato)
+  [ "$kept" = "$d/kept$REPO/AGENTS.md" ]
   cmp "$kept" "$BATS_TEST_TMPDIR/agents.now"
-  [[ "$(jq -r '.commands | join("\n")' <<<"$output")" == *"resta in"* ]]
+  [ -z "$(find "$REPO" -name '*.devbar-undo*')" ]
+  [[ "$(jq -r '.commands | join("\n")' <<<"$output")" == *"resta in"*"/kept/"* ]]
+}
+
+@test "undo --force: cartella cambiata da un altro programma -> conservata nel registro, nessuna seconda skill" {
+  make_stub git node
+  fake_caveman_repo
+  mkdir -p "$HOME/.agents/skills/caveman"
+  echo vecchia >"$HOME/.agents/skills/caveman/SKILL.md"
+  "$DEVBAR" run ai-install caveman copilot --yes >/dev/null 2>&1
+  echo altro >"$HOME/.agents/skills/caveman/SKILL.md"
+  run --separate-stderr "$DEVBAR" undo
+  [ "$(jq -r .needsForce <<<"$output")" = true ]
+  [[ "$(jq -r '.commands | join("\n")' <<<"$output")" == *"/kept/"* ]]
+  run --separate-stderr "$DEVBAR" undo --force --yes
+  [ "$status" -eq 0 ]
+  [ "$(cat "$HOME/.agents/skills/caveman/SKILL.md")" = vecchia ]
+  # una sola skill in skills/: la versione dell'altro programma è nella voce
+  [ "$(find "$HOME/.agents/skills" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')" -eq 1 ]
+  kept="$(jq -r --arg p "$HOME/.agents/skills/caveman" '.kept[] | select(endswith($p))' <<<"$output")"
+  d="$(find "$J" -mindepth 1 -maxdepth 1 -type d)"
+  [ "$kept" = "$d/kept$HOME/.agents/skills/caveman" ]
+  [ "$(cat "$kept/SKILL.md")" = altro ]
 }
 
 @test "undo: ripristino fallito -> backup intatto, voce non annullata; poi riprova" {

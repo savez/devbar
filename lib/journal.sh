@@ -16,7 +16,9 @@
 #
 # undo: senza --yes il piano; con --yes ripristina. Un file il cui hash attuale non è né
 # sha256After né sha256Before è stato cambiato da altri: senza --force non si scrive nulla.
-# I backup non vengono mai cancellati da undo (solo dalla rotazione delle voci).
+# I backup non vengono mai cancellati da undo (solo dalla rotazione delle voci). Con --force la
+# versione dell'altro programma resta nella voce, in kept/<percorso assoluto> (mai accanto
+# all'originale: sarebbe un file non tracciato o una seconda skill); sparisce con la voce.
 
 JOURNAL_KEEP=50
 
@@ -260,7 +262,7 @@ _journal_find() {
 # Il contenuto nuovo si prepara accanto al target; quello attuale si sposta da parte e torna
 # al suo posto se il passo finale fallisce. Il backup nella voce non viene toccato.
 # Record `changed` (versione di un altro programma, solo con --force): quella versione non si
-# cancella, resta in <percorso>.devbar-undo-<data>, stampato su stdout.
+# cancella, resta nella voce in kept/<percorso assoluto> (stampato su stdout).
 _journal_restore() {
   local e="$1" r="$2" p kind keep kept n=1 existed backup target parent base tmp="" aside="" new=""
   p="$(jq -r .path <<<"$r")"
@@ -303,9 +305,10 @@ _journal_restore() {
   fi
   [ -n "$aside" ] || return 0
   if [ "$keep" = true ]; then
-    kept="$p.devbar-undo-$(date +%Y%m%d-%H%M%S)"
-    while [ -e "$kept" ] || [ -L "$kept" ]; do kept="$p.devbar-undo-$(date +%Y%m%d-%H%M%S)-$n"; n=$((n + 1)); done
-    mv "$aside" "$kept" || { echo "devbar: versione precedente rimasta in $aside" >&2; printf '%s\n' "$aside"; return 0; }
+    kept="$e/kept$p"
+    while [ -e "$kept" ] || [ -L "$kept" ]; do kept="$e/kept$p-$n"; n=$((n + 1)); done
+    { mkdir -p "$(dirname "$kept")" && mv "$aside" "$kept"; } ||
+      { echo "devbar: versione precedente rimasta in $aside" >&2; printf '%s\n' "$aside"; return 0; }
     printf '%s\n' "$kept"
   else
     rm -rf "${aside:?}"
@@ -336,11 +339,11 @@ cmd_undo() {
   fi
   files="$(_journal_files_state "$meta")"
   needs="$(jq '[.[] | select(.changed)] | length > 0' <<<"$files")"
-  lines="$(jq -c --arg h "$HOME" '[reverse[] | (.path | if startswith($h + "/") then "~" + .[($h | length):] else . end) as $t
+  lines="$(jq -c --arg h "$HOME" --arg k "$(_journal_tilde "$d")/kept" '[reverse[] | .path as $p | (.path | if startswith($h + "/") then "~" + .[($h | length):] else . end) as $t
     | (if .action == "restore" then "ripristina " + $t
        elif .action == "remove" then "rimuove " + $t + " (creato da devbar)"
        else "già com'"'"'era: " + $t end)
-      + (if .changed then " — ATTENZIONE: cambiato da un altro programma dopo devbar (serve --force; la sua versione resta in " + $t + ".devbar-undo-<data>)" else "" end)]' <<<"$files")"
+      + (if .changed then " — ATTENZIONE: cambiato da un altro programma dopo devbar (serve --force; la sua versione resta in " + $k + $p + ", finché la voce è nel registro)" else "" end)]' <<<"$files")"
   if [ "$yes" = false ]; then
     jq -n --arg id "$id" --argjson c "$lines" --argjson n "$needs" --argjson f "$files" \
       --arg t "$(jq -r .time "$meta")" --arg cmd "$(jq -r .command "$meta")" \
@@ -349,7 +352,7 @@ cmd_undo() {
     return 0
   fi
   if [ "$needs" = true ] && [ "$force" = false ]; then
-    _journal_error "file cambiati da un altro programma dopo devbar: $(jq -r '[.[] | select(.changed) | .path] | join(", ")' <<<"$files") (nessun file toccato; con --force si ripristina e la loro versione resta in <file>.devbar-undo-<data>)"
+    _journal_error "file cambiati da un altro programma dopo devbar: $(jq -r '[.[] | select(.changed) | .path] | join(", ")' <<<"$files") (nessun file toccato; con --force si ripristina e la loro versione resta in $d/kept/)"
     return 2
   fi
   # Ogni backup necessario deve esistere prima di toccare qualsiasi file.
@@ -395,5 +398,8 @@ cmd_undo() {
        commands:($c + [$k[] | "la versione dell'"'"'altro programma resta in " + .])}' \
     --args ${kept[@]+"${kept[@]}"}
 }
+
+# _journal_tilde <percorso>: ~ al posto della home.
+_journal_tilde() { case "$1" in "$HOME"/*) printf '~%s' "${1#"$HOME"}" ;; *) printf '%s' "$1" ;; esac; }
 
 _journal_error() { jq -nc --arg e "$1" '{status:"error",error:$e}'; }
