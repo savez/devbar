@@ -82,7 +82,7 @@ leaks() {
   for p in "${PERSONAL[@]}"; do
     if grep -qiF -- "$p" "$f"; then echo "contiene ancora un dato personale ($p)"; return 0; fi
   done
-  if grep -E '/Users/' "$f" | grep -qv '/Users/anon'; then echo "contiene un percorso /Users/ non anonimo"; return 0; fi
+  if grep -oE '/Users/[^/"[:space:]]+' "$f" | grep -qvx '/Users/anon'; then echo "contiene un percorso /Users/ non anonimo"; return 0; fi
   if grep -qE 'ghp_[A-Za-z0-9]{20,}|github_pat_|sk-[A-Za-z0-9]{20,}|xox[bp]-|AKIA[0-9A-Z]{16}|Bearer [A-Za-z0-9._-]{20,}' "$f"; then
     echo "sembra contenere un token"; return 0
   fi

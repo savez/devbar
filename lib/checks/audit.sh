@@ -49,6 +49,13 @@ _audit_repo_counts() {
   fi
   json="$(printf '%s\n' "$raw" | extract_json)"
   [ -n "$json" ] || return 0
+  # errore dichiarato dallo strumento (es. rete assente): il messaggio va nel file di errore
+  # (_AUDIT_ERRFILE, impostato da audit_repos), il risultato resta vuoto.
+  if [ -n "${_AUDIT_ERRFILE:-}" ]; then
+    jq -r 'select(type == "object" and has("error")) | .error
+      | if type == "object" then (.summary // .message // .code // "errore sconosciuto") else tostring end
+      | gsub("\n"; " ") | .[0:200]' <<<"$json" 2>/dev/null | head -n 1 >>"$_AUDIT_ERRFILE" || true
+  fi
   if [ "$kind" = npm ]; then
     jq -c '.metadata.vulnerabilities
       | select(type == "object" and all(.critical, .high, .moderate, .low; type == "number"))
@@ -75,6 +82,9 @@ _audit_repo_counts() {
 audit_repos() {
   local kind="$1" force="$2" cache repos items count vulns errs counts d rcache
   require_tool "$kind"
+  _AUDIT_ERRFILE="$(mktemp)"
+  # shellcheck disable=SC2064
+  trap "rm -f '$_AUDIT_ERRFILE'" EXIT
   if [ "$(config_get '.repoRoots | length')" -eq 0 ]; then
     emit unconfigured 0 "nessuna cartella repo configurata"
   fi
@@ -111,8 +121,12 @@ audit_repos() {
   if [ "$count" -eq 0 ]; then
     emit ok 0 "Nessuna vulnerabilità $kind" "[]"
   elif [ "$vulns" -eq 0 ]; then
-    local vflag=--version
+    local vflag=--version toolerr
     [ "$kind" != npm ] || vflag=-v
+    toolerr="$(grep -m1 . "$_AUDIT_ERRFILE" 2>/dev/null || true)"
+    if [ -n "$toolerr" ]; then
+      emit error "$count" "$kind audit non riuscito: $toolerr" "$items"
+    fi
     emit error "$count" "audit $kind fallito in $errs repo: formato di $kind non riconosciuto (versione $(tool_version "$kind" "$vflag"))" "$items"
   fi
   emit action "$count" "$vulns repo con vulnerabilità $kind ($errs con errori)" "$items"

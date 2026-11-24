@@ -205,6 +205,22 @@ _audit_repo() {
   [[ "$(jq -r .summary <<<"$output")" == *"formato di composer non riconosciuto (versione 2.8.4)"* ]]
 }
 
+@test "npm-audit: errore dichiarato da npm -> non riuscito con il messaggio, non formato" {
+  _audit_repo package-lock.json
+  export STUB_NPM_AUDIT_FIXTURE=../wrong/npm-error.json STUB_NPM_RC=1
+  run --separate-stderr "$DEVBAR" check npm-audit --force
+  [ "$status" -eq 2 ]
+  [ "$(jq -r .summary <<<"$output")" = "npm audit non riuscito: request to https://registry.npmjs.org failed" ]
+}
+
+@test "composer-audit: errore dichiarato -> non riuscito con il messaggio" {
+  _audit_repo composer.lock
+  export STUB_COMPOSER_AUDIT_FIXTURE=../wrong/composer-error.json STUB_COMPOSER_RC=1
+  run --separate-stderr "$DEVBAR" check composer-audit --force
+  [ "$status" -eq 2 ]
+  [ "$(jq -r .summary <<<"$output")" = "composer audit non riuscito: Could not reach packagist" ]
+}
+
 @test "claude-usage: JSON di altra forma -> formato non riconosciuto" {
   export STUB_CLAUDE_USAGE_FIXTURE=../wrong/object.json
   run --separate-stderr "$DEVBAR" check claude-usage
@@ -227,7 +243,7 @@ _audit_repo() {
 # --- record-fixtures --------------------------------------------------------------------
 
 _rec_setup() {
-  make_stub brew rtk tokensave colima docker npm
+  make_stub brew rtk tokensave colima docker npm claude-usage composer
   FX="$BATS_TEST_TMPDIR/fx"
   mkdir -p "$FX/brew" "$FX/rtk" "$FX/tokensave" "$FX/colima" "$FX/docker" "$FX/npm" "$BATS_TEST_TMPDIR/sample"
   export STUB_FIXTURES_DIR="$FX"
@@ -263,7 +279,8 @@ _rec_setup() {
   [ -f "$OUTD/npm-audit-11.20.0.json" ]
   [ ! -e "$OUTD/docker-stats-"* ] || false
   [ "$(jq -r .dir "$OUTD/colima-list-0.10.3.json")" = "/Users/anon/.colima" ]
-  ! grep -rqF "$HOME" "$OUTD"
+  run grep -rF "$HOME" "$OUTD"
+  [ "$status" -ne 0 ]
   # ogni chiamata ai tool è nella lista dei comandi di sola lettura
   local f line
   for f in "$BATS_TEST_TMPDIR"/*.calls; do
@@ -288,6 +305,14 @@ _rec_setup() {
   [[ "$output" == *"RIFIUTO rtk-gain"* ]]
   [ ! -e "$OUTD/rtk-gain-1.2.1.json" ]
   [ -f "$OUTD/brew-outdated-7.0.16.json" ]
+}
+
+@test "record-fixtures: rifiuta una riga con /Users/anon e un altro utente" {
+  _rec_setup
+  printf '{"summary":{"total_saved":1},"a":"/Users/anon/x","b":"/Users/qualcunaltro/y"}\n' >"$FX/rtk/g.json"
+  run "$DEVBAR_REPO/scripts/record-fixtures.sh" "$OUTD"
+  [ "$status" -eq 1 ]
+  [ ! -e "$OUTD/rtk-gain-1.2.1.json" ]
 }
 
 @test "record-fixtures: rifiuta un token" {
