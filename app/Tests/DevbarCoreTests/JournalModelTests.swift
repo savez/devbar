@@ -15,7 +15,7 @@ struct JournalModelTests {
 
     @Test func loadsAtMostTenEntries() async {
         let a = FakeActions()
-        a.responses["journal"] = (0, Self.list((0..<12).map { Self.entry("e\($0)") }))
+        a.responses["journal --limit 10"] = (0, Self.list((0..<12).map { Self.entry("e\($0)") }))
         let m = JournalModel(runner: a)
         await m.load()
         #expect(m.entries.count == 10)
@@ -25,7 +25,7 @@ struct JournalModelTests {
 
     @Test func brokenOutputShowsError() async {
         let a = FakeActions()
-        a.responses["journal"] = (2, "boom")
+        a.responses["journal --limit 10"] = (2, "boom")
         let m = JournalModel(runner: a)
         await m.load()
         #expect(m.entries.isEmpty)
@@ -45,7 +45,7 @@ struct JournalModelTests {
 
     @Test func undoShowsPlanThenRunsWithYes() async {
         let a = FakeActions()
-        a.responses["journal"] = (0, Self.list([Self.entry("abc")]))
+        a.responses["journal --limit 10"] = (0, Self.list([Self.entry("abc")]))
         a.responses["undo abc"] = (0, "{\"plan\":true,\"commands\":[\"ripristina ~/f0\"],\"needsForce\":false}")
         a.responses["undo abc --yes"] = (0, "{\"applied\":true,\"id\":\"abc\",\"commands\":[]}")
         let m = JournalModel(runner: a)
@@ -59,12 +59,12 @@ struct JournalModelTests {
         await m.confirmUndo()
         #expect(a.confirmed == [["undo", "abc", "--yes"]])
         #expect(applied == 1)
-        #expect(a.calls.filter { $0 == ["journal"] }.count == 2)
+        #expect(a.calls.filter { $0 == ["journal", "--limit", "10"] }.count == 2)
     }
 
     @Test func changedFileAsksWithForceAndWarning() async {
         let a = FakeActions()
-        a.responses["journal"] = (0, Self.list([Self.entry("abc", changed: true)]))
+        a.responses["journal --limit 10"] = (0, Self.list([Self.entry("abc", changed: true)]))
         a.responses["undo abc --force"] = (0, "{\"plan\":true,\"commands\":[\"ripristina ~/f0 — ATTENZIONE\"],\"needsForce\":true}")
         let m = JournalModel(runner: a)
         await m.load()
@@ -77,7 +77,7 @@ struct JournalModelTests {
 
     @Test func cancelRunsNothing() async {
         let a = FakeActions()
-        a.responses["journal"] = (0, Self.list([Self.entry("abc")]))
+        a.responses["journal --limit 10"] = (0, Self.list([Self.entry("abc")]))
         a.responses["undo abc"] = (0, "{\"plan\":true,\"commands\":[\"x\"],\"needsForce\":false}")
         let m = JournalModel(runner: a)
         await m.load()
@@ -88,7 +88,7 @@ struct JournalModelTests {
 
     @Test func engineRefusalIsShown() async {
         let a = FakeActions()
-        a.responses["journal"] = (0, Self.list([Self.entry("abc")]))
+        a.responses["journal --limit 10"] = (0, Self.list([Self.entry("abc")]))
         a.responses["undo abc"] = (0, "{\"plan\":true,\"commands\":[\"x\"],\"needsForce\":false}")
         a.responses["undo abc --yes"] = (2, "{\"status\":\"error\",\"error\":\"file cambiati da un altro programma\"}")
         let m = JournalModel(runner: a)
@@ -103,10 +103,19 @@ struct JournalModelTests {
 
     @Test func undoneEntryCannotBeUndone() async {
         let a = FakeActions()
-        a.responses["journal"] = (0, Self.list([Self.entry("abc", undone: true)]))
+        a.responses["journal --limit 10"] = (0, Self.list([Self.entry("abc", undone: true)]))
         let m = JournalModel(runner: a)
         await m.load()
         await m.requestUndo(m.entries[0])
         #expect(!a.calls.contains { $0.first == "undo" })
+    }
+}
+
+struct JournalTimeoutTests {
+    @Test func undoWithYesIsLong() {
+        #expect(ActionTimeout.isLong(["undo", "abc", "--yes"]))
+        #expect(ActionTimeout.isLong(["undo", "abc", "--force", "--yes"]))
+        #expect(!ActionTimeout.isLong(["undo", "abc"]))
+        #expect(!ActionTimeout.isLong(["journal"]))
     }
 }

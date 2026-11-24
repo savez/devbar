@@ -232,6 +232,8 @@ private final class PathTracker: @unchecked Sendable {
 /// terminale dal motore e tornano subito). I piani (senza `--yes`) sono sempre brevi.
 public enum ActionTimeout {
     public static func isLong(_ args: [String]) -> Bool {
+        // undo --yes ripristina anche cartelle (tar): ucciderlo a metà lascerebbe un file spostato da parte
+        if args.first == "undo" { return args.contains("--yes") }
         guard args.first == "run", args.count > 1 else { return false }
         if let spec = FeatureRegistry.spec(forVerb: args[1]) { return spec.longVerbs.contains(args[1]) }
         switch args[1] {

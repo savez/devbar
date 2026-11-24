@@ -76,7 +76,7 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 480, height: 560)
-        .task { await model.load() }
+        .task { await model.load(); await journal.load() }
         .onDisappear { Task { await model.didClose() } }
         .confirmationDialog("Sovrascrivere la config non valida?", isPresented: Bindable(model).overwritePromptShown,
                             titleVisibility: .visible) {
@@ -92,6 +92,14 @@ struct SettingsView: View {
         } message: {
             // Solo testo: i comandi non vengono eseguiti da qui.
             Text(model.confirmation.text)
+        }
+        .confirmationDialog(journal.confirmation.title, isPresented: Bindable(journal.confirmation).dialogShown,
+                            titleVisibility: .visible) {
+            Button("Annulla la modifica", role: .destructive) { Task { await journal.confirmUndo() } }
+            Button("Lascia com'è", role: .cancel) { journal.confirmation.cancel() }
+        } message: {
+            // Solo testo: le righe sono il piano di `devbar undo`.
+            Text(journal.confirmation.text)
         }
     }
 

@@ -2,8 +2,8 @@ import SwiftUI
 import DevbarCore
 
 /// "Ultime modifiche": file di altri programmi scritti da devbar, con "Annulla".
-/// La conferma (piano di `devbar undo`) sta su questa sezione, non sul Form: due
-/// `.confirmationDialog` sulla stessa vista non sono affidabili.
+/// Caricamento e conferma (piano di `devbar undo`) sono su SettingsView: i modificatori di
+/// una Section in un Form raggruppato finirebbero su ogni riga.
 struct JournalSection: View {
     let model: JournalModel
 
@@ -36,15 +36,6 @@ struct JournalSection: View {
             }
             if model.confirmation.busy { Text("in corso…").font(.caption).foregroundStyle(.secondary) }
             if let e = model.confirmation.error { Text(e).font(.caption).foregroundStyle(.red) }
-        }
-        .task { await model.load() }
-        .confirmationDialog(model.confirmation.title, isPresented: Bindable(model.confirmation).dialogShown,
-                            titleVisibility: .visible) {
-            Button("Annulla la modifica", role: .destructive) { Task { await model.confirmUndo() } }
-            Button("Lascia com'è", role: .cancel) { model.confirmation.cancel() }
-        } message: {
-            // Solo testo: le righe sono il piano di `devbar undo`.
-            Text(model.confirmation.text)
         }
     }
 }

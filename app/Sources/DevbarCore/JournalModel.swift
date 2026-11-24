@@ -63,7 +63,7 @@ public final class JournalModel {
     }
 
     public func load() async {
-        let r = await runner.run(action: ["journal"])
+        let r = await runner.run(action: ["journal", "--limit", String(Self.shown)])
         if r.rc < 2, let l = try? JSONDecoder().decode(JournalList.self, from: r.stdout) {
             entries = Array(l.entries.prefix(Self.shown))
             error = nil

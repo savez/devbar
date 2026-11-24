@@ -126,6 +126,19 @@ fake_caveman_repo() {
   [ "$("$DEVBAR" journal | jq -r '.entries[0].command')" = "run caveman-mode megacave --yes" ]
 }
 
+@test "journal --limit N: solo le N voci più recenti; limite non valido -> rc 2" {
+  local i
+  for i in 1 2 3; do
+    mkdir -p "$J/2020010${i}T000000Z-v$i"
+    jq -n --arg id "v$i" '{id:$id,time:"2020-01-01T00:00:00Z",command:"run x",files:[]}' >"$J/2020010${i}T000000Z-v$i/meta.json"
+  done
+  run --separate-stderr "$DEVBAR" journal --limit 2
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '[.entries[].id] | join(",")' <<<"$output")" = "v3,v2" ]
+  run --separate-stderr "$DEVBAR" journal --limit x
+  [ "$status" -eq 2 ]
+}
+
 # --- undo ---
 
 @test "undo: senza --yes stampa il piano e non tocca nulla" {

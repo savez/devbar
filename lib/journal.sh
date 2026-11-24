@@ -57,7 +57,9 @@ _journal_kind() {
   else echo none; fi
 }
 
-_journal_sha() { shasum -a 256 | cut -c1-64; }
+# sha256sum (macOS recenti, avvio rapido) se c'è, altrimenti shasum (perl).
+if command -v sha256sum >/dev/null 2>&1; then _JOURNAL_SHA=(sha256sum); else _JOURNAL_SHA=(shasum -a 256); fi
+_journal_sha() { "${_JOURNAL_SHA[@]}" | cut -c1-64; }
 
 # _journal_hash <percorso>: sha256 del contenuto; cartelle: dell'elenco (tipo, nome, hash);
 # link: del target. Vuoto se il percorso non esiste.
@@ -67,11 +69,12 @@ _journal_hash() {
     link) printf 'link:%s' "$(readlink "$p")" | _journal_sha ;;
     file) _journal_sha <"$p" ;;
     dir)
-      (cd "$p" && find . | LC_ALL=C sort | while IFS= read -r f; do
-        if [ -L "$f" ]; then printf 'L %s %s\n' "$f" "$(readlink "$f")"
-        elif [ -d "$f" ]; then printf 'D %s\n' "$f"
-        else printf 'F %s %s\n' "$f" "$(_journal_sha <"$f")"; fi
-      done) | _journal_sha
+      # cartelle e link per nome, file con il loro hash (un solo processo di hash per tutti)
+      (cd "$p" && {
+        find . -type d | sed 's/^/D /'
+        find . -type l | while IFS= read -r f; do printf 'L %s %s\n' "$f" "$(readlink "$f")"; done
+        find . -type f -exec "${_JOURNAL_SHA[@]}" {} + | awk '{ h=$1; sub(/^[0-9a-f]+  /, ""); print "F " $0 " " h }'
+      } | LC_ALL=C sort) | _journal_sha
       ;;
     none) printf '' ;;
   esac
@@ -179,26 +182,16 @@ journal_settle() {
 
 # _journal_files_state <meta>: files con `changed` e `action` (restore|remove|none) attuali.
 _journal_files_state() {
-  local meta="$1" n i p cur after before act changed out="[]"
-  n="$(jq '.files | length' "$meta")"
-  i=0
-  while [ "$i" -lt "$n" ]; do
-    p="$(jq -r --argjson i "$i" '.files[$i].path' "$meta")"
-    after="$(jq -r --argjson i "$i" '.files[$i].sha256After // ""' "$meta")"
-    before="$(jq -r --argjson i "$i" '.files[$i].sha256Before // ""' "$meta")"
-    cur="$(_journal_hash "$p")"
-    changed=false
-    if [ "$cur" = "$before" ]; then
-      act=none
-    else
-      [ "$cur" = "$after" ] || changed=true
-      if [ "$(jq -r --argjson i "$i" '.files[$i].existed' "$meta")" = true ]; then act=restore; else act=remove; fi
-    fi
-    out="$(jq -c --slurpfile m "$meta" --argjson i "$i" --arg a "$act" --argjson c "$changed" \
-      '. + [$m[0].files[$i] + {action:$a, changed:$c}]' <<<"$out")"
-    i=$((i + 1))
-  done
-  printf '%s' "$out"
+  local meta="$1" p hashes=()
+  # un hash per file (ordine di .files); jq una volta per leggere e una per combinare
+  while IFS= read -r p; do
+    hashes+=("$(_journal_hash "$p")")
+  done < <(jq -r '.files[].path' "$meta")
+  jq -c '[.files as $f | range(0; $f | length) as $i | $ARGS.positional[$i] as $cur | $f[$i]
+    | (.sha256Before // "") as $b | (.sha256After // "") as $a
+    | . + (if $cur == $b then {action:"none", changed:false}
+           else {action:(if .existed then "restore" else "remove" end), changed:($cur != $a)} end)]' \
+    "$meta" --args ${hashes[@]+"${hashes[@]}"}
 }
 
 # _journal_entries: cartelle delle voci, dalla più recente.
@@ -209,19 +202,24 @@ _journal_entries() {
   find "$root" -mindepth 1 -maxdepth 1 -type d | LC_ALL=C sort -r
 }
 
-# cmd_journal: {entries:[{id,time,command,undone,files:[{path,kind,existed,sha256Before,
-# sha256After,changed}]}]}, dalla più recente. Voci illeggibili saltate.
+# cmd_journal [--limit N]: {entries:[{id,time,command,undone,files:[{path,kind,existed,
+# sha256Before,sha256After,changed}]}]}, dalla più recente; con --limit solo le prime N
+# (l'hash attuale si calcola solo per quelle). Voci illeggibili saltate.
 cmd_journal() {
-  local d out="[]" files e
+  local d files limit="" n=0
+  if [ "${1:-}" = --limit ]; then
+    case "${2:-}" in '' | *[!0-9]*) _journal_error "uso: devbar journal [--limit N]"; return 2 ;; esac
+    limit="$2"
+  fi
   while IFS= read -r d; do
     [ -n "$d" ] || continue
+    [ -z "$limit" ] || [ "$n" -lt "$limit" ] || break
     jq -e 'type == "object" and (.files | type) == "array"' "$d/meta.json" >/dev/null 2>&1 || continue
     files="$(_journal_files_state "$d/meta.json")"
-    e="$(jq -c --argjson f "$files" '{id, time, command, undone:(.undoneAt != null),
-      files:[$f[] | {path, kind, existed, sha256Before, sha256After, changed}]}' "$d/meta.json")"
-    out="$(jq -c --argjson e "$e" '. + [$e]' <<<"$out")"
-  done < <(_journal_entries)
-  jq -n --argjson e "$out" '{entries:$e}'
+    jq -c --argjson f "$files" '{id, time, command, undone:(.undoneAt != null),
+      files:[$f[] | {path, kind, existed, sha256Before, sha256After, changed}]}' "$d/meta.json"
+    n=$((n + 1))
+  done < <(_journal_entries) | jq -s '{entries:.}'
 }
 
 # _journal_find <id>: cartella della voce; senza id la più recente non annullata.
