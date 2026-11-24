@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1](https://github.com/savez/devbar/compare/v0.4.0...v0.4.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* il testo della licenza (GPLv3) nello zip e dentro l'app ([b055dbf](https://github.com/savez/devbar/commit/b055dbf2394baa6b4dbcc2e26b3e7e0d1e459a3c))
+* LICENSE nello zip e dentro l'app ([9411967](https://github.com/savez/devbar/commit/9411967273417357cd963bedff17bcd5e03d4e51))
+
 ## [0.4.0](https://github.com/savez/devbar/compare/v0.3.0...v0.4.0) (2026-11-24)
 
 
