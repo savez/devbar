@@ -128,28 +128,40 @@ _proj_check_caveman() {
     '{tool:"caveman",ok:$ok,detail:$d,willWrite:$ARGS.positional}' --args ${writes[@]+"${writes[@]}"}
 }
 
-# _proj_hook_path <root>: percorso (relativo al repo o assoluto) dell'hook post-commit.
-_proj_hook_path() { git -C "$1" rev-parse --git-path hooks/post-commit; }
+# _proj_gitpath <root> <nome>: percorso assoluto di git --git-path <nome>.
+_proj_gitpath() {
+  local p
+  p="$(git -C "$1" rev-parse --git-path "$2")" || return 1
+  case "$p" in /*) printf '%s' "$p" ;; *) printf '%s/%s' "$1" "$p" ;; esac
+}
+
+_PROJ_TS_HOOKS="post-checkout post-commit post-merge"
 
 # _proj_ts_state <root>: stampa ok | noindex | nohook.
 # `tokensave status` non espone un segnale affidabile di indice da aggiornare
-# (solo ultimo sync): ok = .tokensave/ esiste e l'hook post-commit lo richiama.
+# (solo ultimo sync): ok = .tokensave/ esiste e tutti e tre gli hook
+# (post-checkout, post-commit, post-merge) richiamano tokensave.
 _proj_ts_state() {
-  local root="$1" hook
+  local root="$1" h f
   [ -d "$root/.tokensave" ] || { echo noindex; return; }
-  hook="$(_proj_hook_path "$root")"
-  case "$hook" in /*) ;; *) hook="$root/$hook" ;; esac
-  if [ -f "$hook" ] && grep -q tokensave "$hook" 2>/dev/null; then echo ok; else echo nohook; fi
+  for h in $_PROJ_TS_HOOKS; do
+    f="$(_proj_gitpath "$root" "hooks/$h")"
+    if ! { [ -f "$f" ] && grep -q tokensave "$f" 2>/dev/null; }; then echo nohook; return; fi
+  done
+  echo ok
 }
 
 _proj_check_tokensave() {
-  local root="$1" st hook
+  local root="$1" st h hooks=()
   st="$(_proj_ts_state "$root")"
-  hook="$(_proj_hook_path "$root")"
+  for h in $_PROJ_TS_HOOKS; do hooks+=("$(_proj_gitpath "$root" "hooks/$h")"); done
   case "$st" in
     ok) jq -nc '{tool:"tokensave",ok:true,detail:"indice e git hook presenti",willWrite:[]}' ;;
-    noindex) jq -nc --arg h "$hook" '{tool:"tokensave",ok:false,detail:"indice assente",willWrite:[".tokensave/",$h]}' ;;
-    nohook) jq -nc --arg h "$hook" '{tool:"tokensave",ok:false,detail:"git hook assente",willWrite:[$h]}' ;;
+    noindex)
+      jq -nc --arg d "$root/.tokensave/" --arg x "$(_proj_gitpath "$root" info/exclude)" \
+        '{tool:"tokensave",ok:false,detail:"indice assente",willWrite:([$d,$x] + $ARGS.positional)}' --args "${hooks[@]}" ;;
+    nohook)
+      jq -nc '{tool:"tokensave",ok:false,detail:"git hook assenti o incompleti",willWrite:$ARGS.positional}' --args "${hooks[@]}" ;;
   esac
 }
 

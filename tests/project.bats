@@ -16,8 +16,13 @@ setup() {
 echo "$*" >>"$BATS_TEST_TMPDIR/tokensave.calls"
 hooks="$(git rev-parse --git-path hooks)"
 case "$1" in
-  init) mkdir -p .tokensave; mkdir -p "$hooks"; echo "# tokensave" >"$hooks/post-commit" ;;
-  githooks) mkdir -p "$hooks"; echo "# tokensave" >"$hooks/post-commit" ;;
+  init)
+    mkdir -p .tokensave "$hooks" "$(dirname "$(git rev-parse --git-path info/exclude)")"
+    echo ".tokensave/" >>"$(git rev-parse --git-path info/exclude)"
+    for h in post-checkout post-commit post-merge; do echo "# tokensave" >"$hooks/$h"; done ;;
+  githooks)
+    mkdir -p "$hooks"
+    for h in post-checkout post-commit post-merge; do echo "# tokensave" >"$hooks/$h"; done ;;
 esac
 STUB
   chmod +x "$BATS_TEST_TMPDIR/stubs/tokensave"
@@ -122,4 +127,24 @@ STUB
   run "$DEVBAR" run project-apply "$BATS_TEST_TMPDIR/nope" --yes
   [ "$status" -eq 2 ]
   [[ "$output" == *"non è un repo git"* ]]
+}
+
+@test "tokensave willWrite copre ogni percorso scritto dallo stub (percorsi assoluti)" {
+  run --separate-stderr "$DEVBAR" run project-status "$REPO"
+  ww="$(jq -r '.checks[] | select(.tool=="tokensave") | .willWrite[]' <<<"$output")"
+  while IFS= read -r p; do [[ "$p" == /* ]]; done <<<"$ww"
+  "$DEVBAR" run project-apply "$REPO" --yes >/dev/null 2>&1
+  root="$(git -C "$REPO" rev-parse --show-toplevel)"
+  for rel in .git/hooks/post-checkout .git/hooks/post-commit .git/hooks/post-merge .git/info/exclude; do
+    grep -qxF "$root/$rel" <<<"$ww"
+  done
+  grep -qxF "$root/.tokensave/" <<<"$ww"
+}
+
+@test "tokensave: un solo hook mancante -> nohook, willWrite elenca i tre hook" {
+  mkdir -p "$REPO/.tokensave" "$REPO/.git/hooks"
+  echo "# tokensave" >"$REPO/.git/hooks/post-commit"
+  run --separate-stderr "$DEVBAR" run project-status "$REPO"
+  [ "$(jq -r '.checks[] | select(.tool=="tokensave") | .ok' <<<"$output")" = false ]
+  [ "$(jq -r '.checks[] | select(.tool=="tokensave") | .willWrite | length' <<<"$output")" -eq 3 ]
 }
