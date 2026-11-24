@@ -29,6 +29,7 @@ setup() {
 @test "brew-vulns: rc brew 1 con JSON valido letto normalmente" {
   export STUB_BREW_FIXTURE=vulns-two.json
   export STUB_BREW_VULNS_RC=1
+  export STUB_BREW_VULNS_HELP_RC=0
   run --separate-stderr "$DEVBAR" check brew-vulns
   [ "$status" -eq 0 ]
   [ "$(jq -r .count <<<"$output")" = 2 ]
@@ -67,8 +68,7 @@ setup() {
 
 @test "brew-vulns: brew senza sottocomando vulns -> rc 3" {
   export STUB_BREW_FIXTURE=vulns-two.json
-  export STUB_BREW_VULNS_RC=1
-  # --help usa lo stesso sottocomando: rc 1 anche per --help
+  export STUB_BREW_VULNS_HELP_RC=1
   run --separate-stderr "$DEVBAR" check brew-vulns
   [ "$status" -eq 3 ]
 }

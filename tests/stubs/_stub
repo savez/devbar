@@ -25,6 +25,15 @@ get() { # get <suffix> <default>
 
 fixture="$(get FIXTURE "")"
 rc="$(get RC 0)"
+# `<tool> <subcmd> --help`: STUB_<TOOL>_<SUBCMD>_HELP_RC (stampa niente).
+if [ -n "$S" ]; then
+  for a in "$@"; do
+    if [ "$a" = "--help" ]; then
+      v="STUB_${T}_${S}_HELP_RC"
+      if [ -n "${!v+x}" ]; then exit "${!v}"; fi
+    fi
+  done
+fi
 if [ -n "$fixture" ]; then
   cat "${STUB_FIXTURES_DIR:?}/$tool/$fixture"
 fi
