@@ -125,7 +125,7 @@ Il comando della statusline in `settings.json` usa `DEVBAR_ROOT`, che ora punta 
 3. il merge di quella PR crea tag e release su GitHub;
 4. solo allora parte il job macOS: `just package VERSION=x.y.z` e `gh release upload` di `dist/devbar-x.y.z.zip`.
 
-La pipeline non esegue test (girano in locale: `just test`, `just app-test`). Le action sono fissate a una versione maggiore (`googleapis/release-please-action@v4`, `actions/checkout@v4`): vanno aggiornate a mano quando ne esce una nuova.
+La pipeline non esegue test (girano in locale: `just test`, `just app-test`). Le action sono fissate allo SHA del commit (`googleapis/release-please-action`, `actions/checkout`; il commento accanto dice la versione), così una versione ripubblicata non può cambiare cosa gira nella pipeline. Dependabot propone gli aggiornamenti con una PR mensile (`.github/dependabot.yml`), SHA e commento compresi.
 
 ### Disinstallare
 

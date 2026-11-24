@@ -1,6 +1,6 @@
 # Al merge su main gira solo release-please (Linux). L'app si compila solo quando nasce una release
-# (i minuti macOS costano su un repo privato). Le action sono fissate a una versione maggiore:
-# aggiornarle a mano (vedi README).
+# (i minuti macOS costano su un repo privato). Le action sono fissate allo SHA del commit (il
+# commento dice la versione): Dependabot le aggiorna con una PR, vedi README.
 name: release
 
 on:
@@ -20,7 +20,7 @@ jobs:
       version: ${{ steps.rp.outputs.version }}
     steps:
       - id: rp
-        uses: googleapis/release-please-action@v5
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
@@ -30,7 +30,7 @@ jobs:
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.release-please.outputs.tag_name }}
           fetch-depth: 0   # CFBundleVersion = numero di commit
