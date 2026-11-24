@@ -82,8 +82,8 @@ uninstall() {
   echo "devbar rimosso (config in ~/.config/devbar intatta)"
 }
 
-case "${1:-}" in
+case "${1:-install}" in
   install) install ;;
   uninstall) uninstall ;;
-  *) echo "uso: install.sh install|uninstall" >&2; exit 2 ;;
+  *) echo "uso: install.sh [install]|uninstall" >&2; exit 2 ;;
 esac

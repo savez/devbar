@@ -151,3 +151,9 @@ SH
   [[ ! "${exe}2" =~ $pat ]]
   [[ ! "/x$exe" =~ $pat ]]
 }
+
+@test "install.sh senza argomenti installa (come scritto nel README)" {
+  run "$DEVBAR_REPO/scripts/install.sh"
+  [ "$status" -eq 0 ]
+  [ -x "$HOME/Applications/devbar.app/Contents/MacOS/Devbar" ]
+}
