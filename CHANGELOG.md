@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/savez/devbar/compare/v0.2.0...v0.2.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* install.sh senza argomenti installa ([8d3a142](https://github.com/savez/devbar/commit/8d3a142e080245625890f61c1162c943659cee51))
+* install.sh senza argomenti installa, come dice il README ([3a1f246](https://github.com/savez/devbar/commit/3a1f2461f610965ddddf21e3784723afe7d3e3bb))
+
 ## [0.2.0](https://github.com/savez/devbar/compare/v0.1.0...v0.2.0) (2026-11-24)
 
 
