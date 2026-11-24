@@ -297,3 +297,42 @@ SH
   [ "$status" -eq 2 ]
   [ ! -e "$BATS_TEST_TMPDIR/ran" ]
 }
+
+@test "caveman copilot: cartelle reali esistenti -> backup, mai cancellate" {
+  fake_caveman_repo
+  mkdir -p "$HOME/.claude/skills/caveman" "$HOME/.agents/skills/caveman"
+  echo mia >"$HOME/.claude/skills/caveman/mia.md"
+  echo vecchia >"$HOME/.agents/skills/caveman/SKILL.md"
+  run --separate-stderr "$DEVBAR" run ai-install caveman copilot --yes
+  [ "$status" -eq 0 ]
+  [ -L "$HOME/.claude/skills/caveman" ]
+  [ "$(cat "$HOME"/.claude/skills/caveman.devbar-*/mia.md)" = mia ]
+  [ "$(cat "$HOME"/.agents/skills/caveman.devbar-*/SKILL.md)" = vecchia ]
+  [ "$(cat "$HOME/.agents/skills/caveman/SKILL.md")" = skill ]
+  [ ! -e "$HOME/.claude/skills/caveman/caveman" ]
+}
+
+@test "caveman copilot: skill già uguale -> nessun backup" {
+  fake_caveman_repo
+  "$DEVBAR" run ai-install caveman copilot --yes >/dev/null 2>&1
+  "$DEVBAR" run ai-install caveman copilot --yes >/dev/null 2>&1
+  [ -z "$(find "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.copilot/skills" -maxdepth 1 -name 'caveman.devbar-*')" ]
+}
+
+@test "caveman copilot senza --yes: il piano dichiara la sostituzione con backup" {
+  mkdir -p "$HOME/.copilot/skills/caveman"
+  run --separate-stderr "$DEVBAR" run ai-install caveman copilot
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"sostituisce ~/.copilot/skills/caveman (backup in ~/.copilot/skills/caveman.devbar-"* ]]
+  [ -d "$HOME/.copilot/skills/caveman" ]
+  [ ! -L "$HOME/.copilot/skills/caveman" ]
+}
+
+@test "caveman copilot: skill sorgente assente -> rc 2, harnesses non registrati" {
+  fake_caveman_repo
+  rm -rf "$HOME/.cache/devbar/caveman/skills"
+  write_config '{"harnesses":["claude"]}'
+  run --separate-stderr "$DEVBAR" run ai-install caveman copilot --yes
+  [ "$status" -eq 2 ]
+  [ "$(jq -c .harnesses "$DEVBAR_CONFIG")" = '["claude"]' ]
+}

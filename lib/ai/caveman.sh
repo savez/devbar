@@ -77,6 +77,7 @@ ai_caveman_install_cmds() {
         ;;
       copilot)
         echo "copia la skill in ~/.agents/skills/caveman e linka ~/.copilot/skills, ~/.claude/skills"
+        _caveman_replace_notes
         echo "scrivi il blocco CAVEMAN in ~/.copilot/copilot-instructions.md"
         ;;
     esac
@@ -222,25 +223,60 @@ _caveman_strip_block() {
   echo "devbar: rimosso blocco obsoleto da $file" >&2
 }
 
+# _caveman_tilde <path>: ~ al posto di $HOME, per i messaggi.
+_caveman_tilde() {
+  local t='~'
+  printf '%s' "${1/#"$HOME"/$t}"
+}
+
+# _caveman_copilot_links: i link della skill (uno per riga).
+_caveman_copilot_links() {
+  printf '%s\n' "$HOME/.copilot/skills/caveman" "$(_caveman_claude_dir)/skills/caveman"
+}
+
+# _caveman_replace_notes: righe di piano per ciò che verrebbe sostituito (mai cancellato).
+_caveman_replace_notes() {
+  local dest link
+  dest="$(_caveman_skills_dir)/caveman"
+  if [ -e "$dest" ] || [ -L "$dest" ]; then
+    echo "sostituisce $(_caveman_tilde "$dest") se diversa dalla skill (backup in $(_caveman_tilde "$dest").devbar-<data>)"
+  fi
+  while IFS= read -r link; do
+    if [ -e "$link" ] && [ ! -L "$link" ]; then
+      echo "sostituisce $(_caveman_tilde "$link") (backup in $(_caveman_tilde "$link").devbar-<data>)"
+    fi
+  done < <(_caveman_copilot_links)
+}
+
+# _caveman_backup <path>: sposta <path> in <path>.devbar-<data> (mai cancellare).
+_caveman_backup() {
+  local p="$1" b n=1
+  b="$p.devbar-$(date +%Y%m%d-%H%M%S)"
+  while [ -e "$b" ] || [ -L "$b" ]; do b="$p.devbar-$(date +%Y%m%d-%H%M%S)-$n"; n=$((n + 1)); done
+  mv "$p" "$b" || return 1
+  echo "devbar: $p sostituito, backup in $b" >&2
+}
+
 _caveman_setup_copilot() {
-  local cache src dest rule f link d
+  local cache src dest rule f link
   cache="$(_caveman_cache)"
   src="$cache/skills/caveman"
   dest="$(_caveman_skills_dir)/caveman"
-  if [ -d "$src" ]; then
-    rm -rf "${dest:?}"
+  [ -d "$src" ] || { echo "devbar: skill caveman non trovata: $src" >&2; return 1; }
+  # Cartella diversa dalla skill: backup, poi copia nuova. Uguale: niente da fare.
+  if { [ -e "$dest" ] || [ -L "$dest" ]; } && ! diff -rq "$src" "$dest" >/dev/null 2>&1; then
+    _caveman_backup "$dest" || return 1
+  fi
+  if [ ! -e "$dest" ]; then
     mkdir -p "$dest" || return 1
     cp -R "$src/." "$dest/" || return 1
-    for d in "$HOME/.copilot/skills" "$(_caveman_claude_dir)/skills"; do
-      link="$d/caveman"
-      mkdir -p "$d" || return 1
-      if [ -d "$link" ] && [ ! -L "$link" ]; then rm -rf "${link:?}"; fi
-      ln -sfn "$dest" "$link" || return 1
-    done
-  else
-    echo "devbar: skill caveman non trovata: $src, salto copilot" >&2
-    return 0
   fi
+  while IFS= read -r link; do
+    mkdir -p "$(dirname "$link")" || return 1
+    # ln -sfn su una cartella reale creerebbe il link dentro: prima il backup
+    if [ -e "$link" ] && [ ! -L "$link" ]; then _caveman_backup "$link" || return 1; fi
+    ln -sfn "$dest" "$link" || return 1
+  done < <(_caveman_copilot_links)
 
   rule="$cache/src/rules/caveman-activate.md"
   [ -f "$rule" ] || { echo "devbar: regola di attivazione non trovata: $rule" >&2; return 1; }
