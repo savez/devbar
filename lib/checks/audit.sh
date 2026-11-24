@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# devbar: scansione repo (repos) e audit dipendenze (npm-audit, composer-audit).
+
+# scan_repo_dirs: stampa le cartelle repo (una per riga) dentro repoRoots.
+# Repo = cartella con package-lock.json o composer.lock, fino a scanDepth
+# livelli sotto la root; salta node_modules, vendor, .git.
+scan_repo_dirs() {
+  local roots depth root
+  roots="$(config_get .repoRoots)"
+  depth="$(config_get .scanDepth)"
+  case "$depth" in '' | *[!0-9]*) depth=4 ;; esac
+  jq -r '.[]' <<<"$roots" | while IFS= read -r root; do
+    [ -n "$root" ] || continue
+    root="${root/#\~/$HOME}"
+    if [ ! -d "$root" ] || [ ! -r "$root" ]; then
+      echo "devbar: cartella repo non accessibile, saltata: $root" >&2
+      continue
+    fi
+    find "$root" -maxdepth "$((depth + 1))" \
+      \( -name node_modules -o -name vendor -o -name .git \) -prune -o \
+      \( -name package-lock.json -o -name composer.lock \) -type f -print 2>/dev/null |
+      while IFS= read -r f; do dirname "$f"; done
+  done | sort -u
+}
+
+# list_repos: stampa l'array JSON dei repo trovati.
+list_repos() {
+  local d
+  scan_repo_dirs | while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    jq -n --arg p "$d" \
+      --argjson n "$([ -f "$d/package-lock.json" ] && echo true || echo false)" \
+      --argjson c "$([ -f "$d/composer.lock" ] && echo true || echo false)" \
+      --argjson t "$([ -d "$d/.tokensave" ] && echo true || echo false)" \
+      '{path:$p,name:($p|split("/")|last),npm:$n,composer:$c,tokensave:$t}'
+  done | jq -s '.'
+}
+
+cmd_repos() { list_repos; }
+
+# audit_repos <npm|composer> <force>: logica comune dei due check.
+audit_repos() {
+  local kind="$1" force="$2" cache="$1-audit" repos items count vulns errs raw json counts d
+  local tool lockkey
+  tool="$kind"
+  lockkey="$kind"
+  require_tool "$tool"
+  if [ "$(config_get '.repoRoots | length')" -eq 0 ]; then
+    emit unconfigured 0 "nessuna cartella repo configurata"
+  fi
+  if [ "$force" != "--force" ] && cache_fresh "$cache" 1440; then
+    items="$(cache_read "$cache")"
+  else
+    repos="$(list_repos | jq -r --arg k "$lockkey" '.[] | select(.[$k]) | .path')"
+    items="[]"
+    errs=0
+    while IFS= read -r d; do
+      [ -n "$d" ] || continue
+      if [ "$kind" = npm ]; then
+        raw="$(cd "$d" && npm audit --json 2>/dev/null || true)"
+      else
+        raw="$(cd "$d" && composer audit --format=json --locked 2>/dev/null || true)"
+      fi
+      json="$(printf '%s\n' "$raw" | extract_json)"
+      counts=""
+      if [ -n "$json" ]; then
+        if [ "$kind" = npm ]; then
+          counts="$(jq -c '.metadata.vulnerabilities
+            | select(type == "object")
+            | {critical:(.critical // 0), high:(.high // 0), moderate:(.moderate // 0), low:(.low // 0)}' <<<"$json" 2>/dev/null || true)"
+        else
+          counts="$(jq -c '
+            .advisories | select(type == "object" or type == "array")
+            | [ if type == "array" then empty else to_entries[].value
+                | if type == "array" then .[] else . end end
+                | (.severity // "" | ascii_downcase) ] as $s
+            | {critical:([$s[]|select(.=="critical")]|length),
+               high:([$s[]|select(.=="high")]|length),
+               moderate:([$s[]|select(.=="medium" or .=="moderate")]|length),
+               low:([$s[]|select(.=="low")]|length)}' <<<"$json" 2>/dev/null || true)"
+        fi
+      fi
+      if [ -z "$counts" ]; then
+        errs=$((errs + 1))
+        items="$(jq -c --arg r "$d" --arg e "output di $kind audit non valido" '. + [{repo:$r,error:$e}]' <<<"$items")"
+      elif [ "$(jq '[.critical,.high,.moderate,.low] | add' <<<"$counts")" -gt 0 ]; then
+        items="$(jq -c --arg r "$d" --argjson c "$counts" '. + [{repo:$r} + $c]' <<<"$items")"
+      fi
+    done <<<"$repos"
+    # con errori non si salva in cache: il prossimo giro riprova
+    if [ "$errs" -eq 0 ]; then printf '%s\n' "$items" | cache_write "$cache"; fi
+  fi
+  count="$(jq 'length' <<<"$items")"
+  vulns="$(jq '[.[] | select(has("error") | not)] | length' <<<"$items")"
+  errs="$(jq '[.[] | select(has("error"))] | length' <<<"$items")"
+  if [ "$count" -eq 0 ]; then
+    emit ok 0 "Nessuna vulnerabilità $kind" "[]"
+  elif [ "$vulns" -eq 0 ]; then
+    emit error "$count" "audit $kind fallito in $errs repo" "$items"
+  fi
+  emit action "$count" "$vulns repo con vulnerabilità $kind ($errs con errori)" "$items"
+}
+
+check_npm_audit() { audit_repos npm "${1:-}"; }
+check_composer_audit() { audit_repos composer "${1:-}"; }

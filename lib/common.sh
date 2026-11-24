@@ -93,3 +93,7 @@ with_lock() {
   trap - EXIT INT TERM
   return "$rc"
 }
+
+# extract_json: da stdin stampa dalla prima riga che inizia con '{' in poi
+# (i tool possono stampare testo, es. '==> ...', prima del JSON).
+extract_json() { awk '/^\{/ {p=1} p'; }

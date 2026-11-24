@@ -7,7 +7,7 @@ check_brew_outdated() {
   local raw json exclude items count
   raw="$(brew outdated --json=v2 2>/dev/null || true)"
   # il JSON parte dalla prima riga che inizia con '{' (brew può stampare '==> ...' prima)
-  json="$(printf '%s\n' "$raw" | awk '/^\{/ {p=1} p')"
+  json="$(printf '%s\n' "$raw" | extract_json)"
   if [ -z "$json" ] || ! jq -e 'type == "object"' <<<"$json" >/dev/null 2>&1; then
     emit error 0 "output di brew outdated non valido"
   fi
@@ -39,7 +39,7 @@ check_brew_vulns() {
     # brew senza `vulns` non può scansionare: non è una scansione fallita
     brew vulns --help >/dev/null 2>&1 || emit unconfigured 0 "brew vulns non disponibile"
     raw="$(brew vulns --json 2>/dev/null || true)"
-    json="$(printf '%s\n' "$raw" | awk '/^\{/ {p=1} p')"
+    json="$(printf '%s\n' "$raw" | extract_json)"
     if [ -z "$json" ] || ! jq -e '
         type == "object" and (.findings | type == "array")
         and all(.findings[]; (.vulnerabilities | type == "array"))' <<<"$json" >/dev/null 2>&1; then
