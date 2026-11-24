@@ -52,6 +52,8 @@ struct DevbarApp: App {
             .windowResizability(.contentSize)
         Window("Init progetto", id: WindowID.initProject) { ProjectInitView(model: actions.projectInit) }
             .windowResizability(.contentSize)
+        Window("devbar — Dettagli", id: WindowID.details) { DetailsView(store: store, actions: actions) }
+            .defaultSize(width: 760, height: 480)
     }
 }
 
