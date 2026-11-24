@@ -65,12 +65,6 @@ struct FmtExtraTests {
         #expect(Fmt.gb(1_610_612_736) == "1.5 GB")
     }
 
-    @Test func todoText() {
-        #expect(Fmt.todo(0) == "Tutto a posto")
-        #expect(Fmt.todo(1) == "1 cosa da fare")
-        #expect(Fmt.todo(12) == "12 cose da fare")
-    }
-
     @Test func checkedText() {
         var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(identifier: "UTC")!
         let d = ISO8601DateFormatter().date(from: "2026-11-24T09:05:00Z")!
@@ -91,41 +85,12 @@ struct FmtExtraTests {
 }
 
 @MainActor
-struct HealthStripTests {
-    @Test func realFixtureSegments() throws {
-        let m = try Fixture.model(rich: false)
-        let s = HealthStrip(model: m, features: try Fixture.features(rich: false), badge: (.error, 12))
-        #expect(s.segments.map(\.area) == [.homebrew, .vulns, .colima, .tokens, .aiSetup])
-        #expect(s.segments.map(\.tone) == [.action, .risk, .info, .info, .info])
-        #expect(s.todoText == "12 cose da fare")
-        #expect(s.todoTone == .risk)
-    }
-
-    /// Consumo al 76%: l'indicatore è ambra, il segmento Token resta informativo.
+struct TokensToneTests {
+    /// Consumo al 76%: l'indicatore è ambra, la sezione Token resta informativa.
     @Test func richFixtureTokensStayInformative() throws {
         let m = try Fixture.model(rich: true)
-        let s = HealthStrip(model: m, features: try Fixture.features(rich: true), badge: (.error, 15))
-        #expect(s.segments.first { $0.area == .tokens }?.tone == .info)
+        #expect(m.tokensTone == .info)
         #expect(m.usageMeters.first?.tone == .action)
-    }
-
-    @Test func allQuiet() throws {
-        let empty = try AllChecks.decode(Data("{}".utf8))
-        let colima = ColimaFeature(runner: FakeActions(), locks: SectionLocks(), host: Fixture.host)
-        colima.update(from: FeatureInput(all: empty))
-        let s = HealthStrip(model: PanelModel(all: empty), features: [colima], badge: (.ok, 0))
-        #expect(s.segments.isEmpty)
-        #expect(s.todoText == "Tutto a posto")
-        #expect(s.todoTone == .ok)
-    }
-
-    /// Il numero sotto la barra è quello del badge: 6 pacchetti + 6 formule colpite.
-    @MainActor @Test func todoMatchesBadge() async throws {
-        let runner = FakeRunner(["check all": .init(rc: 0, stdout: String(decoding: try Fixture.data("all"), as: UTF8.self))])
-        let store = StatusStore(runner: runner, allTimeout: 5, actionTimeout: 5)
-        await store.refresh(force: false)
-        let m = PanelModel(all: AllChecks(rows: store.results, raw: store.raw))
-        #expect(HealthStrip(model: m, features: [], badge: store.badge).todoText == "12 cose da fare")
     }
 }
 
@@ -153,31 +118,32 @@ struct ReadoutTests {
         #expect(r.subtitle == "timeout")
     }
 
-    /// Formule distinte con CVE alte o critiche, non il numero di CVE (`severe` = 8).
+    /// Il numero grande è il totale dei pacchetti colpiti (formule distinte, non CVE); quelli
+    /// con gravità alta o critica stanno nella riga sotto e decidono il rosso.
     @Test func vulnsCountFormulae() throws {
         let m = try Fixture.model(rich: false)
         #expect(m.severeFormulae == ["openssl@3", "openssl@4"])
         let r = m.vulnReadout
-        #expect(r.value == "2")
+        #expect(r.value == "6")
         #expect(r.tone == .risk)
-        #expect(r.subtitle == "alte o critiche, 6 in totale")
+        #expect(r.subtitle == "6 pacchetti Homebrew, 2 con gravità alta o critica")
         // npm e composer non configurati: nessuna riga repo
         #expect(r.note == nil)
     }
 
     @Test func vulnsWithRepos() throws {
         let r = try Fixture.model(rich: true).vulnReadout
-        #expect(r.value == "3")
-        #expect(r.subtitle == "alte o critiche, 7 in totale")
-        #expect(r.note == "3 repo con problemi")
+        #expect(r.value == "10")
+        #expect(r.subtitle == "7 pacchetti Homebrew, 3 con gravità alta o critica")
+        #expect(r.note == "3 progetti con problemi")
     }
 
     @Test func vulnsOnlyModerateIsAction() throws {
         let json = #"{"npm-audit":{"status":"action","rc":0,"count":1,"summary":"","items":[{"repo":"/r","moderate":2}]}}"#
         let r = PanelModel(all: try AllChecks.decode(Data(json.utf8))).vulnReadout
-        #expect(r.value == "0")
+        #expect(r.value == "1")
         #expect(r.tone == .action)
-        #expect(r.subtitle == "1 repo con problemi")
+        #expect(r.subtitle == "1 progetto con problemi")
     }
 
     @Test func tokens() throws {

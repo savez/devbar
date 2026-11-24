@@ -77,62 +77,12 @@ public extension Fmt {
         return p.count == 3 ? "\(p[2])/\(p[1])" : iso
     }
 
-    /// "N cose da fare", "1 cosa da fare", "Tutto a posto".
-    static func todo(_ n: Int) -> String {
-        switch n {
-        case ..<1: "Tutto a posto"
-        case 1: "1 cosa da fare"
-        default: "\(n) cose da fare"
-        }
-    }
-
     /// "controllato alle 09:25"; durante un refresh "controllo in corso…"; mai: nil.
     static func checked(_ last: Date?, isRefreshing: Bool, calendar: Calendar = .current) -> String? {
         if isRefreshing { return "controllo in corso…" }
         guard let last else { return nil }
         let c = calendar.dateComponents([.hour, .minute], from: last)
         return String(format: "controllato alle %02d:%02d", c.hour ?? 0, c.minute ?? 0)
-    }
-}
-
-// MARK: - Barra di salute
-
-public struct StripSegment: Equatable, Sendable, Identifiable {
-    public var area: Area
-    public var tone: Tone
-    public var id: Area { area }
-}
-
-public struct HealthStrip: Equatable, Sendable {
-    public var segments: [StripSegment]
-    /// "2026-11-24" -> "24/11"; altro: invariato.
-    static func day(_ iso: String) -> String {
-        let p = iso.split(separator: "-")
-        return p.count == 3 ? "\(p[2])/\(p[1])" : iso
-    }
-
-    /// "N cose da fare" o "Tutto a posto": stesso numero del badge nella barra dei menu.
-    public var todoText: String
-    public var todoTone: Tone
-
-    /// Segmenti delle aree ancora in `PanelModel` più quelli dei moduli (`Feature`),
-    /// nell'ordine di `Area`.
-    @MainActor
-    public init(model: PanelModel, features: [any Feature], badge: (level: CheckState, count: Int)) {
-        var s: [StripSegment] = []
-        if model.brewState != .hidden { s.append(.init(area: .homebrew, tone: model.brewReadout.tone)) }
-        if model.showsVulns { s.append(.init(area: .vulns, tone: model.vulnReadout.tone)) }
-        if model.showsTokenSection { s.append(.init(area: .tokens, tone: model.tokensTone)) }
-        if model.showsAISetup { s.append(.init(area: .aiSetup, tone: .info)) }
-        s += features.compactMap(\.segment)
-        let order = Area.allCases
-        segments = s.sorted { order.firstIndex(of: $0.area)! < order.firstIndex(of: $1.area)! }
-        todoText = Fmt.todo(badge.count)
-        switch badge.level {
-        case .error: todoTone = .risk
-        case .action: todoTone = badge.count > 0 ? .action : .ok
-        case .ok, .unconfigured: todoTone = .ok
-        }
     }
 }
 
@@ -186,29 +136,34 @@ public extension PanelModel {
 
     var showsVulns: Bool { !vulnRows.isEmpty }
 
-    /// Vulnerabilità: formule colpite da CVE alte o critiche (senza brew: repo con critiche o
-    /// alte). Rosso se ci sono formule o repo gravi.
+    /// Vulnerabilità: il numero grande è il totale da sistemare (pacchetti Homebrew colpiti più
+    /// progetti con problemi in npm/composer). Rosso se almeno uno è grave (alta o critica).
     var vulnReadout: Readout {
         guard showsVulns else { return Readout() }
         let brewShown = vulnRows.contains { $0.id == "brew" }
         let auditShown = vulnRows.contains { $0.id != "brew" }
         let affected = brewShown ? Set(brewVulnItems.map(\.formula)).count : 0
         let severe = brewShown ? severeFormulae.count : 0
+        let projects = auditShown ? reposWithIssues : 0
         let anySevere = severe + severeRepos > 0
+        let total = affected + projects
         let tone: Tone = brewVulnError != nil && !auditShown ? .info
-            : (anySevere ? .risk : (affected + reposWithIssues > 0 ? .action : .ok))
+            : (anySevere ? .risk : (total > 0 ? .action : .ok))
         var sub: String?
         if brewShown {
             if let e = brewVulnError { sub = e }
-            else { sub = affected == 0 ? "nessuna formula colpita" : "alte o critiche, \(affected) in totale" }
+            else if affected == 0 { sub = "nessun pacchetto Homebrew colpito" }
+            else {
+                let pkg = affected == 1 ? "1 pacchetto Homebrew" : "\(affected) pacchetti Homebrew"
+                sub = severe > 0 ? "\(pkg), \(severe) con gravità alta o critica" : pkg
+            }
         }
         var note: String?
         if auditShown {
-            let n = reposWithIssues
-            note = n == 0 ? "Repo senza problemi" : (n == 1 ? "1 repo con problemi" : "\(n) repo con problemi")
+            note = projects == 0 ? "Progetti senza problemi" : (projects == 1 ? "1 progetto con problemi" : "\(projects) progetti con problemi")
         }
-        if !brewShown { return Readout(value: "\(severeRepos)", tone: tone, subtitle: note) }
-        return Readout(value: brewVulnError == nil ? "\(severe)" : nil, tone: tone, subtitle: sub, note: note)
+        let hasValue = !(brewShown && brewVulnError != nil)
+        return Readout(value: hasValue ? "\(total)" : nil, tone: tone, subtitle: brewShown ? sub : note, note: brewShown ? note : nil)
     }
 
     /// Token risparmiati da RTK, compatti ("194K").
@@ -216,8 +171,7 @@ public extension PanelModel {
         Readout(value: rtkSaved.map(Fmt.tokens), tone: .info)
     }
 
-    /// Sezione informativa: sempre ardesia (le soglie di consumo colorano solo gli indicatori),
-    /// così la barra non mostra ambra che "N cose da fare" non conta.
+    /// Sezione informativa: sempre ardesia (le soglie di consumo colorano solo gli indicatori).
     var tokensTone: Tone { .info }
 
     var usageMeters: [UsageMeter] {

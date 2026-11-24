@@ -98,40 +98,6 @@ extension ReadoutRow where Accessory == EmptyView {
     }
 }
 
-// MARK: - Barra di salute
-
-struct HealthStripView: View {
-    let strip: HealthStrip
-    let checked: String?
-    let onSelect: (Area) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 2) {
-                ForEach(Array(strip.segments.enumerated()), id: \.element.id) { i, seg in
-                    let first = i == 0, last = i == strip.segments.count - 1
-                    Button { onSelect(seg.area) } label: {
-                        UnevenRoundedRectangle(topLeadingRadius: first ? 3 : 0, bottomLeadingRadius: first ? 3 : 0,
-                                               bottomTrailingRadius: last ? 3 : 0, topTrailingRadius: last ? 3 : 0)
-                            .fill(seg.tone.color)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 6)
-                            .contentShape(Rectangle().inset(by: -4))
-                    }
-                    .buttonStyle(.plain)
-                    .help(seg.area.title)
-                }
-            }
-            HStack(alignment: .firstTextBaseline) {
-                Text(strip.todoText).font(Typo.title)
-                Spacer()
-                if let checked { Text(checked).font(Typo.note).foregroundStyle(.secondary) }
-            }
-        }
-        .padding(.bottom, 10)
-    }
-}
-
 // MARK: - Indicatore di consumo
 
 /// Indicatori del consumo Claude in griglia: barre della stessa larghezza, a capsula sottile.

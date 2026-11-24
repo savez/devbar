@@ -27,14 +27,6 @@ public struct FeatureInput: Sendable {
     nonisolated static var actions: FeatureActionSpec { get }
 }
 
-public extension Feature {
-    /// Segmento della barra di salute, se l'area è visibile: stesso tono della riga.
-    var segment: StripSegment? {
-        guard let r = readout, let a = areas.first else { return nil }
-        return StripSegment(area: a, tone: r.tone)
-    }
-}
-
 /// Azioni `devbar run <verbo>` di un modulo: quali verbi gli appartengono (per prefisso),
 /// la sezione che occupano mentre girano e quali restano in background a lungo.
 public struct FeatureActionSpec: Sendable, Equatable {

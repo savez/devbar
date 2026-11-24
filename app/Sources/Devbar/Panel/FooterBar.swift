@@ -10,7 +10,8 @@ struct FooterBar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let s = PanelModel.footerStatus(engineBusy: store.engineBusy, refreshError: store.refreshError,
-                                               isRefreshing: store.isRefreshing) ?? actions.lastError {
+                                               isRefreshing: store.isRefreshing) ?? actions.lastError
+                ?? Fmt.checked(store.lastRefresh, isRefreshing: store.isRefreshing) {
                 Text(s).font(Typo.note).foregroundStyle(.secondary).lineLimit(2)
             }
             HStack(spacing: 14) {

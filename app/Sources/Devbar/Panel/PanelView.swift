@@ -9,7 +9,6 @@ struct PanelView: View {
     /// Solo per le istantanee: niente `.task` che rilancia i controlli.
     var loadsOnAppear = true
     @Environment(\.openWindow) private var openWindow
-    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         let model = PanelModel(all: AllChecks(rows: store.results, raw: store.raw), detect: actions.detect)
@@ -20,17 +19,6 @@ struct PanelView: View {
                     .font(Typo.title).foregroundStyle(.secondary)
                     .padding(.vertical, 10)
             } else {
-                HealthStripView(strip: HealthStrip(model: model, features: actions.features, badge: store.badge),
-                                checked: Fmt.checked(store.lastRefresh, isRefreshing: store.isRefreshing),
-                                onSelect: { area in
-                                    // AI setup non ha Dettagli: gli harness si gestiscono nelle impostazioni.
-                                    if area == .aiSetup {
-                                        NSApp.activate(ignoringOtherApps: true)
-                                        openSettings()
-                                    } else {
-                                        open(area)
-                                    }
-                                })
                 rows(model, open: open)
             }
             Divider()
@@ -48,29 +36,33 @@ struct PanelView: View {
         .modifier(ConfirmationHost(actions: actions, origin: .panel))
     }
 
+    /// Righe nell'ordine del pannello; la linea di separazione va tra una riga e la successiva,
+    /// mai sopra la prima.
     @ViewBuilder private func rows(_ model: PanelModel, open: DetailsOpener) -> some View {
-        if model.brewState == .shown {
-            Divider()
+        let shown = [model.brewState == .shown, model.showsVulns, actions.colima.readout != nil,
+                     model.showsTokenSection, model.caveman != nil, model.showsAISetup]
+        let line = { (i: Int) in shown[..<i].contains(true) }
+        if shown[0] {
             BrewRow(model: model, actions: actions, open: open)
         }
-        if model.showsVulns {
-            Divider()
+        if shown[1] {
+            if line(1) { Divider() }
             VulnsRow(model: model, open: open)
         }
-        if actions.colima.readout != nil {
-            Divider()
+        if shown[2] {
+            if line(2) { Divider() }
             ColimaRow(feature: actions.colima, open: open)
         }
-        if model.showsTokenSection {
-            Divider()
+        if shown[3] {
+            if line(3) { Divider() }
             TokensRow(model: model, actions: actions, open: open)
         }
-        if let cv = model.caveman {
-            Divider()
+        if shown[4], let cv = model.caveman {
+            if line(4) { Divider() }
             CavemanRow(panel: cv, control: actions.caveman)
         }
-        if model.showsAISetup {
-            Divider()
+        if shown[5] {
+            if line(5) { Divider() }
             AISetupRow(model: model, actions: actions)
         }
     }
