@@ -99,3 +99,26 @@ with_lock() {
 # extract_json: da stdin stampa dalla prima riga che inizia con '{' in poi
 # (i tool possono stampare testo, es. '==> ...', prima del JSON).
 extract_json() { awk '/^\{/ {p=1} p'; }
+
+# devbar_write_file <target>: scrive stdin su <target> (Ruling E).
+# File temporaneo nella cartella del target + mv; mantiene il modo del target
+# se esisteva; se il target è un symlink scrive sul file risolto (il link resta);
+# nessun temporaneo residuo in caso di errore.
+devbar_write_file() {
+  local target="$1" next dir tmp mode n=0
+  while [ -L "$target" ]; do
+    next="$(readlink "$target")"
+    case "$next" in /*) target="$next" ;; *) target="$(dirname "$target")/$next" ;; esac
+    n=$((n + 1))
+    [ "$n" -le 20 ] || { echo "devbar: troppi symlink: $1" >&2; return 1; }
+  done
+  dir="$(dirname "$target")"
+  mkdir -p "$dir" || return 1
+  tmp="$(mktemp "$dir/.devbar-write.XXXXXX")" || return 1
+  if [ -e "$target" ]; then
+    mode="$(stat -f '%Lp' "$target" 2>/dev/null || stat -c '%a' "$target" 2>/dev/null || true)"
+  fi
+  if ! cat >"$tmp"; then rm -f "$tmp"; return 1; fi
+  if [ -n "${mode:-}" ] && ! chmod "$mode" "$tmp"; then rm -f "$tmp"; return 1; fi
+  mv "$tmp" "$target" || { rm -f "$tmp"; return 1; }
+}

@@ -11,6 +11,8 @@
 #                                        (stdout del tool va su stderr: lo gestisce il dispatch)
 #   ai_<t>_tool_install_cmd              (opzionale) comando che installa il binario
 #   ai_<t>_tool_install                  (opzionale) esegue l'install del binario
+#   ai_<t>_absent_rc                     (opzionale) rc di ai-status quando il tool
+#                                        non è installato (default 0; statusline: 3)
 # Un nuovo tool = un nuovo file in lib/ai/ con queste funzioni.
 
 # _ai_error <messaggio>: stampa {"status":"error","error":...}, rc 2.
@@ -81,6 +83,8 @@ action_ai_status() {
   done
   jq -nc --arg t "$tool" --argjson i "$inst" --argjson h "$hs" \
     '{tool:$t,installed:$i,harnesses:$h}'
+  if [ "$inst" = false ] && f="$(_ai_fn "$tool" absent_rc)"; then return "$("$f")"; fi
+  return 0
 }
 
 # action_ai_install <tool> <harness>... [--yes]
