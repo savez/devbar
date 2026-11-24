@@ -1,0 +1,9 @@
+{
+  "name": "devbar-sample-repo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Repo di esempio per le fixture registrate: dipendenza volutamente vecchia (vulnerabile).",
+  "dependencies": {
+    "minimist": "1.2.0"
+  }
+}

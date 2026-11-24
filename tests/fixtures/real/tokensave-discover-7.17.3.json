@@ -1,0 +1,20 @@
+{
+  "since": "7d",
+  "recoverable_fraction": 0.5,
+  "total_turns": 3231,
+  "replaceable_turns": 79,
+  "turns_with_measured_sizes": 46,
+  "total_addressable_input_tokens": 229914,
+  "total_recoverable_input_tokens": 114957,
+  "buckets": [
+    {
+      "bucket": "read",
+      "tool": "Read",
+      "suggestion": "outline / read / node",
+      "turns": 79,
+      "turns_with_measured_sizes": 46,
+      "addressable_input_tokens": 229914,
+      "recoverable_input_tokens": 114957
+    }
+  ]
+}

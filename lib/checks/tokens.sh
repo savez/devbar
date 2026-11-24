@@ -8,12 +8,14 @@ check_rtk() {
   local raw out
   raw="$(rtk gain -d -f json 2>/dev/null | extract_json || true)"
   out="$(jq -c '
-    select(type == "object" and (.summary | type) == "object") |
+    select(type == "object" and (.summary | type) == "object"
+      and all(.summary.total_saved, .summary.total_input, .summary.avg_savings_pct, .summary.total_commands; type == "number")
+      and ((.daily // []) | type) == "array") |
     {saved: (.summary.total_saved // 0), input: (.summary.total_input // 0),
      pct: (.summary.avg_savings_pct // 0), commands: (.summary.total_commands // 0),
      daily: ((.daily // []) | map({date, saved: (.saved_tokens // 0)}) | .[-7:])}' \
     <<<"$raw" 2>/dev/null)" || out=""
-  [ -n "$out" ] || emit error 0 "rtk: output non valido"
+  [ -n "$out" ] || format_error rtk rtk --version
   emit ok 0 "RTK: $(jq -r '.saved' <<<"$out") token risparmiati" "[]" "$out"
 }
 
@@ -23,11 +25,12 @@ check_tokensave() {
   local g d gain missed
   g="$(tokensave gain --all --json --range 7d 2>/dev/null | extract_json || true)"
   gain="$(jq -c 'select(type == "object") |
-    {saved: (.saved_tokens // 0), calls: (.calls // 0), usd: (.usd // 0)}' <<<"$g" 2>/dev/null)" || gain=""
-  [ -n "$gain" ] || emit error 0 "tokensave: output gain non valido"
+    select((.saved_tokens | type) == "number" and (.calls | type) == "number") |
+    {saved: .saved_tokens, calls: .calls, usd: (.usd // 0)}' <<<"$g" 2>/dev/null)" || gain=""
+  [ -n "$gain" ] || format_error tokensave tokensave --version
   d="$(tokensave discover --json --since 7d 2>/dev/null | extract_json || true)"
-  missed="$(jq -c 'select(type == "object") | (.replaceable_turns // 0)' <<<"$d" 2>/dev/null)" || missed=""
-  [ -n "$missed" ] || emit error 0 "tokensave: output discover non valido"
+  missed="$(jq -c 'select(type == "object" and (.replaceable_turns | type) == "number") | .replaceable_turns' <<<"$d" 2>/dev/null)" || missed=""
+  [ -n "$missed" ] || format_error tokensave tokensave --version
   local extra
   extra="$(jq -c --argjson m "$missed" '. + {missedTurns: $m}' <<<"$gain")"
   emit ok 0 "tokensave: $missed turni sostituibili" "[]" "$extra"
@@ -80,8 +83,8 @@ check_claude_usage() {
   local args=(--status) raw usage
   if [ "${1:-}" = "--force" ]; then args+=(--force-poll); fi
   raw="$(claude-usage "${args[@]}" 2>/dev/null | extract_json || true)"
-  usage="$(jq -c 'select(type == "object") |
+  usage="$(jq -c 'select(type == "object" and (has("c_pct") or has("w_pct") or has("auth") or has("error"))) |
     {c_pct, c_reset, w_pct, w_reset, stale, auth, error}' <<<"$raw" 2>/dev/null)" || usage=""
-  [ -n "$usage" ] || emit error 0 "claude-usage: output non valido"
+  [ -n "$usage" ] || format_error claude-usage claude-usage --version
   emit ok 0 "usage Claude" "[]" "$(jq -nc --argjson u "$usage" '{usage:$u}')"
 }

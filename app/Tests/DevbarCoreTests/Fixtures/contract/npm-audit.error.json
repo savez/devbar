@@ -1,7 +1,7 @@
 {
   "status": "error",
   "count": 1,
-  "summary": "audit npm fallito in 1 repo",
+  "summary": "audit npm fallito in 1 repo: formato di npm non riconosciuto (versione sconosciuta)",
   "items": [
     {
       "repo": "/Users/example/repos/web",

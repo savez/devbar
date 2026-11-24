@@ -51,8 +51,8 @@ _audit_repo_counts() {
   [ -n "$json" ] || return 0
   if [ "$kind" = npm ]; then
     jq -c '.metadata.vulnerabilities
-      | select(type == "object")
-      | {critical:(.critical // 0), high:(.high // 0), moderate:(.moderate // 0), low:(.low // 0)}' <<<"$json" 2>/dev/null || true
+      | select(type == "object" and all(.critical, .high, .moderate, .low; type == "number"))
+      | {critical, high, moderate, low}' <<<"$json" 2>/dev/null || true
   else
     jq -c '
       .advisories | select(type == "object" or type == "array")
@@ -111,7 +111,9 @@ audit_repos() {
   if [ "$count" -eq 0 ]; then
     emit ok 0 "Nessuna vulnerabilità $kind" "[]"
   elif [ "$vulns" -eq 0 ]; then
-    emit error "$count" "audit $kind fallito in $errs repo" "$items"
+    local vflag=--version
+    [ "$kind" != npm ] || vflag=-v
+    emit error "$count" "audit $kind fallito in $errs repo: formato di $kind non riconosciuto (versione $(tool_version "$kind" "$vflag"))" "$items"
   fi
   emit action "$count" "$vulns repo con vulnerabilità $kind ($errs con errori)" "$items"
 }

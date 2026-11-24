@@ -7,11 +7,15 @@ check_colima() {
   require_tool colima
   local raw profiles running containers stats
   raw="$(colima list --json 2>/dev/null || true)"
-  profiles="$(printf '%s\n' "$raw" | jq -c -s '
-    map(select(type == "object" and .name != null)
-      | {name, status: (.status // "Unknown"), cpus: (.cpus // 0),
-         memoryBytes: (.memory // 0), diskBytes: (.disk // 0)})' 2>/dev/null)" || profiles='[]'
-  [ -n "$profiles" ] || profiles='[]'
+  # nessun output = nessun profilo; altrimenti ogni riga deve essere un profilo con name e status
+  profiles='[]'
+  if [ -n "$raw" ]; then
+    profiles="$(printf '%s\n' "$raw" | jq -c -s '
+      if all(.[]; type == "object" and (.name | type) == "string" and (.status | type) == "string")
+      then map({name, status, cpus: (.cpus // 0), memoryBytes: (.memory // 0), diskBytes: (.disk // 0)})
+      else empty end' 2>/dev/null)" || profiles=""
+    [ -n "$profiles" ] || format_error colima colima version
+  fi
   running="$(jq '[.[] | select(.status == "Running")] | length' <<<"$profiles")"
   containers='[]'
   if [ "$running" -gt 0 ]; then

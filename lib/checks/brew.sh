@@ -8,8 +8,9 @@ check_brew_outdated() {
   raw="$(brew outdated --json=v2 2>/dev/null || true)"
   # il JSON parte dalla prima riga che inizia con '{' (brew può stampare '==> ...' prima)
   json="$(printf '%s\n' "$raw" | extract_json)"
-  if [ -z "$json" ] || ! jq -e 'type == "object"' <<<"$json" >/dev/null 2>&1; then
-    emit error 0 "output di brew outdated non valido"
+  if [ -z "$json" ] || ! jq -e 'type == "object" and (.formulae | type == "array") and (.casks | type == "array")
+      and all(.formulae[], .casks[]; type == "object" and (.name | type == "string"))' <<<"$json" >/dev/null 2>&1; then
+    format_error brew brew --version
   fi
   exclude="$(config_get .brewExclude)"
   items="$(jq -c --argjson ex "$exclude" '
@@ -19,7 +20,7 @@ check_brew_outdated() {
     + [ (.casks // [])[]
         | {name, kind: "cask", installed: (.installed_versions | last_ver), current: .current_version} ]
     | map(select(.name as $n | $ex | index($n) | not))' <<<"$json")" ||
-    emit error 0 "output di brew outdated non valido"
+    format_error brew brew --version
   count="$(jq 'length' <<<"$items")"
   if [ "$count" -eq 0 ]; then
     emit ok 0 "Homebrew aggiornato" "[]"
@@ -42,8 +43,9 @@ check_brew_vulns() {
     json="$(printf '%s\n' "$raw" | extract_json)"
     if [ -z "$json" ] || ! jq -e '
         type == "object" and (.findings | type == "array")
-        and all(.findings[]; (.vulnerabilities | type == "array"))' <<<"$json" >/dev/null 2>&1; then
-      emit error 0 "output di brew vulns non valido"
+        and all(.findings[]; (.formula | type == "string") and (.vulnerabilities | type == "array")
+          and all(.vulnerabilities[]; type == "object" and (.id | type == "string")))' <<<"$json" >/dev/null 2>&1; then
+      format_error brew brew --version
     fi
     printf '%s\n' "$json" | cache_write brew-vulns
   fi

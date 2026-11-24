@@ -67,6 +67,21 @@ require_tool() {
   command -v "$1" >/dev/null 2>&1 || emit unconfigured 0 "$1 non installato"
 }
 
+# tool_version <cmd...>: primo numero di versione stampato dal comando, "sconosciuta" se manca.
+tool_version() {
+  local v
+  v="$("$@" 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n 1)" || true
+  printf '%s' "${v:-sconosciuta}"
+}
+
+# format_error <strumento> <comando di versione...>: l'output dello strumento non ha la forma
+# attesa (formato cambiato). rc 2 con la versione nel messaggio, mai un risultato 0.
+format_error() {
+  local tool="$1"
+  shift
+  emit error 0 "formato di $tool non riconosciuto (versione $(tool_version "$@"))"
+}
+
 # with_lock <cmd...>: un solo processo alla volta; altrimenti busy (rc 2).
 with_lock() {
   local dir lock pid rc=0

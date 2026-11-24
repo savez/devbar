@@ -10,12 +10,16 @@ test:
 # Rigenera le fixture di contratto (app/Tests/DevbarCoreTests/Fixtures/contract) dal motore con gli stub,
 # poi le valida contro schemas/. Dopo una modifica all'output del motore: just contract e commit.
 contract:
-    tests/contract-fixtures.sh
+    tests/contract-fixtures.sh scripts/record-fixtures.sh
     bats tests/contract.bats
+
+# Registra l'output reale degli strumenti in tests/fixtures/real (solo comandi di lettura, anonimizzato).
+record-fixtures:
+    scripts/record-fixtures.sh
 
 # statusline/devbar-claude-statusline è escluso: copia verbatim da Sparkdock (vedi README).
 lint:
-    shellcheck -x -P SCRIPTDIR bin/devbar $(find lib -name '*.sh') scripts/install.sh app/bundle.sh tests/contract-fixtures.sh
+    shellcheck -x -P SCRIPTDIR bin/devbar $(find lib -name '*.sh') scripts/install.sh app/bundle.sh tests/contract-fixtures.sh scripts/record-fixtures.sh
 
 # XCTest manca nelle Command Line Tools: si usa swift-testing; il plugin macro va indicato a mano.
 app-test:

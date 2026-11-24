@@ -1,0 +1,14 @@
+{
+  "formulae": [],
+  "casks": [
+    {
+      "name": "tunnelblick",
+      "installed_versions": [
+        "10.0.2,6590"
+      ],
+      "current_version": "10.0.3,6610",
+      "pinned": false,
+      "pinned_version": null
+    }
+  ]
+}
