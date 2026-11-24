@@ -73,9 +73,19 @@ struct SettingsView: View {
             }
 
             JournalSection(model: journal)
+
+            Section("Informazioni") {
+                LabeledContent("Versione", value: AppInfo.versionText(Bundle.main.infoDictionary))
+                Link(destination: AppInfo.repositoryURL) {
+                    Label("Progetto su GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                }
+                Link(destination: AppInfo.supportURL) { BeerBadge() }
+                    .buttonStyle(.plain)
+                    .help("Offrimi una birra su Buy Me a Coffee")
+            }
         }
         .formStyle(.grouped)
-        .frame(width: 480, height: 560)
+        .frame(width: 480, height: 620)
         .task { await model.load(); await journal.load() }
         .onDisappear { Task { await model.didClose() } }
         .confirmationDialog("Sovrascrivere la config non valida?", isPresented: Bindable(model).overwritePromptShown,
@@ -113,5 +123,19 @@ struct SettingsView: View {
                 let c = Calendar.current.dateComponents([.hour, .minute], from: d)
                 model.setDailyTime(hour: c.hour ?? 9, minute: c.minute ?? 0)
             })
+    }
+}
+
+/// Il pulsante "Offrimi una birra" di Buy Me a Coffee: giallo, testo scuro.
+struct BeerBadge: View {
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "mug.fill")
+            Text("Offrimi una birra").fontWeight(.semibold)
+        }
+        .foregroundStyle(Color.black)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        .background(Capsule().fill(Color(red: 1.0, green: 0.867, blue: 0.0)))
     }
 }

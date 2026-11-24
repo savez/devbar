@@ -6,6 +6,7 @@
   <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111111?logo=apple&logoColor=white">
   <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white">
   <img alt="Licenza GPLv3" src="https://img.shields.io/badge/licenza-GPLv3-2f6f8f">
+  <a href="https://buymeacoffee.com/goeokwihgz"><img alt="Offrimi una birra" src="https://img.shields.io/badge/Offrimi%20una%20birra-FFDD00?logo=buymeacoffee&logoColor=black"></a>
 </p>
 
 **devbar** è una menu bar per macOS che tiene d'occhio il Mac di sviluppo e ti dice quando
@@ -60,6 +61,10 @@ Due parti:
 - **App** (`app/`, SwiftUI): lancia la CLI e disegna il risultato. Nessuna logica di controllo in Swift.
 
 Il motore si usa anche da terminale (`devbar check all`), ed è questo che rende ogni pezzo testabile da solo.
+
+## Supporta il progetto
+
+devbar è gratuito. Se ti è utile, puoi [offrirmi una birra](https://buymeacoffee.com/goeokwihgz); lo trovi anche nelle impostazioni dell'app.
 
 ## Contribuire
 
