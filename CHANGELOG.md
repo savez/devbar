@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.0](https://github.com/savez/devbar/compare/v0.2.2...v0.3.0) (2026-11-24)
+
+
+### Features
+
+* **app:** icona dell'app ([3b20380](https://github.com/savez/devbar/commit/3b203801774fdfed5711c264622eead9e7078bb4))
+* **app:** icona dell'app (d con il punto verde e la striscia di salute) ([abf86b4](https://github.com/savez/devbar/commit/abf86b493268095b8bfcf350561dcccb536b7a20))
+* **app:** impostazioni con versione, link al progetto su GitHub e il pulsante Offrimi una birra ([fc57bfd](https://github.com/savez/devbar/commit/fc57bfdeedfe72985d946423413069b1fb76f30b))
+* **app:** informazioni nelle impostazioni (versione, GitHub, Offrimi una birra) ([e5d10f2](https://github.com/savez/devbar/commit/e5d10f2a5e22fce20d30706d71600b6c88abdbbb))
+
+
+### Bug Fixes
+
+* **app:** col badge rosso il numero nella barra è il totale delle vulnerabilità, come nel pannello ([e298684](https://github.com/savez/devbar/commit/e298684111d06403a666b1b782fd0476acb2158a))
+* **app:** numero nella barra = totale vulnerabilità (icona rossa) ([3110637](https://github.com/savez/devbar/commit/31106379fc474ca435b92c3fccec2f8b5d0b4418))
+
 ## [0.2.2](https://github.com/savez/devbar/compare/v0.2.1...v0.2.2) (2026-11-24)
 
 
