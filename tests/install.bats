@@ -27,6 +27,9 @@ SH
 [ "$1" = --print-launch-agent-plist ] && echo "<plist>$2</plist>"
 SH
   chmod +x "$DEVBAR_APP_SRC/Contents/MacOS/Devbar"
+  # motore nel bundle, come lo assembla app/bundle.sh
+  mkdir -p "$DEVBAR_APP_SRC/Contents/Resources/engine"
+  cp -R "$DEVBAR_REPO/bin" "$DEVBAR_REPO/lib" "$DEVBAR_REPO/statusline" "$DEVBAR_APP_SRC/Contents/Resources/engine/"
   mkdir -p "$HOME/.config/devbar"; echo '{}' >"$HOME/.config/devbar/config.json"
 }
 
@@ -34,7 +37,7 @@ SH
   run "$DEVBAR_REPO/scripts/install.sh" install
   [ "$status" -eq 0 ]
   [ -x "$HOME/Applications/devbar.app/Contents/MacOS/Devbar" ]
-  [ "$(readlink "$HOME/.local/bin/devbar")" = "$DEVBAR_REPO/bin/devbar" ]
+  [ "$(readlink "$HOME/.local/bin/devbar")" = "$HOME/Applications/devbar.app/Contents/Resources/engine/bin/devbar" ]
   grep -q "$HOME/Applications/devbar.app/Contents/MacOS/Devbar" "$HOME/Library/LaunchAgents/it.savez.devbar.plist"
   grep -q "^bootstrap gui/501 $HOME/Library/LaunchAgents/it.savez.devbar.plist$" "$CALLS"
   [ "$(grep -c '^bootout' "$CALLS" || true)" -eq 0 ]
@@ -48,6 +51,47 @@ SH
   [ ! -e "$HOME/Applications/devbar.app.old" ]
   [ "$(grep -n '^bootout\|^bootstrap' "$CALLS" | cut -d: -f2 | cut -d' ' -f1 | paste -sd, -)" = "bootout,bootstrap" ]
   grep -q '^bootout gui/501/it.savez.devbar$' "$CALLS"
+}
+
+@test "install: devbar check lanciato dal link funziona col motore nel bundle" {
+  run "$DEVBAR_REPO/scripts/install.sh" install
+  [ "$status" -eq 0 ]
+  run "$HOME/.local/bin/devbar" version
+  [ "$status" -eq 0 ]
+  run "$HOME/.local/bin/devbar" check harnesses
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e .status >/dev/null
+  # il motore usato è quello copiato nel bundle, non il repo
+  [ -f "$HOME/Applications/devbar.app/Contents/Resources/engine/lib/common.sh" ]
+}
+
+@test "install eseguito da uno zip (devbar.app accanto allo script) installa quel bundle" {
+  zipdir="$BATS_TEST_TMPDIR/zip"; mkdir -p "$zipdir"
+  cp -R "$DEVBAR_APP_SRC" "$zipdir/devbar.app"; cp "$DEVBAR_REPO/scripts/install.sh" "$zipdir/install.sh"
+  unset DEVBAR_APP_SRC
+  run "$zipdir/install.sh" install
+  [ "$status" -eq 0 ]
+  [ "$(readlink "$HOME/.local/bin/devbar")" = "$HOME/Applications/devbar.app/Contents/Resources/engine/bin/devbar" ]
+  run "$HOME/.local/bin/devbar" version
+  [ "$status" -eq 0 ]
+}
+
+@test "install rimuove la quarantena dal bundle installato" {
+  cat >"$BATS_TEST_TMPDIR/xattr" <<'SH'
+#!/usr/bin/env bash
+echo "$*" >"$BATS_TEST_TMPDIR/xattr.args"
+SH
+  chmod +x "$BATS_TEST_TMPDIR/xattr"
+  XATTR="$BATS_TEST_TMPDIR/xattr" run "$DEVBAR_REPO/scripts/install.sh" install
+  [ "$status" -eq 0 ]
+  [ "$(cat "$BATS_TEST_TMPDIR/xattr.args")" = "-dr com.apple.quarantine $HOME/Applications/devbar.app" ]
+}
+
+@test "uninstall rimuove anche il vecchio symlink verso il repo" {
+  mkdir -p "$HOME/.local/bin"; ln -s "$DEVBAR_REPO/bin/devbar" "$HOME/.local/bin/devbar"
+  run "$DEVBAR_REPO/scripts/install.sh" uninstall
+  [ "$status" -eq 0 ]
+  [ ! -e "$HOME/.local/bin/devbar" ]
 }
 
 @test "install senza bundle fallisce con messaggio" {

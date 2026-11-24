@@ -333,13 +333,27 @@ struct DailyScheduleTests {
 struct CLIRunnerTests {
     @Test func testLocateOrder() {
         let all: Set<String> = ["/x/devbar", "/opt/homebrew/bin/devbar", "/h/.local/bin/devbar"]
-        #expect(CLIRunner.locate(environment: ["DEVBAR_BIN": "/x/devbar"], home: "/h", isExecutable: all.contains)
-            == "/x/devbar")
-        #expect(CLIRunner.locate(environment: [:], home: "/h", isExecutable: all.contains)
-            == "/opt/homebrew/bin/devbar")
-        #expect(CLIRunner.locate(environment: [:], home: "/h", isExecutable: { $0 == "/h/.local/bin/devbar" })
+        #expect(CLIRunner.locate(environment: ["DEVBAR_BIN": "/x/devbar"], home: "/h", resourceDirectory: nil,
+                                 isExecutable: all.contains) == "/x/devbar")
+        #expect(CLIRunner.locate(environment: [:], home: "/h", resourceDirectory: nil, isExecutable: all.contains)
             == "/h/.local/bin/devbar")
-        #expect(CLIRunner.locate(environment: [:], home: "/h", isExecutable: { _ in false }) == nil)
+        #expect(CLIRunner.locate(environment: [:], home: "/h", resourceDirectory: nil,
+                                 isExecutable: { $0 == "/opt/homebrew/bin/devbar" }) == "/opt/homebrew/bin/devbar")
+        #expect(CLIRunner.locate(environment: [:], home: "/h", resourceDirectory: nil, isExecutable: { _ in false }) == nil)
+    }
+
+    @Test func testLocatePrefersBundledEngine() {
+        let bundled = "/App/Contents/Resources/engine/bin/devbar"
+        let all: Set<String> = ["/x/devbar", bundled, "/opt/homebrew/bin/devbar", "/h/.local/bin/devbar"]
+        // DEVBAR_BIN batte il motore nel bundle.
+        #expect(CLIRunner.locate(environment: ["DEVBAR_BIN": "/x/devbar"], home: "/h",
+                                 resourceDirectory: "/App/Contents/Resources", isExecutable: all.contains) == "/x/devbar")
+        // Il bundle batte ~/.local/bin e Homebrew.
+        #expect(CLIRunner.locate(environment: [:], home: "/h",
+                                 resourceDirectory: "/App/Contents/Resources", isExecutable: all.contains) == bundled)
+        // Motore assente nel bundle: si ricade su ~/.local/bin.
+        #expect(CLIRunner.locate(environment: [:], home: "/h", resourceDirectory: "/App/Contents/Resources",
+                                 isExecutable: { $0 == "/h/.local/bin/devbar" }) == "/h/.local/bin/devbar")
     }
 
     @Test func testChildPath() {

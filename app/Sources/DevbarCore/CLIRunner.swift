@@ -27,13 +27,18 @@ public struct CLIRunner: CLIRunning {
         self.isExecutable = isExecutable
     }
 
-    /// `DEVBAR_BIN`, poi `/opt/homebrew/bin/devbar`, poi `~/.local/bin/devbar`.
+    /// `DEVBAR_BIN`, poi il motore nel bundle (`<Resources>/engine/bin/devbar`), poi
+    /// `~/.local/bin/devbar`, poi `/opt/homebrew/bin/devbar`.
     public static func locate(environment: [String: String], home: String,
+                              resourceDirectory: String? = Bundle.main.resourcePath,
                               isExecutable: (String) -> Bool) -> String? {
         var candidates: [String] = []
         if let b = environment["DEVBAR_BIN"], !b.isEmpty { candidates.append(b) }
-        candidates.append("/opt/homebrew/bin/devbar")
+        if let r = resourceDirectory, !r.isEmpty {
+            candidates.append((r as NSString).appendingPathComponent("engine/bin/devbar"))
+        }
         candidates.append((home as NSString).appendingPathComponent(".local/bin/devbar"))
+        candidates.append("/opt/homebrew/bin/devbar")
         return candidates.first(where: isExecutable)
     }
 
@@ -47,7 +52,7 @@ public struct CLIRunner: CLIRunning {
 
     public func run(_ args: [String], timeout: TimeInterval) async -> (rc: Int32, stdout: Data, stderr: String) {
         guard let bin = Self.locate(environment: environment, home: home, isExecutable: isExecutable) else {
-            return (2, Data(), "devbar non trovato (DEVBAR_BIN, /opt/homebrew/bin, ~/.local/bin)")
+            return (2, Data(), "devbar non trovato (DEVBAR_BIN, motore nel bundle, ~/.local/bin, /opt/homebrew/bin)")
         }
         var env = environment
         env["PATH"] = Self.childPath(inherited: environment["PATH"], home: home)
