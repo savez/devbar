@@ -6,10 +6,14 @@ import Foundation
 @MainActor
 final class FakeActions: ActionRunning {
     var responses: [String: (rc: Int32, out: String)] = [:]
+    /// Risposte consumate in ordine (prima di `responses`) per la stessa chiamata.
+    var sequences: [String: [(rc: Int32, out: String)]] = [:]
     private(set) var calls: [[String]] = []
     func run(action args: [String]) async -> (rc: Int32, stdout: Data) {
         calls.append(args)
-        let r = responses[args.joined(separator: " ")] ?? (0, "{}")
+        let key = args.joined(separator: " ")
+        var r = responses[key] ?? (0, "{}")
+        if var q = sequences[key], !q.isEmpty { r = q.removeFirst(); sequences[key] = q }
         return (r.rc, Data(r.out.utf8))
     }
     var confirmed: [[String]] { calls.filter { $0.last == "--yes" } }
@@ -105,6 +109,25 @@ struct AISetupTests {
         #expect(!m.canInstall)
     }
 
+    @Test func confirmReloadsDetectSoPickerLeavesChooseMode() async {
+        let f = FakeActions()
+        f.sequences["detect"] = [(0, detectJSON([("claude", true, false)])),
+                                 (0, detectJSON([("claude", true, true)]))]
+        f.sequences["run ai-status rtk"] = [(0, statusJSON("rtk", [("claude", "missing")])),
+                                            (0, statusJSON("rtk", [("claude", "installed")]))]
+        let m = AISetupModel(runner: f)
+        var applied = 0
+        m.onApplied = { applied += 1 }   // l'app qui ricarica config e rilancia i check
+        await m.begin(displayTool: "RTK")
+        #expect(m.choosingHarnesses)
+        await m.requestInstall()
+        await m.confirm()
+        // il motore ha già scritto la config: l'app non scrive, rilegge soltanto detect
+        #expect(f.calls.filter { $0 == ["detect"] }.count == 2)
+        #expect(!m.choosingHarnesses)
+        #expect(applied == 1)
+    }
+
     @Test func missingBinaryOffersToolInstallNotAIInstall() async {
         let f = FakeActions()
         f.responses["detect"] = (0, detectJSON([("claude", true, false)]))
@@ -179,5 +202,16 @@ struct PlanConfirmationTests {
         await c.request(title: "t", actions: [ConfirmableAction(title: "X", args: ["run", "x"])])
         c.cancel()
         #expect(!c.isPending && !c.dialogShown)
+    }
+}
+
+@MainActor
+struct PlanConfirmationEmptyTests {
+    @Test func zeroLinePlanShowsNoDialog() async {
+        let f = FakeActions()
+        f.responses["run x"] = (0, "")
+        let c = PlanConfirmation(runner: f)
+        let ok = await c.request(title: "T", actions: [ConfirmableAction(title: "X", args: ["run", "x"])])
+        #expect(!ok && !c.dialogShown && !c.isPending && c.error == "T: nessun piano")
     }
 }

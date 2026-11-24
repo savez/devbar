@@ -6,15 +6,17 @@ import Foundation
 final class FakeLogin: LoginItemManaging {
     var enabled = false
     var failEnable = false
+    var onCall: () -> Void = {}
     private(set) var enableCalls: [String] = []
     private(set) var disableCalls = 0
     func isEnabled() -> Bool { enabled }
     func enable(executablePath: String) throws {
+        onCall()
         enableCalls.append(executablePath)
         if failEnable { throw LoginItemError(message: "boom") }
         enabled = true
     }
-    func disable() throws { disableCalls += 1; enabled = false }
+    func disable() throws { onCall(); disableCalls += 1; enabled = false }
 }
 
 @MainActor
@@ -155,5 +157,59 @@ struct SettingsModelTests {
         await m.didClose()
         await m.didClose()
         #expect(n == 1)
+    }
+
+    @Test func configIsWrittenBeforeLoginSideEffect() async {
+        let url = tempURL()
+        let l = FakeLogin()
+        var seen: [Bool?] = []
+        l.onCall = { seen.append(self.disk(url)["launchAtLogin"] as? Bool) }
+        let m = make(url: url, login: l)
+        await m.load()
+        m.setLaunchAtLogin(false)
+        m.setLaunchAtLogin(true)
+        #expect(seen == [false, true])
+    }
+
+    @Test func brokenConfigDefersLoginUntilOverwriteConfirmed() async throws {
+        let url = tempURL()
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try "{ rotto".write(to: url, atomically: true, encoding: .utf8)
+        let l = FakeLogin()
+        let m = make(url: url, login: l)
+        await m.load()
+        m.setLaunchAtLogin(false)
+        #expect(m.overwritePromptShown && l.disableCalls == 0 && l.enableCalls.isEmpty)
+        await m.confirmOverwrite()
+        #expect(l.disableCalls == 1 && disk(url)["launchAtLogin"] as? Bool == false)
+    }
+
+    @Test func cancelOverwriteRestoresPreviousToggleAndNoLoginCall() async throws {
+        let url = tempURL()
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try "{ rotto".write(to: url, atomically: true, encoding: .utf8)
+        let l = FakeLogin()
+        let m = make(url: url, login: l)
+        await m.load()
+        #expect(m.config.launchAtLogin)
+        m.setLaunchAtLogin(false)
+        m.cancelOverwrite()
+        #expect(m.config.launchAtLogin)
+        #expect(l.disableCalls == 0 && l.enableCalls.isEmpty)
+        #expect(try String(contentsOf: url, encoding: .utf8) == "{ rotto")
+    }
+
+    @Test func gatedSaveDoesNotMarkDirty() async throws {
+        let url = tempURL()
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try "{ rotto".write(to: url, atomically: true, encoding: .utf8)
+        let m = make(url: url)
+        var n = 0
+        m.onApplied = { n += 1 }
+        await m.load()
+        m.setDepth(2)
+        m.cancelOverwrite()
+        await m.didClose()
+        #expect(n == 0)
     }
 }

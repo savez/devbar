@@ -53,6 +53,11 @@ public final class PlanConfirmation {
             }
             collected.append(Step(action: a, lines: ActionPlan.parse(r.stdout).lines))
         }
+        guard collected.contains(where: { !$0.lines.isEmpty }) else {
+            error = "\(title): nessun piano"
+            steps = []; dialogShown = false
+            return false
+        }
         error = nil
         self.title = title
         steps = collected

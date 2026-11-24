@@ -26,6 +26,9 @@ public final class SettingsModel {
     @ObservationIgnored private var overwriteConfirmed = false
     @ObservationIgnored private var dirty = false
     @ObservationIgnored private var deferredHarnessPlan: String?
+    @ObservationIgnored private var deferredLogin: Bool?
+    /// Ultimo stato mostrato/salvato: `cancelOverwrite` ci torna.
+    @ObservationIgnored private var committed = DevbarConfig()
     /// La config su disco è cambiata: il chiamante la ricarica nello store.
     @ObservationIgnored public var onSaved: () -> Void = {}
     /// Finestra chiusa dopo modifiche, o installazioni fatte: il chiamante rilancia i check.
@@ -44,7 +47,7 @@ public final class SettingsModel {
 
     public func load() async {
         let (c, err) = configStore.load()
-        config = c; configError = err
+        config = c; committed = c; configError = err
         overwriteConfirmed = false; overwritePromptShown = false
         saveError = nil; loginError = nil
         let r = await runner.run(action: ["detect"])
@@ -62,14 +65,22 @@ public final class SettingsModel {
 
     // MARK: - Salvataggio
 
-    private func persist() {
-        dirty = true
+    /// true se scritto su disco. Con config rotta e senza conferma non scrive e chiede.
+    @discardableResult
+    private func persist() -> Bool {
         if configError != nil && !overwriteConfirmed {
             overwritePromptShown = true
-            return
+            return false
         }
-        do { try configStore.save(config); saveError = nil; onSaved() }
-        catch { saveError = "salvataggio fallito: \(error.localizedDescription)" }
+        do {
+            try configStore.save(config)
+            saveError = nil; dirty = true; committed = config
+            onSaved()
+            return true
+        } catch {
+            saveError = "salvataggio fallito: \(error.localizedDescription)"
+            return false
+        }
     }
 
     /// Sì al dialogo: da qui la config rotta viene sostituita dalle impostazioni mostrate.
@@ -77,7 +88,9 @@ public final class SettingsModel {
         overwriteConfirmed = true
         overwritePromptShown = false
         configError = nil
-        persist()
+        let saved = persist()
+        if saved, let on = deferredLogin { deferredLogin = nil; applyLogin(on) }
+        deferredLogin = nil
         if let id = deferredHarnessPlan { deferredHarnessPlan = nil; await planInstalls(forNew: id, otherManaged: []) }
     }
 
@@ -85,7 +98,8 @@ public final class SettingsModel {
     public func cancelOverwrite() {
         overwritePromptShown = false
         deferredHarnessPlan = nil
-        config = DevbarConfig()
+        deferredLogin = nil
+        config = committed
     }
 
     // MARK: - Modifiche
@@ -177,17 +191,23 @@ public final class SettingsModel {
 
     // MARK: - Avvio al login
 
+    /// Prima si salva la config; il plist/launchctl cambia solo dopo un salvataggio riuscito
+    /// (con config rotta, solo dopo la conferma di sovrascrittura).
     public func setLaunchAtLogin(_ on: Bool) {
         loginError = nil
+        guard on != config.launchAtLogin else { return }
+        config.launchAtLogin = on
+        if persist() { applyLogin(on) } else if overwritePromptShown { deferredLogin = on }
+    }
+
+    private func applyLogin(_ on: Bool) {
         do {
             if on { try login.enable(executablePath: executablePath) } else { try login.disable() }
         } catch {
             loginError = "avvio al login: \(error.localizedDescription)"
-            return
+            config.launchAtLogin = !on
+            persist()
         }
-        guard on != config.launchAtLogin else { return }
-        config.launchAtLogin = on
-        persist()
     }
 
     // MARK: - Chiusura

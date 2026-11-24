@@ -75,10 +75,15 @@ struct LaunchAgentTests {
         private let lock = NSLock()
         private var _calls: [[String]] = []
         var bootstrapRC: Int32 = 0
+        var printRC: Int32 = 113   // non caricato
         var calls: [[String]] { lock.withLock { _calls } }
         func launchctl(_ args: [String]) -> Int32 {
             lock.withLock { _calls.append(args) }
-            return args.first == "bootstrap" ? bootstrapRC : 0
+            switch args.first {
+            case "bootstrap": return bootstrapRC
+            case "print": return printRC
+            default: return 0
+            }
         }
     }
 
@@ -90,10 +95,18 @@ struct LaunchAgentTests {
         #expect(!m.isEnabled())
         try m.enable(executablePath: "/x/Devbar")
         #expect(m.isEnabled())
-        #expect(ctl.calls == [["bootout", "gui/501/it.savez.devbar"], ["bootstrap", "gui/501", url.path]])
+        #expect(ctl.calls == [["print", "gui/501/it.savez.devbar"], ["bootstrap", "gui/501", url.path]])
         try m.disable()
         #expect(!m.isEnabled())
-        #expect(ctl.calls.last == ["bootout", "gui/501/it.savez.devbar"])
+        #expect(!ctl.calls.contains { $0.first == "bootout" })   // disable non uccide l'app
+    }
+
+    @Test func enableWhenAlreadyLoadedSkipsBootstrap() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("la-\(UUID().uuidString)")
+        let ctl = FakeCtl(); ctl.printRC = 0
+        let m = LaunchAgentManager(plistURL: dir.appendingPathComponent("p.plist"), uid: 501, launchctl: ctl)
+        try m.enable(executablePath: "/x")
+        #expect(ctl.calls == [["print", "gui/501/it.savez.devbar"]])
     }
 
     @Test func bootstrapFailureThrows() {

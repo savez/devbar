@@ -55,7 +55,7 @@ public struct LoginItemError: Error, Equatable, LocalizedError, Sendable {
     public var errorDescription: String? { message }
 }
 
-/// Scrive/rimuove il plist e fa `launchctl bootstrap|bootout gui/<uid>`.
+/// Scrive/rimuove il plist; `launchctl bootstrap gui/<uid>` solo se non già caricato. Mai bootout.
 @MainActor
 public final class LaunchAgentManager: LoginItemManaging {
     private let plistURL: URL
@@ -77,15 +77,15 @@ public final class LaunchAgentManager: LoginItemManaging {
         let data = try LaunchAgent.plist(executablePath: executablePath)
         try FileManager.default.createDirectory(at: plistURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try data.write(to: plistURL, options: .atomic)
-        // Già caricato (es. riattivato): bootout prima, l'esito non conta.
-        _ = launchctl.launchctl(["bootout", "\(domain)/\(LaunchAgent.label)"])
+        // Già caricato (es. avviato da launchd): niente bootstrap, e mai bootout del proprio job.
+        if launchctl.launchctl(["print", "\(domain)/\(LaunchAgent.label)"]) == 0 { return }
         let rc = launchctl.launchctl(["bootstrap", domain, plistURL.path])
         guard rc == 0 else { throw LoginItemError(message: "launchctl bootstrap fallito (rc \(rc))") }
     }
 
     public func disable() throws {
-        // Non caricato: bootout fallisce, e va bene. Il plist si toglie comunque.
-        _ = launchctl.launchctl(["bootout", "\(domain)/\(LaunchAgent.label)"])
+        // Solo il plist: un bootout ucciderebbe l'app se l'ha avviata launchd.
+        // Semplicemente non partirà al prossimo login.
         if FileManager.default.fileExists(atPath: plistURL.path) {
             try FileManager.default.removeItem(at: plistURL)
         }
