@@ -85,8 +85,42 @@ absent() { # absent <tool> <check>
   echo '{"defaultMode":"full"}' >"$HOME/.config/caveman/config.json"
   run --separate-stderr "$DEVBAR" check caveman
   [ "$status" -eq 1 ]
-  [ "$(jq -r .mode <<<"$output")" = full ]
+  [ "$(jq -r .mode <<<"$output")" = caveman ]
+  [ "$(jq -r .rawMode <<<"$output")" = full ]
   [ "$(jq -r .version <<<"$output")" = 4.10.0 ]
+  [ "$(jq -r .pluginEnabled <<<"$output")" = false ]
+  [ "$(jq -r .active <<<"$output")" = false ]
+  [ "$(jq 'has("saved") or has("pct") or has("daily")' <<<"$output")" = false ]
+}
+
+@test "caveman: plugin abilitato + modalità -> active" {
+  mkdir -p "$HOME/.config/caveman" "$HOME/.claude"
+  echo '{"defaultMode":"wenyan-ultra"}' >"$HOME/.config/caveman/config.json"
+  echo '{"enabledPlugins":{"caveman@caveman":true}}' >"$HOME/.claude/settings.json"
+  run --separate-stderr "$DEVBAR" check caveman
+  [ "$status" -eq 1 ]
+  [ "$(jq -r .mode <<<"$output")" = megacave ]
+  [ "$(jq -r .rawMode <<<"$output")" = wenyan-ultra ]
+  [ "$(jq -r .pluginEnabled <<<"$output")" = true ]
+  [ "$(jq -r .active <<<"$output")" = true ]
+}
+
+@test "caveman: modalità off -> non active anche con plugin abilitato" {
+  mkdir -p "$HOME/.config/caveman" "$HOME/.claude"
+  echo '{"defaultMode":"off"}' >"$HOME/.config/caveman/config.json"
+  echo '{"enabledPlugins":{"caveman@caveman":true}}' >"$HOME/.claude/settings.json"
+  run --separate-stderr "$DEVBAR" check caveman
+  [ "$(jq -r .mode <<<"$output")" = off ]
+  [ "$(jq -r .active <<<"$output")" = false ]
+}
+
+@test "caveman: plugin senza config -> modalità di default caveman" {
+  mkdir -p "$HOME/.claude/plugins/cache/caveman/caveman/4.2.0"
+  echo '{"enabledPlugins":{"caveman@caveman":true}}' >"$HOME/.claude/settings.json"
+  run --separate-stderr "$DEVBAR" check caveman
+  [ "$(jq -r .mode <<<"$output")" = caveman ]
+  [ "$(jq -r .rawMode <<<"$output")" = "" ]
+  [ "$(jq -r .active <<<"$output")" = true ]
 }
 
 @test "caveman: solo cartella" {
@@ -94,7 +128,7 @@ absent() { # absent <tool> <check>
   run --separate-stderr "$DEVBAR" check caveman
   [ "$status" -eq 1 ]
   [ "$(jq -r .version <<<"$output")" = 4.2.0 ]
-  [ "$(jq -r .mode <<<"$output")" = "" ]
+  [ "$(jq -r .mode <<<"$output")" = caveman ]
 }
 
 @test "caveman: solo config" {
@@ -102,7 +136,8 @@ absent() { # absent <tool> <check>
   echo '{"defaultMode":"ultra"}' >"$HOME/.config/caveman/config.json"
   run --separate-stderr "$DEVBAR" check caveman
   [ "$status" -eq 1 ]
-  [ "$(jq -r .mode <<<"$output")" = ultra ]
+  [ "$(jq -r .mode <<<"$output")" = ultracave ]
+  [ "$(jq -r .rawMode <<<"$output")" = ultra ]
 }
 
 @test "caveman: config rotto + niente cartella -> rc 3" {

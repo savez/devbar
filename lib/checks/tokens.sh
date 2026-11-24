@@ -33,24 +33,43 @@ check_tokensave() {
   emit ok 0 "tokensave: $missed turni sostituibili" "[]" "$extra"
 }
 
-# check_caveman: modalità da config, versione dalla cartella più alta della cache plugin.
+# _caveman_canonical_mode <valore>: modalità canonica del plugin (valori legacy mappati).
+# Vuoto o sconosciuto: "caveman", come il default del plugin.
+_caveman_canonical_mode() {
+  case "${1:-}" in
+    off | manual | caveman | ultracave | megacave) printf '%s' "$1" ;;
+    ultra) printf 'ultracave' ;;
+    wenyan*) printf 'megacave' ;;
+    *) printf 'caveman' ;;
+  esac
+}
+
+# check_caveman: plugin attivo, modalità di default (canonica e grezza), versione.
+# Nessuna statistica di risparmio.
 check_caveman() {
-  local cfg ver mode="" dir
+  local cfg ver raw="" dir settings enabled=false mode active=false
   cfg="$HOME/.config/caveman/config.json"
   dir="$HOME/.claude/plugins/cache/caveman/caveman"
+  settings="$HOME/.claude/settings.json"
   ver=""
   if [ -d "$dir" ]; then
     ver="$(find "$dir" -mindepth 1 -maxdepth 1 -type d -exec basename {} + 2>/dev/null | sort -V | tail -n 1)"
   fi
   if [ -f "$cfg" ]; then
-    mode="$(jq -r 'if type == "object" then (.defaultMode // "") else "" end' "$cfg" 2>/dev/null)" || mode=""
+    raw="$(jq -r 'if type == "object" then (.defaultMode // "" | tostring) else "" end' "$cfg" 2>/dev/null)" || raw=""
   fi
-  if [ -z "$mode" ] && [ -z "$ver" ]; then
+  if [ -z "$raw" ] && [ -z "$ver" ]; then
     emit unconfigured 0 "caveman non installato"
   fi
+  if [ -f "$settings" ] && [ "$(jq -r '.enabledPlugins["caveman@caveman"] == true' "$settings" 2>/dev/null)" = true ]; then
+    enabled=true
+  fi
+  mode="$(_caveman_canonical_mode "$raw")"
+  if [ "$enabled" = true ] && [ "$mode" != off ]; then active=true; fi
   local extra
-  extra="$(jq -nc --arg m "$mode" --arg v "$ver" '{mode:$m, version:$v}')"
-  emit ok 0 "caveman ${ver:+$ver }${mode:+($mode)}" "[]" "$extra"
+  extra="$(jq -nc --arg m "$mode" --arg r "$raw" --arg v "$ver" --argjson e "$enabled" --argjson a "$active" \
+    '{pluginEnabled:$e, mode:$m, rawMode:$r, version:$v, active:$a}')"
+  emit ok 0 "caveman ${ver:+$ver }($mode)" "[]" "$extra"
 }
 
 # check_claude_usage [--force]: inoltra c_pct/c_reset/w_pct/w_reset/stale/auth/error in .usage.
