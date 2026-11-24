@@ -135,11 +135,12 @@ lib/journal.sh      registro delle modifiche e undo
 lib/project.sh      Init progetto
 schemas/            contratto JSON, uno schema per comando
 statusline/         statusline per Claude Code
-scripts/            installer e registrazione delle fixture
+scripts/            installer, registrazione delle fixture, icona (`make-icon.sh`)
 tests/              test bats del motore, con stub e fixture
 app/Sources/DevbarCore/   modelli, view-model, runner, store di stato
 app/Sources/Devbar/       viste SwiftUI
 app/Tests/                test dell'app (swift-testing)
+app/Icon/                 icona dell'app (SVG e .icns)
 ```
 
 ## Domande

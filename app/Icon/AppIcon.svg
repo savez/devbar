@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>devbar</title>
+  <defs>
+    <clipPath id="strip"><rect x="249" y="776" width="526" height="32" rx="16"/></clipPath>
+  </defs>
+  <!-- tavola: quadrato arrotondato come da griglia icone macOS (824 su 1024) -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="#12171b"/>
+  <rect x="102" y="102" width="820" height="820" rx="183" fill="none" stroke="#ffffff" stroke-opacity="0.09" stroke-width="4"/>
+
+  <!-- "d." con il punto verde di stato, come nel banner -->
+  <circle cx="443" cy="530" r="150" fill="none" stroke="#eef2ef" stroke-width="88"/>
+  <line x1="593" y1="260" x2="593" y2="680" stroke="#eef2ef" stroke-width="88" stroke-linecap="round"/>
+  <circle cx="729" cy="680" r="46" fill="#3fa34d"/>
+
+  <!-- striscia di salute -->
+  <g clip-path="url(#strip)">
+    <rect x="249"   y="776" width="98.8" height="32" fill="#3fa34d"/>
+    <rect x="355.8" y="776" width="98.8" height="32" fill="#e0a526"/>
+    <rect x="462.6" y="776" width="98.8" height="32" fill="#d6453d"/>
+    <rect x="569.4" y="776" width="98.8" height="32" fill="#8a8f98"/>
+    <rect x="676.2" y="776" width="98.8" height="32" fill="#3fa34d"/>
+  </g>
+</svg>
