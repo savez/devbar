@@ -71,9 +71,11 @@ public final class StatusStore {
 
     // MARK: - Badge
 
-    /// `count`: somma dei `count` dei check in stato action, esclusi gli informativi.
     /// `level`: error solo per vulnerabilità gravi (brew-vulns `severe>0`, audit con
     /// critical/high>0); action se almeno un check è action; altrimenti ok.
+    /// `count`: il numero che accompagna l'icona. Con l'icona rossa (scudo) è il totale delle
+    /// vulnerabilità, lo stesso numero grande della riga Vulnerabilità; negli altri casi è la
+    /// somma dei `count` dei check in stato action, esclusi gli informativi.
     public var badge: (level: CheckState, count: Int) {
         let counted = results.filter { !Self.informative.contains($0.key) && $0.value.state == .action }
         let all = AllChecks(rows: results, raw: raw)
@@ -88,7 +90,7 @@ public final class StatusStore {
         let severeAudit = ["npm-audit", "composer-audit"].contains { name in
             all.typed(AuditResult.self, name)?.items.contains { $0.critical > 0 || $0.high > 0 } ?? false
         }
-        if severeVulns || severeAudit { return (.error, count) }
+        if severeVulns || severeAudit { return (.error, PanelModel(all: all).vulnTotal) }
         // Un check fallito (stato error) non alza il badge: rosso solo per vulnerabilità.
         return (counted.isEmpty ? .ok : .action, count)
     }

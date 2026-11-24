@@ -82,14 +82,36 @@ struct StatusStoreTests {
     }
 
     @Test func testSevereVulnsMakeBadgeError() async {
-        let runner = FakeRunner(["check all": .init(rc: 1, stdout: allJSON(rows([
-            "brew-vulns": row("action", rc: 0, count: 3, extra: #","severe":2"#),
-        ])))])
+        let items = #"[{"formula":"openssl@3","id":"CVE-1","severity":"HIGH","fixAvailable":true},{"formula":"curl","id":"CVE-2","severity":"CRITICAL","fixAvailable":false},{"formula":"curl","id":"CVE-3","severity":"LOW","fixAvailable":false}]"#
+        let vulns = #"{"status":"action","rc":0,"count":3,"summary":"s","severe":2,"items":\#(items)}"#
+        let runner = FakeRunner(["check all": .init(rc: 1, stdout: allJSON(rows(["brew-vulns": vulns])))])
         let store = makeStore(runner)
         await store.refresh(force: false)
         #expect(store.results["brew-vulns"]?.state == .action)
         #expect(store.badge.level == .error)
-        #expect(store.badge.count == 3)
+        // formule distinte (openssl@3, curl), non le 3 vulnerabilità
+        #expect(store.badge.count == 2)
+    }
+
+    /// Icona rossa: il numero è quello della riga Vulnerabilità (pacchetti colpiti più progetti
+    /// con problemi), senza gli aggiornamenti Homebrew.
+    @Test func testRedBadgeShowsVulnerabilityTotalNotEverything() async {
+        func item(_ f: String, _ sev: String) -> String { #"{"formula":"\#(f)","id":"CVE-\#(f)","severity":"\#(sev)","fixAvailable":true}"# }
+        let brew = (1...6).map { item("pkg\($0)", $0 <= 2 ? "HIGH" : "LOW") }.joined(separator: ",")
+        let vulns = #"{"status":"action","rc":0,"count":9,"summary":"s","severe":2,"items":[\#(brew)]}"#
+        let repos = (1...4).map { #"{"repo":"/r\#($0)","critical":0,"high":0,"moderate":1,"low":0}"# }.joined(separator: ",")
+        let npm = #"{"status":"action","rc":0,"count":4,"summary":"s","items":[\#(repos)]}"#
+        let runner = FakeRunner(["check all": .init(rc: 1, stdout: allJSON(rows([
+            "brew-outdated": row("action", rc: 0, count: 3),
+            "brew-vulns": vulns,
+            "npm-audit": npm,
+        ])))])
+        let store = makeStore(runner)
+        await store.refresh(force: false)
+        #expect(store.badge.level == .error)
+        #expect(store.badge.count == 10)   // 6 pacchetti + 4 progetti, non 3 + 6 + 4 = 13
+        let m = PanelModel(all: AllChecks(rows: store.results, raw: store.raw))
+        #expect(m.vulnReadout.value == "10")
     }
 
     @Test func testAuditCriticalMakesBadgeError() async {

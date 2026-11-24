@@ -136,17 +136,26 @@ public extension PanelModel {
 
     var showsVulns: Bool { !vulnRows.isEmpty }
 
+    /// Pacchetti Homebrew colpiti (formule distinte, non CVE).
+    var vulnPackages: Int { vulnRows.contains { $0.id == "brew" } ? Set(brewVulnItems.map(\.formula)).count : 0 }
+
+    /// Progetti con problemi in npm/composer.
+    var vulnProjects: Int { vulnRows.contains { $0.id != "brew" } ? reposWithIssues : 0 }
+
+    /// Totale delle vulnerabilità da sistemare: il numero grande della riga e quello nella barra dei menu.
+    var vulnTotal: Int { vulnPackages + vulnProjects }
+
     /// Vulnerabilità: il numero grande è il totale da sistemare (pacchetti Homebrew colpiti più
     /// progetti con problemi in npm/composer). Rosso se almeno uno è grave (alta o critica).
     var vulnReadout: Readout {
         guard showsVulns else { return Readout() }
         let brewShown = vulnRows.contains { $0.id == "brew" }
         let auditShown = vulnRows.contains { $0.id != "brew" }
-        let affected = brewShown ? Set(brewVulnItems.map(\.formula)).count : 0
+        let affected = vulnPackages
         let severe = brewShown ? severeFormulae.count : 0
-        let projects = auditShown ? reposWithIssues : 0
+        let projects = vulnProjects
         let anySevere = severe + severeRepos > 0
-        let total = affected + projects
+        let total = vulnTotal
         let tone: Tone = brewVulnError != nil && !auditShown ? .info
             : (anySevere ? .risk : (total > 0 ? .action : .ok))
         var sub: String?
