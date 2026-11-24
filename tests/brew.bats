@@ -113,10 +113,11 @@ setup() {
   [ ! -f "$BATS_TEST_TMPDIR/brew.calls" ]
 }
 
-@test "run cork-install --yes: chiama brew" {
+@test "run cork-install --yes: brew install nel terminale, non qui" {
   run "$DEVBAR" run cork-install --yes
   [ "$status" -eq 0 ]
-  grep -q 'install --cask cork' "$BATS_TEST_TMPDIR/brew.calls"
+  grep -q 'brew install --cask cork' "$BATS_TEST_TMPDIR/osascript.calls"
+  [ ! -e "$BATS_TEST_TMPDIR/brew.calls" ]
 }
 
 @test "run cork-open: apre Cork" {

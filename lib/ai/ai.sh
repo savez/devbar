@@ -104,11 +104,15 @@ action_ai_install() {
   action_ai_status "$tool"
 }
 
-# action_tool_install <tool> [--yes]: installa il binario del tool.
+# action_tool_install <tool> [--yes [--here]]: installa il binario del tool.
+# --yes apre l'installazione nel terminale (output visibile, nessun timeout dell'app):
+# il terminale rilancia `devbar run tool-install <tool> --yes --here`, che esegue qui.
 action_tool_install() {
-  local tool="${1:-}" yes=false a cmd rc=0 inst=false
+  local tool="${1:-}" yes=false here=false a cmd rc=0 inst=false
   [ $# -gt 0 ] && shift
-  for a in "$@"; do [ "$a" = "--yes" ] && yes=true; done
+  for a in "$@"; do
+    case "$a" in --yes) yes=true ;; --here) here=true ;; esac
+  done
   if ! _ai_tool_valid "$tool" || ! _ai_fn "$tool" tool_install >/dev/null; then
     _ai_error "tool-install non disponibile per: $tool"
     return 2
@@ -116,6 +120,12 @@ action_tool_install() {
   cmd="$("$(_ai_fn "$tool" tool_install_cmd)")"
   if [ "$yes" = false ]; then
     jq -nc --arg t "$tool" --arg c "$cmd" '{tool:$t,plan:true,commands:[$c]}'
+    return 0
+  fi
+  if [ "$here" = false ]; then
+    open_in_terminal "$DEVBAR_ROOT/bin/devbar" run tool-install "$tool" --yes --here >/dev/null ||
+      { _ai_error "apertura del terminale fallita"; return 2; }
+    jq -nc --arg t "$tool" '{tool:$t,terminal:true}'
     return 0
   fi
   "$(_ai_fn "$tool" tool_install)" >&2 || rc=$?

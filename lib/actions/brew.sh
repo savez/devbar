@@ -21,11 +21,11 @@ action_brew_exclude() {
 # action_cork_open: apre Cork.
 action_cork_open() { open -a Cork; }
 
-# action_cork_install [--yes]: senza --yes stampa solo il piano.
+# action_cork_install [--yes]: senza --yes stampa solo il piano; con --yes nel terminale.
 action_cork_install() {
   if [ "${1:-}" != "--yes" ]; then
     echo "piano: brew install --cask cork (rilancia con --yes per eseguire)"
     return 0
   fi
-  brew install --cask cork
+  open_in_terminal brew install --cask cork
 }

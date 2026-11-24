@@ -34,13 +34,13 @@ action_container_stop() {
   docker stop "$1"
 }
 
-# action_colima_install [--yes]: senza --yes stampa solo il piano.
+# action_colima_install [--yes]: senza --yes stampa solo il piano; con --yes nel terminale.
 action_colima_install() {
   if [ "${1:-}" != "--yes" ]; then
     echo "piano: brew install colima docker (rilancia con --yes per eseguire)"
     return 0
   fi
-  brew install colima docker
+  open_in_terminal brew install colima docker
 }
 
 # action_colima_logs <id>: `docker logs -f <id>` nel terminale.

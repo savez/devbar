@@ -266,7 +266,7 @@ SH
 @test "tool-install claude-usage: checksum corretto -> esegue con la versione" {
   make_curl
   echo "$(shasum -a 256 "$CU_DIR/install.sh" | cut -d' ' -f1)  install.sh" >"$CU_DIR/checksums.txt"
-  run --separate-stderr "$DEVBAR" run tool-install claude-usage --yes
+  run --separate-stderr "$DEVBAR" run tool-install claude-usage --yes --here
   [ "$status" -eq 0 ]
   [ "$(cat "$BATS_TEST_TMPDIR/ran")" = v1.2.3 ]
   grep -q "releases/download/v1.2.3/install.sh" "$BATS_TEST_TMPDIR/curl.calls"
@@ -277,7 +277,7 @@ SH
 @test "tool-install claude-usage: checksum sbagliato -> rc 2, install.sh non eseguito" {
   make_curl
   echo "$(printf 0%.0s {1..64})  install.sh" >"$CU_DIR/checksums.txt"
-  run --separate-stderr "$DEVBAR" run tool-install claude-usage --yes
+  run --separate-stderr "$DEVBAR" run tool-install claude-usage --yes --here
   [ "$status" -eq 2 ]
   [ ! -e "$BATS_TEST_TMPDIR/ran" ]
 }
@@ -285,7 +285,7 @@ SH
 @test "tool-install claude-usage: checksum assente nel file -> rc 2, non eseguito" {
   make_curl
   echo "abc  altro.tgz" >"$CU_DIR/checksums.txt"
-  run --separate-stderr "$DEVBAR" run tool-install claude-usage --yes
+  run --separate-stderr "$DEVBAR" run tool-install claude-usage --yes --here
   [ "$status" -eq 2 ]
   [ ! -e "$BATS_TEST_TMPDIR/ran" ]
 }
@@ -293,7 +293,7 @@ SH
 @test "tool-install claude-usage: redirect senza tag valido -> rc 2" {
   make_curl
   sed -i '' 's#tag/v1.2.3#tag/evil;rm#' "$BATS_TEST_TMPDIR/stubs/curl"
-  run --separate-stderr "$DEVBAR" run tool-install claude-usage --yes
+  run --separate-stderr "$DEVBAR" run tool-install claude-usage --yes --here
   [ "$status" -eq 2 ]
   [ ! -e "$BATS_TEST_TMPDIR/ran" ]
 }
@@ -335,4 +335,15 @@ SH
   run --separate-stderr "$DEVBAR" run ai-install caveman copilot --yes
   [ "$status" -eq 2 ]
   [ "$(jq -c .harnesses "$DEVBAR_CONFIG")" = '["claude"]' ]
+}
+
+@test "tool-install claude-usage --yes: si apre nel terminale, niente rete qui" {
+  make_curl
+  make_stub osascript
+  run --separate-stderr "$DEVBAR" run tool-install claude-usage --yes
+  [ "$status" -eq 0 ]
+  [ "$(jq -r .terminal <<<"$output")" = true ]
+  grep -q "tool-install claude-usage --yes --here" "$BATS_TEST_TMPDIR/osascript.calls"
+  [ ! -e "$BATS_TEST_TMPDIR/curl.calls" ]
+  [ ! -e "$BATS_TEST_TMPDIR/ran" ]
 }

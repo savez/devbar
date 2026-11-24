@@ -98,10 +98,11 @@ setup() {
   [ ! -e "$BATS_TEST_TMPDIR/brew.calls" ]
 }
 
-@test "colima-install --yes -> brew install colima docker" {
+@test "colima-install --yes -> brew install colima docker nel terminale, non qui" {
   run "$DEVBAR" run colima-install --yes
   [ "$status" -eq 0 ]
-  grep -qx "install colima docker" "$BATS_TEST_TMPDIR/brew.calls"
+  grep -q "brew install colima docker" "$BATS_TEST_TMPDIR/osascript.calls"
+  [ ! -e "$BATS_TEST_TMPDIR/brew.calls" ]
 }
 
 @test "colima-logs apre docker logs -f nel terminale" {

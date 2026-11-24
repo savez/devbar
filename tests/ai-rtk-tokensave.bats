@@ -176,11 +176,11 @@ setup() {
   grep -q "doctor --agent copilot" "$BATS_TEST_TMPDIR/tokensave.calls"
 }
 
-@test "tool-install: senza --yes stampa, con --yes esegue brew" {
+@test "tool-install: senza --yes stampa, con --yes --here esegue brew" {
   run --separate-stderr "$DEVBAR" run tool-install rtk
   [[ "$output" == *"brew install rtk-ai/tap/rtk"* ]]
   [ ! -e "$BATS_TEST_TMPDIR/brew.calls" ]
-  run --separate-stderr "$DEVBAR" run tool-install tokensave --yes
+  run --separate-stderr "$DEVBAR" run tool-install tokensave --yes --here
   [ "$status" -eq 0 ]
   grep -q "install aovestdipaperino/tap/tokensave" "$BATS_TEST_TMPDIR/brew.calls"
   run --separate-stderr "$DEVBAR" run tool-install caveman --yes
@@ -203,4 +203,16 @@ setup() {
   "$DEVBAR" run ai-install rtk copilot --yes >/dev/null 2>&1
   [ "$(cat "$HOME/.github/copilot-instructions.md")" = mio ]
   [ -z "$(find "$HOME" -name '.devbar-write.*')" ]
+}
+
+@test "tool-install --yes: apre il terminale, brew non chiamato qui" {
+  make_stub osascript
+  for t in rtk tokensave; do
+    rm -f "$BATS_TEST_TMPDIR/osascript.calls"
+    run --separate-stderr "$DEVBAR" run tool-install "$t" --yes
+    [ "$status" -eq 0 ]
+    [ "$(jq -r .terminal <<<"$output")" = true ]
+    grep -q "bin/devbar run tool-install $t --yes --here" "$BATS_TEST_TMPDIR/osascript.calls"
+  done
+  [ ! -e "$BATS_TEST_TMPDIR/brew.calls" ]
 }
