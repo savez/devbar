@@ -53,7 +53,24 @@ cmd_detect() {
     detect_tool "$t" && inst=true
     tools="$(jq -c --arg t "$t" --argjson v "$inst" '. + {($t):$v}' <<<"$tools")"
   done
-  jq -nc --argjson h "$hs" --argjson t "$tools" '{harnesses:$h,tools:$t}'
+  jq -nc --argjson h "$hs" --argjson t "$tools" --argjson a "$(detect_ai_tools)" \
+    '{harnesses:$h,tools:$t,aiTools:$a}'
+}
+
+# Strumenti dell'AI setup mostrati nel pannello (ordine dei pulsanti).
+DEVBAR_AI_TOOLS="rtk caveman tokensave statusline"
+
+# detect_ai_tools: {"<tool>":bool}: true se almeno un harness installato è supportato.
+detect_ai_tools() {
+  local t id ok out="{}"
+  for t in $DEVBAR_AI_TOOLS; do
+    ok=false
+    for id in $DEVBAR_HARNESS_IDS; do
+      if harness_installed "$id" && "ai_${t}_supports" "$id"; then ok=true; break; fi
+    done
+    out="$(jq -c --arg t "$t" --argjson v "$ok" '. + {($t):$v}' <<<"$out")"
+  done
+  printf '%s' "$out"
 }
 
 # check_harnesses: rc 0 se ci sono harness installati non gestiti (items = id).
