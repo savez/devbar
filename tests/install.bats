@@ -78,3 +78,32 @@ SH
   run "$HOME/.local/bin/devbar" version
   [ "$status" -eq 0 ]
 }
+
+@test "uninstall: ~/.local/bin/devbar che punta altrove non viene rimosso" {
+  mkdir -p "$HOME/.local/bin"
+  ln -s /usr/bin/true "$HOME/.local/bin/devbar"
+  run "$DEVBAR_REPO/scripts/install.sh" uninstall
+  [ "$status" -eq 0 ]
+  [ -L "$HOME/.local/bin/devbar" ]
+  [ "$(readlink "$HOME/.local/bin/devbar")" = /usr/bin/true ]
+}
+
+@test "install: pkill con pattern ancorato all'eseguibile, punti escapati" {
+  cat >"$BATS_TEST_TMPDIR/pkill" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$@" >"$BATS_TEST_TMPDIR/pkill.args"
+exit 1
+SH
+  chmod +x "$BATS_TEST_TMPDIR/pkill"
+  PKILL="$BATS_TEST_TMPDIR/pkill" run "$DEVBAR_REPO/scripts/install.sh" install
+  [ "$status" -eq 0 ]
+  pat="$(sed -n 2p "$BATS_TEST_TMPDIR/pkill.args")"
+  [ "$(sed -n 1p "$BATS_TEST_TMPDIR/pkill.args")" = -f ]
+  [[ "$pat" == "^"* ]]
+  [[ "$pat" == *'devbar\.app/Contents/MacOS/Devbar( |$)' ]]
+  exe="$HOME/Applications/devbar.app/Contents/MacOS/Devbar"
+  [[ "$exe" =~ $pat ]]
+  [[ "$exe --altro" =~ $pat ]]
+  [[ ! "${exe}2" =~ $pat ]]
+  [[ ! "/x$exe" =~ $pat ]]
+}

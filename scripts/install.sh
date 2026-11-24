@@ -23,6 +23,9 @@ exe="$app_dir/Contents/MacOS/Devbar"
 link="$home/.local/bin/devbar"
 plist="$home/Library/LaunchAgents/$label.plist"
 
+# regex_escape <testo>: escape dei metacaratteri di una regex estesa.
+regex_escape() { printf '%s' "$1" | sed 's/[][\\.^$*+?(){}|]/\\&/g'; }
+
 unload() {
   if "$launchctl_bin" print "$domain/$label" >/dev/null 2>&1; then
     "$launchctl_bin" bootout "$domain/$label" >/dev/null 2>&1 || true
@@ -52,7 +55,8 @@ install() {
   mv "$plist.tmp" "$plist"
 
   # Eventuale istanza avviata a mano: la guardia di istanza unica farebbe uscire quella nuova.
-  "$pkill_bin" -f "$exe" >/dev/null 2>&1 || true
+  # Pattern ancorato all'eseguibile esatto (metacaratteri regex escapati).
+  "$pkill_bin" -f "^$(regex_escape "$exe")( |\$)" >/dev/null 2>&1 || true
   "$launchctl_bin" bootstrap "$domain" "$plist"
   echo "devbar installato: $app_dir"
 }
@@ -61,8 +65,8 @@ uninstall() {
   unload
   rm -f "$plist"
   rm -rf "$app_dir"
-  # Solo se è il nostro symlink.
-  if [ -L "$link" ]; then rm -f "$link"; fi
+  # Solo se è il nostro symlink (punta a bin/devbar di questo repo).
+  if [ -L "$link" ] && [ "$(readlink "$link")" = "$repo/bin/devbar" ]; then rm -f "$link"; fi
   echo "devbar rimosso (config in ~/.config/devbar intatta)"
 }
 
