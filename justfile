@@ -17,9 +17,9 @@ contract:
 record-fixtures:
     scripts/record-fixtures.sh
 
-# statusline/devbar-claude-statusline è escluso: copia verbatim da Sparkdock (vedi README).
+# Include la statusline (portata da Sparkdock, ora con modifiche di devbar: vedi README).
 lint:
-    shellcheck -x -P SCRIPTDIR bin/devbar $(find lib -name '*.sh') scripts/install.sh app/bundle.sh tests/contract-fixtures.sh scripts/record-fixtures.sh
+    shellcheck -x -P SCRIPTDIR bin/devbar $(find lib -name '*.sh') scripts/install.sh app/bundle.sh tests/contract-fixtures.sh scripts/record-fixtures.sh statusline/devbar-claude-statusline
 
 # XCTest manca nelle Command Line Tools: si usa swift-testing; il plugin macro va indicato a mano.
 app-test:
