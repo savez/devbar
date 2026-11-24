@@ -96,7 +96,7 @@ Due parti separate, come Sparkdock:
 - **Eventi, non polling:** avvio, risveglio del Mac, ritorno della rete,
   controllo giornaliero all'orario impostato, apertura del pannello
   (con limite, per non rilanciare tutto a ogni clic), pulsante "Aggiorna".
-- Installazione come Sparkdock Manager: `make build` / `make install` in
+- Installazione come Sparkdock Manager: `just build` / `just install` in
   `~/Applications/devbar.app`, LaunchAgent per l'avvio al login, firma ad-hoc.
 - Le azioni lunghe o interattive (`brew upgrade`, installazioni) si aprono nel
   terminale così l'output è visibile. Il terminale si sceglie in impostazioni;
@@ -271,7 +271,7 @@ configurate, più "scegli cartella…". Per il repo scelto:
 
 ## Lasciato al costruttore
 
-- Struttura del repo (es. `bin/`, `app/`, `Makefile`), nomi dei sottocomandi.
+- Struttura del repo (es. `bin/`, `app/`, `justfile`), nomi dei sottocomandi.
 - Formato preciso del JSON di ogni check.
 - Come rilevare "da aggiornare" per ogni strumento AI e harness.
 - Versione minima di macOS (quella che `MenuBarExtra` stile finestra e Swift

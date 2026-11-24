@@ -1,0 +1,19 @@
+==> Checking OSV.dev
+{
+  "findings": [
+    {
+      "formula": "ffmpeg",
+      "version": "9.1",
+      "tag": "9.1",
+      "repo_url": "https://github.com/ffmpeg/ffmpeg",
+      "vulnerabilities": [
+        {"id": "CVE-2026-0001", "severity": "HIGH", "summary": "x", "aliases": [], "fixed_versions": ["edad2d0dafcf44fa315eab716fd0183ce808053b"]},
+        {"id": "CVE-2026-0002", "severity": "UNKNOWN", "summary": "y", "aliases": [], "fixed_versions": []}
+      ]
+    },
+    {"formula": "wget", "version": "1.24", "vulnerabilities": []}
+  ],
+  "skipped_formulae": [],
+  "checked": 2,
+  "complete": true
+}
