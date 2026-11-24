@@ -245,9 +245,15 @@ public enum ActionTimeout {
 
 /// Sezione del pannello di un'azione: mentre gira, i pulsanti di quella sezione sono disattivati.
 public enum ActionSection {
+    /// AI setup, Init progetto e undo: scrivono negli stessi file di altri programmi (e il
+    /// registro delle modifiche), quindi mai insieme.
+    public static let ai = "ai"
+
     public static func of(_ args: [String]) -> String? {
+        if args.first == "undo" { return ai }
         guard args.first == "run", args.count > 1 else { return nil }
         let verb = args[1]
+        if verb == "ai-install" || verb == "project-apply" { return ai }
         if let spec = FeatureRegistry.spec(forVerb: verb) { return spec.section }
         if verb.hasPrefix("brew-") || verb.hasPrefix("cork-") { return "brew" }
         if verb == "tool-install" { return "tokens" }

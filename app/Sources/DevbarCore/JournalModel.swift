@@ -51,13 +51,19 @@ public final class JournalModel {
     public let confirmation: PlanConfirmation
 
     @ObservationIgnored private let runner: any ActionRunning
+    /// Sezioni condivise col pannello: undo e AI setup / Init progetto mai insieme.
+    public let locks: SectionLocks
     /// Annullamento riuscito: il chiamante rilancia i check.
     @ObservationIgnored public var onApplied: () async -> Void = {}
 
-    public init(runner: any ActionRunning) {
+    public init(runner: any ActionRunning, locks: SectionLocks = SectionLocks()) {
         self.runner = runner
-        confirmation = PlanConfirmation(runner: runner)
+        self.locks = locks
+        confirmation = PlanConfirmation(runner: runner, locks: locks)
     }
+
+    /// Un'altra modifica (AI setup, Init progetto, undo) è in corso: "Annulla" disattivato.
+    public var blocked: Bool { locks.isRunning(ActionSection.ai) }
 
     public func load() async {
         let r = await runner.run(action: ["journal", "--limit", String(Self.shown)])
@@ -70,20 +76,23 @@ public final class JournalModel {
         }
     }
 
-    /// Il piano di `undo <id>` dice (stato attuale) se un file è cambiato da un altro programma
-    /// (`needsForce`): in quel caso la conferma lo avvisa e l'azione porta `--force`.
+    /// Il piano di `undo <id>` (letto una volta sola) dice, sullo stato attuale, se un file è
+    /// cambiato da un altro programma (`needsForce`): la conferma lo avvisa e l'azione porta
+    /// `--force` (il piano non dipende da `--force`, solo l'esecuzione).
     public func requestUndo(_ e: JournalEntry) async {
         guard e.canUndo, !confirmation.busy else { return }
-        let probe = await runner.run(action: ["undo", e.id])
-        var force = false
-        if probe.rc < 2, case .object(let o)? = try? JSONDecoder().decode(JSONValue.self, from: probe.stdout),
-           case .bool(let b)? = o["needsForce"] { force = b }
-        let title = force
-            ? "Annullare \(e.title)? Alcuni file sono cambiati nel frattempo: la loro versione resta accanto (.devbar-undo-<data>)."
-            : "Annullare \(e.title)?"
-        await confirmation.request(title: title,
-                                   actions: [ConfirmableAction(title: "Annulla \(e.title)",
-                                                               args: ["undo", e.id] + (force ? ["--force"] : []))])
+        let action = ConfirmableAction(title: "Annulla \(e.title)", args: ["undo", e.id])
+        await confirmation.request(title: "Annullare \(e.title)?", actions: [action]) { plans in
+            guard Self.needsForce(plans.first) else { return ("Annullare \(e.title)?", [action]) }
+            return ("Annullare \(e.title)? Alcuni file sono cambiati nel frattempo: la loro versione resta nel registro delle modifiche (kept).",
+                    [ConfirmableAction(title: action.title, args: action.args + ["--force"])])
+        }
+    }
+
+    nonisolated static func needsForce(_ plan: Data?) -> Bool {
+        guard let plan, case .object(let o)? = try? JSONDecoder().decode(JSONValue.self, from: plan),
+              case .bool(let b)? = o["needsForce"] else { return false }
+        return b
     }
 
     public func confirmUndo() async {

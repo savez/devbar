@@ -37,12 +37,13 @@ public final class SettingsModel {
     @ObservationIgnored public var onApplied: () async -> Void = {}
 
     public init(configStore: ConfigStore, runner: any ActionRunning, login: any LoginItemManaging,
-                executablePath: String = Bundle.main.executablePath ?? CommandLine.arguments[0]) {
+                executablePath: String = Bundle.main.executablePath ?? CommandLine.arguments[0],
+                locks: SectionLocks? = nil) {
         self.configStore = configStore
         self.runner = runner
         self.login = login
         self.executablePath = executablePath
-        confirmation = PlanConfirmation(runner: runner)
+        confirmation = PlanConfirmation(runner: runner, locks: locks)
     }
 
     // MARK: - Caricamento

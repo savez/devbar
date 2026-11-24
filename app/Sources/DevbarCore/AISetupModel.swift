@@ -92,9 +92,9 @@ public final class AISetupModel {
     /// Dopo un'installazione riuscita: aggiorna pannello e config.
     @ObservationIgnored public var onApplied: () async -> Void = {}
 
-    public init(runner: any ActionRunning) {
+    public init(runner: any ActionRunning, locks: SectionLocks? = nil) {
         self.runner = runner
-        confirmation = PlanConfirmation(runner: runner)
+        confirmation = PlanConfirmation(runner: runner, locks: locks)
     }
 
     public var displayName: String { tool }

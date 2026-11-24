@@ -23,7 +23,7 @@ struct JournalSection: View {
                     } else {
                         Button("Annulla") { Task { await model.requestUndo(e) } }
                             .buttonStyle(.link)
-                            .disabled(model.confirmation.busy)
+                            .disabled(model.confirmation.busy || model.blocked)
                     }
                 }
             }

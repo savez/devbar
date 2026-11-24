@@ -65,15 +65,65 @@ struct JournalModelTests {
         let a = FakeActions()
         a.responses["journal --limit 10"] = (0, Self.list([Self.entry("abc")]))
         // needsForce viene dal piano (stato attuale), non dall'elenco
-        a.responses["undo abc"] = (0, "{\"plan\":true,\"commands\":[\"ripristina ~/f0\"],\"needsForce\":true}")
-        a.responses["undo abc --force"] = (0, "{\"plan\":true,\"commands\":[\"ripristina ~/f0 — ATTENZIONE\"],\"needsForce\":true}")
+        a.responses["undo abc"] = (0, "{\"plan\":true,\"commands\":[\"ripristina ~/f0 — ATTENZIONE\"],\"needsForce\":true}")
         let m = JournalModel(runner: a)
         await m.load()
         await m.requestUndo(m.entries[0])
         #expect(m.confirmation.title.contains("cambiat"))
+        #expect(m.confirmation.title.contains("registro"))
         #expect(m.confirmation.text.contains("ATTENZIONE"))
+        // il piano si legge una volta sola (né probe né rilettura con --force)
+        #expect(a.calls.filter { $0.first == "undo" }.count == 1)
         await m.confirmUndo()
         #expect(a.confirmed == [["undo", "abc", "--force", "--yes"]])
+    }
+
+    @Test func planIsReadOnce() async {
+        let a = FakeActions()
+        a.responses["journal --limit 10"] = (0, Self.list([Self.entry("abc")]))
+        a.responses["undo abc"] = (0, "{\"plan\":true,\"commands\":[\"ripristina ~/f0\"],\"needsForce\":false}")
+        let m = JournalModel(runner: a)
+        await m.load()
+        await m.requestUndo(m.entries[0])
+        #expect(a.calls.filter { $0.first == "undo" } == [["undo", "abc"]])
+    }
+
+    /// Sezione "ai" occupata (es. ai-install --yes dal pannello) finché `release` non viene chiamato.
+    final class Gate { var cont: CheckedContinuation<Void, Never>? }
+
+    @Test func undoNeverRunsDuringAISetup() async {
+        let a = FakeActions()
+        a.responses["journal --limit 10"] = (0, Self.list([Self.entry("abc")]))
+        a.responses["undo abc"] = (0, "{\"plan\":true,\"commands\":[\"x\"],\"needsForce\":false}")
+        let locks = SectionLocks()
+        let m = JournalModel(runner: a, locks: locks)
+        await m.load()
+        await m.requestUndo(m.entries[0])
+        #expect(m.confirmation.dialogShown)
+        let gate = Gate()
+        let install = Task { @MainActor in
+            await locks.occupy(["run", "ai-install", "rtk", "copilot"]) {
+                await withCheckedContinuation { gate.cont = $0 }
+            }
+        }
+        while gate.cont == nil { await Task.yield() }
+        #expect(m.blocked)
+        await m.confirmUndo()
+        #expect(a.confirmed.isEmpty)
+        #expect(m.confirmation.error?.contains("in corso") == true)
+        // anche il piano non si chiede mentre gira
+        await m.requestUndo(m.entries[0])
+        #expect(!m.confirmation.dialogShown)
+        gate.cont?.resume()
+        _ = await install.value
+        #expect(!m.blocked)
+    }
+
+    @Test func aiSetupAndUndoShareTheSection() {
+        #expect(ActionSection.of(["undo", "abc", "--yes"]) == ActionSection.ai)
+        #expect(ActionSection.of(["run", "ai-install", "rtk", "copilot", "--yes"]) == ActionSection.ai)
+        #expect(ActionSection.of(["run", "project-apply", "/r"]) == ActionSection.ai)
+        #expect(ActionSection.of(["journal"]) == nil)
     }
 
     @Test func planUnavailableShowsErrorAndRunsNothing() async {

@@ -26,8 +26,24 @@ public final class PlanConfirmation {
     public private(set) var error: String?
 
     @ObservationIgnored private let runner: any ActionRunning
+    /// Sezioni condivise col pannello (`SectionLocks`): un `--yes` non parte se la sua sezione
+    /// è occupata (es. undo durante un ai-install).
+    @ObservationIgnored private let locks: SectionLocks?
 
-    public init(runner: any ActionRunning) { self.runner = runner }
+    public init(runner: any ActionRunning, locks: SectionLocks? = nil) {
+        self.runner = runner
+        self.locks = locks
+    }
+
+    /// Una delle azioni ha la sezione occupata da un'altra in corso.
+    private func blocked(_ actions: [ConfirmableAction]) -> ConfirmableAction? {
+        guard let locks else { return nil }
+        return actions.first { a in ActionSection.of(a.args).map(locks.isRunning) ?? false }
+    }
+
+    private static func busyText(_ a: ConfirmableAction) -> String {
+        "\(a.title): un'altra modifica è in corso, riprova quando è finita"
+    }
 
     /// Testo da mostrare nella conferma.
     public var text: String {
@@ -39,11 +55,21 @@ public final class PlanConfirmation {
     public var isPending: Bool { !steps.isEmpty }
 
     /// Passo 1. Se anche un solo piano non è disponibile (rc ≥ 2) non si chiede nulla.
+    /// `adjust`: dai piani letti (uno per azione, in ordine) titolo e azioni da confermare, senza
+    /// rileggere i piani (es. undo: `--force` se il piano dice needsForce). Stesso numero di azioni.
     @discardableResult
-    public func request(title: String, actions: [ConfirmableAction]) async -> Bool {
+    public func request(title: String, actions: [ConfirmableAction],
+                        adjust: ((_ plans: [Data]) -> (title: String, actions: [ConfirmableAction]))? = nil) async -> Bool {
         guard !actions.isEmpty, !busy else { return false }
+        if let a = blocked(actions) {
+            error = Self.busyText(a)
+            steps = []; dialogShown = false
+            return false
+        }
         busy = true; defer { busy = false }
+        var title = title
         var collected: [Step] = []
+        var plans: [Data] = []
         for a in actions {
             let r = await runner.run(action: a.args)
             guard r.rc < 2 else {
@@ -51,7 +77,13 @@ public final class PlanConfirmation {
                 steps = []; dialogShown = false
                 return false
             }
+            plans.append(r.stdout)
             collected.append(Step(action: a, lines: ActionPlan.parse(r.stdout).lines))
+        }
+        if let adjust {
+            let adjusted = adjust(plans)
+            title = adjusted.title
+            for (i, a) in adjusted.actions.enumerated() where i < collected.count { collected[i].action = a }
         }
         guard collected.contains(where: { !$0.lines.isEmpty }) else {
             error = "\(title): nessun piano"
@@ -75,7 +107,15 @@ public final class PlanConfirmation {
         busy = true; defer { busy = false }
         error = nil
         for s in todo {
-            let r = await runner.run(action: s.action.confirmedArgs)
+            var r: (rc: Int32, stdout: Data) = (0, Data())
+            if let locks {
+                guard await locks.occupy(s.action.args, { r = await runner.run(action: s.action.confirmedArgs) }) else {
+                    error = Self.busyText(s.action)
+                    return false
+                }
+            } else {
+                r = await runner.run(action: s.action.confirmedArgs)
+            }
             if r.rc >= 2 {
                 error = "\(s.action.title): " + (Self.engineError(r.stdout) ?? "fallito (rc \(r.rc))")
                 return false

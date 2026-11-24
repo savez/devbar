@@ -21,9 +21,9 @@ public final class ProjectInitModel {
 
     @ObservationIgnored private let runner: any ActionRunning
 
-    public init(runner: any ActionRunning) {
+    public init(runner: any ActionRunning, locks: SectionLocks? = nil) {
         self.runner = runner
-        confirmation = PlanConfirmation(runner: runner)
+        confirmation = PlanConfirmation(runner: runner, locks: locks)
     }
 
     public func loadRepos() async {

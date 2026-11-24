@@ -38,11 +38,12 @@ final class PanelActions {
 
     init(store: StatusStore, configStore: ConfigStore = ConfigStore()) {
         self.store = store
-        aiSetup = AISetupModel(runner: store)
+        // un solo SectionLocks: AI setup, Init progetto, impostazioni e undo si escludono
+        aiSetup = AISetupModel(runner: store, locks: locks)
         caveman = CavemanControl(runner: store)
-        projectInit = ProjectInitModel(runner: store)
-        settings = SettingsModel(configStore: configStore, runner: store, login: LaunchAgentManager())
-        journal = JournalModel(runner: store)
+        projectInit = ProjectInitModel(runner: store, locks: locks)
+        settings = SettingsModel(configStore: configStore, runner: store, login: LaunchAgentManager(), locks: locks)
+        journal = JournalModel(runner: store, locks: locks)
         updateFeatures(AllChecks(rows: store.results, raw: store.raw))
         store.onResults = { [weak self] all in self?.updateFeatures(all) }
         aiSetup.onApplied = { [weak self] in await self?.refreshAfterChange(force: true) }
