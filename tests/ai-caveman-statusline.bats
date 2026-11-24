@@ -49,7 +49,8 @@ no_claude_path() {
   [ "$(tr -d ' ' <<<"$output")" = 1 ]
   [ "$(jq -r .statusLine.command "$HOME"/.claude/settings.json.devbar-*)" = old ]
   [ "$(stat -f %Lp "$SETTINGS")" = 600 ]
-  ls -A "$HOME/.claude" | grep -q '^\.devbar-write' && false || true
+  run bash -c "ls -A '$HOME/.claude' | grep -c '^\.devbar-write' || true"
+  [ "$output" = 0 ]
   # stato: installed
   run --separate-stderr "$DEVBAR" run ai-status statusline
   [ "$(jq -r '.harnesses[]|select(.id=="claude").state' <<<"$output")" = installed ]
@@ -116,6 +117,18 @@ no_claude_path() {
   [ "$(printf '%s\n' "$output" | wc -l | tr -d ' ')" = 1 ]
   [[ "$output" == *"Opus 5"* ]]
   [[ "$output" == *"42%"* ]]
+}
+
+@test "devbar_write_file: mv fallito -> temp rimosso, originale intatto" {
+  mkdir -p "$HOME/d"
+  echo orig >"$HOME/d/f"
+  printf '#!/bin/sh\nexit 1\n' >"$BATS_TEST_TMPDIR/stubs/mv"
+  chmod +x "$BATS_TEST_TMPDIR/stubs/mv"
+  run in_common "echo nuovo | devbar_write_file '$HOME/d/f'"
+  [ "$status" -ne 0 ]
+  [ "$(cat "$HOME/d/f")" = orig ]
+  run bash -c "ls -A '$HOME/d'"
+  [ "$output" = f ]
 }
 
 # --- caveman ---
