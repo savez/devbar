@@ -22,3 +22,9 @@ open_in_terminal() {
         -e "tell application \"Terminal\" to do script \"$esc\"" ;;
   esac
 }
+
+# action_open_terminal <path>: apre il terminale nella cartella (deve esistere).
+action_open_terminal() {
+  [ -n "${1:-}" ] && [ -d "$1" ] || { echo "uso: devbar run open-terminal <cartella esistente>" >&2; return 2; }
+  open_in_terminal cd "$1"
+}

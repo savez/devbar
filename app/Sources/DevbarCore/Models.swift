@@ -439,6 +439,8 @@ public struct AllChecks: Equatable, Sendable {
     /// Il JSON grezzo di ogni riga, per i decoder tipizzati.
     public var raw: [String: JSONValue]
 
+    public init(rows: [String: CheckResult], raw: [String: JSONValue]) { self.rows = rows; self.raw = raw }
+
     public static func decode(_ data: Data) throws -> AllChecks {
         let top = try JSONDecoder().decode([String: JSONValue].self, from: data)
         // Risposta "busy" o errore globale: {"status":"error","error":"busy"}.

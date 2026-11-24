@@ -125,3 +125,18 @@ setup() {
   [ "$status" -eq 0 ]
   grep -q 'Cork' "$BATS_TEST_TMPDIR/open.calls"
 }
+
+@test "run open-terminal <path> apre il terminale con cd" {
+  mkdir -p "$BATS_TEST_TMPDIR/repo"
+  run "$DEVBAR" run open-terminal "$BATS_TEST_TMPDIR/repo"
+  [ "$status" -eq 0 ]
+  grep -qF "cd $BATS_TEST_TMPDIR/repo" "$BATS_TEST_TMPDIR/osascript.calls"
+}
+
+@test "run open-terminal: cartella inesistente o senza argomento falliscono" {
+  run "$DEVBAR" run open-terminal "$BATS_TEST_TMPDIR/nope"
+  [ "$status" -eq 2 ]
+  run "$DEVBAR" run open-terminal
+  [ "$status" -eq 2 ]
+  [ ! -e "$BATS_TEST_TMPDIR/osascript.calls" ]
+}
