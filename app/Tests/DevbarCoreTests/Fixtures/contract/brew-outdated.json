@@ -1,0 +1,26 @@
+{
+  "status": "action",
+  "count": 3,
+  "summary": "3 pacchetti da aggiornare",
+  "items": [
+    {
+      "name": "wget",
+      "kind": "formula",
+      "installed": "1.21.3",
+      "current": "1.24.5"
+    },
+    {
+      "name": "jq",
+      "kind": "formula",
+      "installed": "1.7",
+      "current": "1.7.1"
+    },
+    {
+      "name": "cork",
+      "kind": "cask",
+      "installed": "1.0",
+      "current": "1.1"
+    }
+  ],
+  "checkedAt": "2026-01-01T00:00:00Z"
+}

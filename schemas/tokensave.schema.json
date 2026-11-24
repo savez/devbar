@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "check tokensave",
+  "description": "Gain a 7 giorni e turni sostituibili (lib/checks/tokens.sh). Con ok o action tutti i campi ci sono.",
+  "allOf": [
+    { "$ref": "defs.schema.json#/$defs/checkEnvelope" },
+    {
+      "if": { "required": ["status"], "properties": { "status": { "enum": ["ok", "action"] } } },
+      "then": { "required": ["saved", "calls", "usd", "missedTurns"] }
+    }
+  ],
+  "properties": {
+    "saved": { "type": "integer", "minimum": 0 },
+    "calls": { "type": "integer", "minimum": 0 },
+    "usd": { "type": "number", "minimum": 0 },
+    "missedTurns": { "type": "integer", "minimum": 0 }
+  },
+  "unevaluatedProperties": false
+}

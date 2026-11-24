@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "check claude-usage",
+  "description": "Uso Claude inoltrato da claude-usage --status (lib/checks/tokens.sh). Il motore emette sempre tutte e sette le chiavi di usage, con null se il binario non le ha date. auth è una STRINGA (valid, missing, expired), non un booleano: bug reale già avvenuto.",
+  "allOf": [
+    { "$ref": "defs.schema.json#/$defs/checkEnvelope" },
+    {
+      "if": { "required": ["status"], "properties": { "status": { "enum": ["ok", "action"] } } },
+      "then": { "required": ["usage"] }
+    }
+  ],
+  "properties": {
+    "usage": {
+      "type": "object",
+      "required": ["c_pct", "c_reset", "w_pct", "w_reset", "stale", "auth", "error"],
+      "properties": {
+        "c_pct": { "type": ["number", "null"], "description": "Percentuale finestra 5 ore." },
+        "c_reset": { "type": ["string", "null"], "description": "Testo, es. 3h 12m, oppure ? senza credenziali." },
+        "w_pct": { "type": ["number", "null"], "description": "Percentuale finestra settimanale." },
+        "w_reset": { "type": ["string", "null"] },
+        "stale": { "type": ["boolean", "null"] },
+        "auth": { "type": ["string", "null"], "description": "valid | missing | expired. Stringa, mai booleano." },
+        "error": { "type": ["string", "null"], "description": "Messaggio inglese del binario, presente con credenziali assenti." }
+      },
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

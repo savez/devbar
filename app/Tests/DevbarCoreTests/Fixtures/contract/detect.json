@@ -1,0 +1,50 @@
+{
+  "harnesses": [
+    {
+      "id": "claude",
+      "installed": true,
+      "managed": false
+    },
+    {
+      "id": "opencode",
+      "installed": false,
+      "managed": false
+    },
+    {
+      "id": "copilot",
+      "installed": false,
+      "managed": false
+    },
+    {
+      "id": "codex",
+      "installed": false,
+      "managed": false
+    },
+    {
+      "id": "cursor",
+      "installed": false,
+      "managed": false
+    },
+    {
+      "id": "gemini",
+      "installed": false,
+      "managed": false
+    }
+  ],
+  "tools": {
+    "brew": true,
+    "colima": true,
+    "npm": true,
+    "composer": true,
+    "rtk": true,
+    "tokensave": true,
+    "claude-usage": true,
+    "cork": true
+  },
+  "aiTools": {
+    "rtk": true,
+    "caveman": true,
+    "tokensave": true,
+    "statusline": true
+  }
+}

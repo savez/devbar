@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "check npm-audit",
+  "description": "Audit dipendenze dei repo (lib/checks/audit.sh). Un item è o i conteggi di un repo con vulnerabilità o un errore per quel repo; i repo puliti non compaiono.",
+  "allOf": [
+    { "$ref": "defs.schema.json#/$defs/checkEnvelope" }
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["repo", "critical", "high", "moderate", "low"],
+            "properties": {
+              "repo": { "type": "string", "minLength": 1 },
+              "critical": { "type": "integer", "minimum": 0 },
+              "high": { "type": "integer", "minimum": 0 },
+              "moderate": { "type": "integer", "minimum": 0 },
+              "low": { "type": "integer", "minimum": 0 }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": ["repo", "error"],
+            "properties": {
+              "repo": { "type": "string", "minLength": 1 },
+              "error": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

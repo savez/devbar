@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "run project-status",
+  "description": "Stato dei tre strumenti in un repo (lib/project.sh _proj_status_json): sempre rtk, caveman, tokensave in quest'ordine. Anche l'uscita di project-apply senza --yes. willWrite è solo da mostrare, mai da eseguire.",
+  "type": "object",
+  "required": ["path", "checks"],
+  "properties": {
+    "path": { "type": "string", "minLength": 1 },
+    "checks": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        { "$ref": "#/$defs/check", "properties": { "tool": { "const": "rtk" } } },
+        { "$ref": "#/$defs/check", "properties": { "tool": { "const": "caveman" } } },
+        { "$ref": "#/$defs/check", "properties": { "tool": { "const": "tokensave" } } }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "check": {
+      "type": "object",
+      "required": ["tool", "ok", "detail", "willWrite"],
+      "properties": {
+        "tool": { "enum": ["rtk", "caveman", "tokensave"] },
+        "ok": { "type": "boolean" },
+        "detail": { "type": "string" },
+        "willWrite": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    }
+  }
+}

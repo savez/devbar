@@ -1,0 +1,12 @@
+{
+  "status": "error",
+  "count": 1,
+  "summary": "audit npm fallito in 1 repo",
+  "items": [
+    {
+      "repo": "/Users/example/repos/web",
+      "error": "output di npm audit non valido"
+    }
+  ],
+  "checkedAt": "2026-01-01T00:00:00Z"
+}

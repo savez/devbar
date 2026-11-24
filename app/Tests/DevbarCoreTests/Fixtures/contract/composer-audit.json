@@ -1,0 +1,15 @@
+{
+  "status": "action",
+  "count": 1,
+  "summary": "1 repo con vulnerabilità composer (0 con errori)",
+  "items": [
+    {
+      "repo": "/Users/example/repos/api",
+      "critical": 1,
+      "high": 1,
+      "moderate": 1,
+      "low": 1
+    }
+  ],
+  "checkedAt": "2026-01-01T00:00:00Z"
+}

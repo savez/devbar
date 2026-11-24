@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "check brew-outdated",
+  "description": "Pacchetti Homebrew da aggiornare (lib/checks/brew.sh). Gli item hanno sempre le quattro chiavi: l'app tollera l'assenza, il motore no.",
+  "allOf": [
+    { "$ref": "defs.schema.json#/$defs/checkEnvelope" }
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "kind", "installed", "current"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["formula", "cask"] },
+          "installed": { "type": "string" },
+          "current": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

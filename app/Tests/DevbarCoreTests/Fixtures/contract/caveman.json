@@ -1,0 +1,13 @@
+{
+  "status": "ok",
+  "count": 0,
+  "summary": "caveman 4.10.0 (ultracave)",
+  "items": [],
+  "checkedAt": "2026-01-01T00:00:00Z",
+  "pluginEnabled": true,
+  "mode": "ultracave",
+  "rawMode": "ultracave",
+  "version": "4.10.0",
+  "lastMode": "caveman",
+  "active": true
+}

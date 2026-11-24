@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "check harnesses",
+  "description": "Harness installati ma non gestiti (lib/detect.sh). items = id degli harness; count = quanti. status action se ce ne sono, ok altrimenti.",
+  "allOf": [
+    { "$ref": "defs.schema.json#/$defs/checkEnvelope" }
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "defs.schema.json#/$defs/harnessId" }
+    }
+  },
+  "unevaluatedProperties": false
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "run caveman-mode",
+  "description": "Uscita di `run caveman-mode <modo> [--yes]` (lib/actions/caveman.sh): senza --yes il piano (forma comune più file, key, value), con --yes {applied,value,commands}.",
+  "oneOf": [
+    {
+      "description": "Senza --yes: piano, nessuna scrittura.",
+      "$ref": "defs.schema.json#/$defs/planBase",
+      "required": ["plan", "commands", "file", "key", "value"],
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "key": { "const": "defaultMode" },
+        "value": { "$ref": "defs.schema.json#/$defs/cavemanMode" },
+        "commands": { "minItems": 1 }
+      },
+      "unevaluatedProperties": false
+    },
+    {
+      "description": "Con --yes: scritto.",
+      "type": "object",
+      "required": ["applied", "value", "commands"],
+      "properties": {
+        "applied": { "const": true },
+        "value": { "$ref": "defs.schema.json#/$defs/cavemanMode" },
+        "commands": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

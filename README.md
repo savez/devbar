@@ -12,7 +12,7 @@ Due parti:
 - macOS 14 o successivo
 - [Homebrew](https://brew.sh) e `jq` (`brew install jq`); il motore gira con la bash di sistema di macOS (3.2)
 - Command Line Tools con Swift (per compilare l'app)
-- Per lo sviluppo: `just`, `bats-core`, `shellcheck`
+- Per lo sviluppo: `just`, `bats-core`, `shellcheck`, `check-jsonschema` (`brew install check-jsonschema`, valida i contratti JSON)
 
 La statusline per Claude Code (`statusline/devbar-claude-statusline`) richiede bash >= 4.2.
 
@@ -39,9 +39,20 @@ L'app ammette una sola istanza (controllo sul bundle id `it.savez.devbar`). All'
 ```
 just test        # bats (motore)
 just lint        # shellcheck
+just contract    # rigenera le fixture di contratto dal motore e le valida contro schemas/
 just app-test    # swift-testing (XCTest manca nelle Command Line Tools)
 just build       # solo il bundle in app/.build/devbar.app
 ```
+
+## Contratto
+
+Motore (bash) e app (Swift) si scambiano JSON. Il contratto è scritto in `schemas/` (JSON Schema 2020-12, uno per comando, pezzi comuni in `schemas/defs.schema.json`): i campi che l'app legge sono `required` con tipo esatto, i campi extra non sono ammessi. Il motore è la verità: se l'app si aspetta altro, si corregge l'app.
+
+- `tests/contract-fixtures.sh` produce l'output reale di ogni comando con gli stub di `tests/` e una HOME temporanea, anonimizzato, in `app/Tests/DevbarCoreTests/Fixtures/contract/<comando>.json` (le varianti sono `<comando>.<variante>.json`).
+- `tests/contract.bats` valida ogni fixture contro il suo schema, ha un caso negativo per ogni schema e fallisce se le fixture registrate non sono quelle che il motore produce ora.
+- `app/Tests/DevbarCoreTests/ContractTests.swift` decodifica le stesse fixture con i modelli Swift e verifica che ogni campo usato dall'app sia presente e valorizzato.
+
+Se cambia l'output di un comando: aggiornare lo schema, lanciare `just contract` e committare le fixture.
 
 ## Codici di uscita dei check
 

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "run tool-install --yes",
+  "description": "Uscita di `run tool-install <tool> --yes` senza --here (lib/ai/ai.sh action_tool_install): l'installazione si è aperta nel terminale. (Con --here l'uscita è {tool,installed}, ma l'app non la legge.)",
+  "type": "object",
+  "required": ["tool", "terminal"],
+  "properties": {
+    "tool": { "type": "string", "minLength": 1 },
+    "terminal": { "const": true }
+  },
+  "additionalProperties": false
+}

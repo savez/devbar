@@ -1,0 +1,16 @@
+[
+  {
+    "path": "/Users/example/repos/api",
+    "name": "api",
+    "npm": false,
+    "composer": true,
+    "tokensave": false
+  },
+  {
+    "path": "/Users/example/repos/web",
+    "name": "web",
+    "npm": true,
+    "composer": false,
+    "tokensave": true
+  }
+]

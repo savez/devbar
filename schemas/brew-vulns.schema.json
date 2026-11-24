@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "check brew-vulns",
+  "description": "Vulnerabilità note delle formule (lib/checks/brew.sh). Con status ok o action ci sono sempre items e severe; con error o unconfigured c'è solo la busta.",
+  "allOf": [
+    { "$ref": "defs.schema.json#/$defs/checkEnvelope" },
+    {
+      "if": { "required": ["status"], "properties": { "status": { "enum": ["ok", "action"] } } },
+      "then": { "required": ["severe"] }
+    }
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["formula", "id", "severity", "fixAvailable"],
+        "properties": {
+          "formula": { "type": "string", "minLength": 1 },
+          "id": { "type": "string" },
+          "severity": { "type": "string", "description": "CRITICAL, HIGH, MEDIUM, LOW o UNKNOWN (maiuscole dal tool; il motore mette UNKNOWN se manca)." },
+          "fixAvailable": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "severe": { "type": "integer", "minimum": 0, "description": "Quante vulnerabilità HIGH o CRITICAL." }
+  },
+  "unevaluatedProperties": false
+}

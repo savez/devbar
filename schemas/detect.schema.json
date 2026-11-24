@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "detect",
+  "description": "Harness e strumenti rilevati (lib/detect.sh cmd_detect). tools ha una chiave per ogni voce di DEVBAR_DETECT_TOOLS; aiTools una per ogni voce di DEVBAR_AI_TOOLS. L'app tratta aiTools come opzionale, il motore lo emette sempre.",
+  "type": "object",
+  "required": ["harnesses", "tools", "aiTools"],
+  "properties": {
+    "harnesses": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["id", "installed", "managed"],
+        "properties": {
+          "id": { "$ref": "defs.schema.json#/$defs/harnessId" },
+          "installed": { "type": "boolean" },
+          "managed": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "tools": {
+      "type": "object",
+      "required": ["brew", "colima", "npm", "composer", "rtk", "tokensave", "claude-usage", "cork"],
+      "properties": {
+        "brew": { "type": "boolean" },
+        "colima": { "type": "boolean" },
+        "npm": { "type": "boolean" },
+        "composer": { "type": "boolean" },
+        "rtk": { "type": "boolean" },
+        "tokensave": { "type": "boolean" },
+        "claude-usage": { "type": "boolean" },
+        "cork": { "type": "boolean", "description": "Cork.app in /Applications, non un binario." }
+      },
+      "additionalProperties": false
+    },
+    "aiTools": {
+      "type": "object",
+      "required": ["rtk", "caveman", "tokensave", "statusline"],
+      "properties": {
+        "rtk": { "type": "boolean" },
+        "caveman": { "type": "boolean" },
+        "tokensave": { "type": "boolean" },
+        "statusline": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

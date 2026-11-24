@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "run ai-status",
+  "description": "Stato di un tool AI per ogni harness (lib/ai/ai.sh action_ai_status). Sempre sei harness, nell'ordine di DEVBAR_HARNESS_IDS. `unsupported` = il tool non supporta l'harness; `missing` anche se il tool non è installato.",
+  "type": "object",
+  "required": ["tool", "installed", "harnesses"],
+  "properties": {
+    "tool": { "type": "string", "minLength": 1 },
+    "installed": { "type": "boolean" },
+    "harnesses": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["id", "state"],
+        "properties": {
+          "id": { "$ref": "defs.schema.json#/$defs/harnessId" },
+          "state": { "enum": ["installed", "outdated", "missing", "unsupported"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

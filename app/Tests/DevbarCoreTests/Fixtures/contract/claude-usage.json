@@ -1,0 +1,16 @@
+{
+  "status": "ok",
+  "count": 0,
+  "summary": "usage Claude",
+  "items": [],
+  "checkedAt": "2026-01-01T00:00:00Z",
+  "usage": {
+    "c_pct": 42,
+    "c_reset": "3h 12m",
+    "w_pct": 67,
+    "w_reset": "2d 4h",
+    "stale": false,
+    "auth": "valid",
+    "error": null
+  }
+}
