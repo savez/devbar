@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/savez/devbar/compare/v0.2.1...v0.2.2) (2026-11-24)
+
+
+### Bug Fixes
+
+* **app:** numero grande = totale della sezione, tolta la barra e il conteggio in testa al pannello ([d47dacd](https://github.com/savez/devbar/commit/d47dacdd69f75c8827d23c4a121d518af7f342d7))
+* **app:** numero grande = totale della sezione, via barra e conteggio in testa ([b6dfa1e](https://github.com/savez/devbar/commit/b6dfa1eea65438429c3941262a000d46d480b37e))
+
 ## [0.2.1](https://github.com/savez/devbar/compare/v0.2.0...v0.2.1) (2026-11-24)
 
 
