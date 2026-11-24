@@ -33,6 +33,9 @@ CFG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
 # One clock per tick, shared by the git cache TTL and every reset deadline.
 printf -v NOW '%(%s)T' -1
+# Test hook: a fixed clock, honoured only when set.
+[ -n "${DEVBAR_STATUSLINE_NOW:-}" ] && NOW="$DEVBAR_STATUSLINE_NOW"
+case "$NOW" in ''|*[!0-9]*) printf -v NOW '%(%s)T' -1 ;; esac
 
 # ── Icons ────────────────────────────────────────────────────────────────────
 # Explicit UTF-8 bytes: a literal glyph is lost by any tool in the chain that
@@ -45,6 +48,7 @@ I_ELLIPSIS=$'\xe2\x80\xa6' # … truncated worktree name (U+2026)
 I_EFF=$'\xe2\x9a\xa1'      # ⚡ reasoning effort (U+26A1)
 I_STYLE=$'\xe2\x9c\x8e'    # ✎ output style (U+270E)
 I_COLD=$'\xe2\x9d\x84'     # ❄ cold prompt cache (U+2744)
+I_WARM=$'\xe2\x97\xb7'    # ◷ warm prompt cache, minutes to expiry (U+25F7)
 I_RESET=$'\xe2\x86\xbb'    # ↻ rate-limit reset (U+21BB)
 I_BAR_ON=$'\xe2\x96\xb0'   # ▰ filled context cell (U+25B0)
 I_BAR_OFF=$'\xe2\x96\xb1'  # ▱ empty context cell (U+25B1)
@@ -63,6 +67,8 @@ C_AGENT=$'\033[38;5;111m'
 C_STYLE=$'\033[38;5;140m'
 C_CAVE=$'\033[38;5;172m'
 C_COLD=$'\033[38;5;117m'
+C_CACHE_OK=$'\033[38;5;114m'   # green — cache warm, time to spare
+C_CACHE_LOW=$'\033[38;5;178m'  # amber — last 20% of the cache lifetime
 C_OK=$'\033[38;5;114m'      # green — ahead, low usage
 C_WARN=$'\033[38;5;178m'    # amber
 C_BAD=$'\033[38;5;196m'     # red — dirty, behind, saturated usage
@@ -128,7 +134,7 @@ EFFORT_EXPR='(.effort.level? // .effortLevel.level? // (.effort? | strings) // (
 cur_dir=""; model=""; effort=""; fast_mode=""; agent=""; vim_mode=""; style=""
 ctx_pct=""; ctx_size=""; over200=""; cache_warm=""; cache_seen=""
 five_pct=""; five_reset=""; seven_pct=""; seven_reset=""
-spend_pct=""; spend_reset=""; worktree=""; session_id=""
+spend_pct=""; spend_reset=""; worktree=""; session_id=""; transcript_path=""
 
 HAVE_JQ=""
 command -v jq >/dev/null 2>&1 && HAVE_JQ=1
@@ -137,7 +143,7 @@ if [ -n "$HAVE_JQ" ]; then
   IFS=$'\x1f' read -r cur_dir model effort fast_mode agent vim_mode style \
     ctx_pct ctx_size over200 cache_warm cache_seen \
     five_pct five_reset seven_pct seven_reset spend_pct spend_reset \
-    worktree session_id < <(jq -r 2>/dev/null '
+    worktree session_id transcript_path < <(jq -r 2>/dev/null '
       def c: tostring | gsub("[[:cntrl:]]"; "");
       [ (.workspace.current_dir // .cwd // "" | c),
         (.model.display_name // "" | c),
@@ -158,7 +164,8 @@ if [ -n "$HAVE_JQ" ]; then
         (.rate_limits.spend_limit.used_percentage  // "" | c),
         (.rate_limits.spend_limit.resets_at        // "" | c),
         (.workspace.git_worktree // .worktree.name // "" | c),
-        (.session_id // "" | c)
+        (.session_id // "" | c),
+        (.transcript_path // "" | c)
       ] | join("\u001f")')
 fi
 cur_dir="${cur_dir:-$PWD}"
@@ -321,11 +328,57 @@ elif [ "$over200" = "true" ]; then
   append "${C_BAD}${I_WARN} 200k+${RST}"
 fi
 
-# ── Prompt cache gone cold ───────────────────────────────────────────────────
+# ── Prompt cache: ◷ minutes to expiry when warm, ❄ when gone cold ────────────
 # Gate on caching_observed so false means cold, not never cached.
 # Use tostring without `// ""`; jq's alternative operator drops false.
+# Expiry = last assistant reply with usage + its TTL (1h if it wrote 1h cache,
+# 5m if it wrote 5m cache, else the TTL of the latest reply that wrote any,
+# else 300s). Only the transcript tail is read, at most once per 5s per session.
+cache_expiry() {   # prints "<last epoch> <ttl>" or nothing
+  [ -r "$transcript_path" ] || return 0
+  tail -c 65536 "$transcript_path" 2>/dev/null | jq -nRr '
+    [inputs | fromjson? | select(.type? == "assistant" and (.message.usage? | type) == "object" and (.timestamp? | type) == "string")
+     | { t: (.timestamp | sub("\\.[0-9]+"; "") | fromdateiso8601? // null),
+         ttl: (.message.usage.cache_creation as $c
+               | if (($c.ephemeral_1h_input_tokens? // 0) > 0) then 3600
+                 elif (($c.ephemeral_5m_input_tokens? // 0) > 0) then 300
+                 else null end) }
+     | select(.t != null)] as $r
+    | if ($r | length) == 0 then "none"
+      else "\($r[-1].t) \(([$r[] | select(.ttl != null) | .ttl] | last) // 300)" end' 2>/dev/null
+}
 if [ "$cache_seen" = "true" ] && [ "$cache_warm" = "false" ]; then
   append "${C_COLD}${I_COLD}${RST}"
+elif [ "$cache_seen" = "true" ] && [ "$cache_warm" = "true" ] && [ -n "$transcript_path" ] && [ -r "$transcript_path" ]; then
+  cx_stamp=""; cx=""; cx_file=""
+  if [ -n "$cache_dir" ] && [ -n "$cache_file" ]; then
+    cx_file="${cache_dir}/pcache-${session_id//[^A-Za-z0-9_-]/_}"
+    if [ -f "$cx_file" ]; then
+      { IFS= read -r cx_stamp; IFS= read -r cx; } < "$cx_file" 2>/dev/null
+      case "$cx_stamp" in ''|*[!0-9]*) cx=""; cx_stamp="" ;; esac
+      if [ -n "$cx_stamp" ] && [ $(( NOW - cx_stamp )) -ge 5 ]; then cx=""; cx_stamp=""; fi
+    fi
+  fi
+  if [ -z "$cx_stamp" ]; then
+    cx=$(cache_expiry)
+    if [ -n "$cx_file" ]; then
+      { printf '%s\n%s\n' "$NOW" "$cx" > "${cx_file}.$$" && mv -f "${cx_file}.$$" "$cx_file"; } 2>/dev/null
+    fi
+  fi
+  cx_last=""; cx_ttl=""
+  read -r cx_last cx_ttl <<< "$cx"
+  cx_rem=""
+  case "$cx_last$cx_ttl" in
+    ''|*[!0-9]*) ;;
+    *) cx_rem=$(( cx_last + cx_ttl - NOW )) ;;
+  esac
+  if [ -z "$cx_rem" ] || [ "$cx_rem" -le 0 ]; then
+    append "${C_CACHE_OK}${I_WARM}${RST}"
+  else
+    if [ "$cx_rem" -lt 60 ]; then cx_txt='<1m'; else cx_txt="$(( cx_rem / 60 ))m"; fi
+    if [ $(( cx_rem * 5 )) -le "$cx_ttl" ]; then cx_col="$C_CACHE_LOW"; else cx_col="$C_CACHE_OK"; fi
+    append "${cx_col}${I_WARM} ${cx_txt}${RST}"
+  fi
 fi
 
 # ── Rate limits (absent for API-key users — hidden when null) ────────────────
