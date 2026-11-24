@@ -96,6 +96,9 @@ with_lock() {
   return "$rc"
 }
 
+# devbar_hash <testo>: hash breve (16 hex) per i nomi di cache.
+devbar_hash() { printf '%s' "$1" | shasum -a 256 | cut -c1-16; }
+
 # extract_json: da stdin stampa dalla prima riga che inizia con '{' in poi
 # (i tool possono stampare testo, es. '==> ...', prima del JSON).
 extract_json() { awk '/^\{/ {p=1} p'; }

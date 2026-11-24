@@ -24,7 +24,7 @@ for f in "$DEVBAR_ROOT"/lib/*.sh "$DEVBAR_ROOT"/lib/*/*.sh; do
 done
 
 usage() {
-  echo "uso: devbar check <nome> [--force] | run <azione> [args...] | detect | repos | version" >&2
+  echo "uso: devbar check <nome> [--force] | run <azione> [args...] | detect | repos | check-timeouts | version" >&2
 }
 
 cmd="${1:-}"
@@ -53,8 +53,8 @@ case "$cmd" in
     fi
     "$fn" "$@"
     ;;
-  detect | repos)
-    fn="cmd_$cmd"
+  detect | repos | check-timeouts)
+    fn="cmd_${cmd//-/_}"
     if [ "$(type -t "$fn")" != "function" ]; then
       echo "devbar: $cmd non ancora implementato" >&2
       exit 2

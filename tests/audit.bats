@@ -105,3 +105,56 @@ S
   run --separate-stderr env PATH="$BATS_TEST_TMPDIR/stubs:/usr/bin:/bin" "$(command -v bash)" "$DEVBAR" check composer-audit
   [ "$status" -eq 3 ]
 }
+
+@test "npm-audit: cache per repo, il giro dopo un'interruzione riusa i repo già fatti" {
+  mkdir -p "$R/z"; : >"$R/z/package-lock.json"
+  export STUB_NPM_FIXTURE=audit-critical.json STUB_NPM_RC=1
+  run --separate-stderr "$DEVBAR" check npm-audit
+  [ "$(wc -l <"$BATS_TEST_TMPDIR/npm.calls")" -eq 2 ]
+  [ "$(find "$DEVBAR_CACHE_DIR" -name 'npm-audit-repo-*.json' | wc -l | tr -d ' ')" = 2 ]
+  # giro ucciso prima della fine: niente cache aggregata, restano quelle per repo
+  rm -f "$DEVBAR_CACHE_DIR"/npm-audit-cfg-*.json
+  run --separate-stderr "$DEVBAR" check npm-audit
+  [ "$status" -eq 0 ]
+  [ "$(jq -r .count <<<"$output")" = 2 ]
+  [ "$(wc -l <"$BATS_TEST_TMPDIR/npm.calls")" -eq 2 ]
+}
+
+@test "npm-audit: repo in errore non va in cache per repo" {
+  mkdir -p "$R/z"; : >"$R/z/package-lock.json"
+  rm -f "$BATS_TEST_TMPDIR/stubs/npm"
+  cat >"$BATS_TEST_TMPDIR/stubs/npm" <<S
+#!/usr/bin/env bash
+echo x >>"$BATS_TEST_TMPDIR/npm.calls"
+case "\$PWD" in */z) exit 1 ;; esac
+cat "$DEVBAR_REPO/tests/fixtures/npm/audit-critical.json"; exit 1
+S
+  chmod +x "$BATS_TEST_TMPDIR/stubs/npm"
+  run --separate-stderr "$DEVBAR" check npm-audit
+  [ "$(find "$DEVBAR_CACHE_DIR" -name 'npm-audit-repo-*.json' | wc -l | tr -d ' ')" = 1 ]
+  run --separate-stderr "$DEVBAR" check npm-audit
+  # a dalla cache, z riprovato
+  [ "$(wc -l <"$BATS_TEST_TMPDIR/npm.calls")" -eq 3 ]
+}
+
+@test "npm-audit: cambio di repoRoots/scanDepth invalida la cache aggregata" {
+  export STUB_NPM_FIXTURE=audit-critical.json STUB_NPM_RC=1
+  run --separate-stderr "$DEVBAR" check npm-audit
+  [ "$(jq -r .count <<<"$output")" = 1 ]
+  write_config "{\"repoRoots\":[\"$R\"],\"scanDepth\":6}"
+  run --separate-stderr "$DEVBAR" check npm-audit
+  [ "$(jq -r .count <<<"$output")" = 2 ]
+  # a riusato dalla cache per repo, solo deep nuovo
+  [ "$(wc -l <"$BATS_TEST_TMPDIR/npm.calls")" -eq 2 ]
+}
+
+@test "check-timeouts: tabella per check, audit 300 s, DEVBAR_CHECK_TIMEOUT vale per tutti" {
+  run --separate-stderr "$DEVBAR" check-timeouts
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '."npm-audit"' <<<"$output")" = 300 ]
+  [ "$(jq -r '."composer-audit"' <<<"$output")" = 300 ]
+  [ "$(jq -r '."brew-vulns"' <<<"$output")" = 60 ]
+  [ "$(jq -r 'keys|length' <<<"$output")" = 10 ]
+  DEVBAR_CHECK_TIMEOUT=7 run --separate-stderr "$DEVBAR" check-timeouts
+  [ "$(jq -r '[.[]]|unique|join(",")' <<<"$output")" = 7 ]
+}

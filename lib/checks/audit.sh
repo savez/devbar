@@ -38,47 +38,62 @@ list_repos() {
 
 cmd_repos() { list_repos; }
 
+# _audit_repo_counts <npm|composer> <dir>: stampa {critical,high,moderate,low}
+# dell'audit nel repo; niente in output se l'audit non dà JSON valido.
+_audit_repo_counts() {
+  local kind="$1" d="$2" raw json
+  if [ "$kind" = npm ]; then
+    raw="$(cd "$d" && npm audit --json 2>/dev/null || true)"
+  else
+    raw="$(cd "$d" && composer audit --format=json --locked 2>/dev/null || true)"
+  fi
+  json="$(printf '%s\n' "$raw" | extract_json)"
+  [ -n "$json" ] || return 0
+  if [ "$kind" = npm ]; then
+    jq -c '.metadata.vulnerabilities
+      | select(type == "object")
+      | {critical:(.critical // 0), high:(.high // 0), moderate:(.moderate // 0), low:(.low // 0)}' <<<"$json" 2>/dev/null || true
+  else
+    jq -c '
+      .advisories | select(type == "object" or type == "array")
+      | [ if type == "array" then empty else to_entries[].value
+          | if type == "array" then .[] else . end end
+          | (.severity // "" | ascii_downcase) ] as $s
+      | {critical:([$s[]|select(.=="critical")]|length),
+         high:([$s[]|select(.=="high")]|length),
+         moderate:([$s[]|select(.=="medium" or .=="moderate")]|length),
+         low:([$s[]|select(.=="low")]|length)}' <<<"$json" 2>/dev/null || true
+  fi
+}
+
 # audit_repos <npm|composer> <force>: logica comune dei due check.
+# Cache: una per repo (<kind>-audit-repo-<hash del percorso>, 24h), così un giro
+# interrotto dal timeout non perde i repo già fatti; e una aggregata per
+# configurazione (<kind>-audit-cfg-<hash di repoRoots+scanDepth>): cambiare le
+# cartelle o la profondità la invalida, le cache per repo restano valide.
+# --force rifà l'audit di ogni repo (e riscrive le cache per repo).
 audit_repos() {
-  local kind="$1" force="$2" cache="$1-audit" repos items count vulns errs raw json counts d
-  local tool lockkey
-  tool="$kind"
-  lockkey="$kind"
-  require_tool "$tool"
+  local kind="$1" force="$2" cache repos items count vulns errs counts d rcache
+  require_tool "$kind"
   if [ "$(config_get '.repoRoots | length')" -eq 0 ]; then
     emit unconfigured 0 "nessuna cartella repo configurata"
   fi
+  cache="$kind-audit-cfg-$(devbar_hash "$(config_get .repoRoots)|$(config_get .scanDepth)")"
   if [ "$force" != "--force" ] && cache_fresh "$cache" 1440; then
     items="$(cache_read "$cache")"
   else
-    repos="$(list_repos | jq -r --arg k "$lockkey" '.[] | select(.[$k]) | .path')"
+    repos="$(list_repos | jq -r --arg k "$kind" '.[] | select(.[$k]) | .path')"
     items="[]"
     errs=0
     while IFS= read -r d; do
       [ -n "$d" ] || continue
-      if [ "$kind" = npm ]; then
-        raw="$(cd "$d" && npm audit --json 2>/dev/null || true)"
+      rcache="$kind-audit-repo-$(devbar_hash "$d")"
+      if [ "$force" != "--force" ] && cache_fresh "$rcache" 1440; then
+        counts="$(cache_read "$rcache")"
       else
-        raw="$(cd "$d" && composer audit --format=json --locked 2>/dev/null || true)"
-      fi
-      json="$(printf '%s\n' "$raw" | extract_json)"
-      counts=""
-      if [ -n "$json" ]; then
-        if [ "$kind" = npm ]; then
-          counts="$(jq -c '.metadata.vulnerabilities
-            | select(type == "object")
-            | {critical:(.critical // 0), high:(.high // 0), moderate:(.moderate // 0), low:(.low // 0)}' <<<"$json" 2>/dev/null || true)"
-        else
-          counts="$(jq -c '
-            .advisories | select(type == "object" or type == "array")
-            | [ if type == "array" then empty else to_entries[].value
-                | if type == "array" then .[] else . end end
-                | (.severity // "" | ascii_downcase) ] as $s
-            | {critical:([$s[]|select(.=="critical")]|length),
-               high:([$s[]|select(.=="high")]|length),
-               moderate:([$s[]|select(.=="medium" or .=="moderate")]|length),
-               low:([$s[]|select(.=="low")]|length)}' <<<"$json" 2>/dev/null || true)"
-        fi
+        counts="$(_audit_repo_counts "$kind" "$d")"
+        # solo i risultati validi vanno in cache: un errore si riprova al prossimo giro
+        [ -z "$counts" ] || printf '%s\n' "$counts" | cache_write "$rcache"
       fi
       if [ -z "$counts" ]; then
         errs=$((errs + 1))

@@ -75,12 +75,30 @@ check_harnesses() {
 
 DEVBAR_ALL_CHECKS="brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave caveman claude-usage harnesses"
 
-# Timeout di ogni check dentro check all (secondi); override DEVBAR_CHECK_TIMEOUT.
+# Timeout di ogni check dentro check all (secondi). npm/composer audit scorrono
+# tutti i repo, uno dopo l'altro: più tempo. DEVBAR_CHECK_TIMEOUT (intero > 0)
+# vale per tutti i check. L'app somma questi valori per il suo timeout di riserva
+# (StatusStore.checkTimeouts, verificato da un test contro `devbar check-timeouts`).
 DEVBAR_CHECK_TIMEOUT_DEFAULT=60
+DEVBAR_CHECK_TIMEOUT_AUDIT=300
 
+# check_timeout_secs <nome>: timeout del check.
 check_timeout_secs() {
   local t="${DEVBAR_CHECK_TIMEOUT:-}"
-  if [[ "$t" =~ ^[0-9]+$ ]] && [ "$t" -gt 0 ]; then echo "$t"; else echo "$DEVBAR_CHECK_TIMEOUT_DEFAULT"; fi
+  if [[ "$t" =~ ^[0-9]+$ ]] && [ "$t" -gt 0 ]; then echo "$t"; return; fi
+  case "${1:-}" in
+    npm-audit | composer-audit) echo "$DEVBAR_CHECK_TIMEOUT_AUDIT" ;;
+    *) echo "$DEVBAR_CHECK_TIMEOUT_DEFAULT" ;;
+  esac
+}
+
+# cmd_check_timeouts: {"<check>":<secondi>,...} per i check di check all.
+cmd_check_timeouts() {
+  local name out="{}"
+  for name in $DEVBAR_ALL_CHECKS; do
+    out="$(jq -c --arg k "$name" --argjson v "$(check_timeout_secs "$name")" '. + {($k):$v}' <<<"$out")"
+  done
+  printf '%s\n' "$out"
 }
 
 # tree_pids <pid>: il pid e tutti i discendenti (figli prima del padre).
@@ -118,13 +136,12 @@ run_timed() {
 
 # check_all_run [--force]: esegue ogni check in un processo a parte, con timeout.
 check_all_run() {
-  local name out rc res all="{}" fargs=() secs tmp
+  local name out rc res all="{}" fargs=() tmp
   [ "${1:-}" = "--force" ] && fargs=(--force)
-  secs="$(check_timeout_secs)"
   tmp="$(mktemp "${TMPDIR:-/tmp}/devbar-check.XXXXXX")"
   for name in $DEVBAR_ALL_CHECKS; do
     rc=0
-    run_timed "$secs" "$tmp" "$DEVBAR_ROOT/bin/devbar" check "$name" ${fargs[@]+"${fargs[@]}"} || rc=$?
+    run_timed "$(check_timeout_secs "$name")" "$tmp" "$DEVBAR_ROOT/bin/devbar" check "$name" ${fargs[@]+"${fargs[@]}"} || rc=$?
     if [ "$rc" -eq 124 ]; then
       all="$(jq -c --arg k "$name" '. + {($k):{rc:2,status:"error",summary:"timeout"}}' <<<"$all")"
       continue
