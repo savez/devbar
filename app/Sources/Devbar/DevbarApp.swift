@@ -35,6 +35,8 @@ struct DevbarApp: App {
             let others = NSRunningApplication.runningApplications(withBundleIdentifier: id).map(\.processIdentifier)
             if SingleInstance.shouldExit(ownPID: ProcessInfo.processInfo.processIdentifier, otherPIDs: others) { exit(0) }
         }
+        // Posizione iniziale dell'icona (a destra): senza, Hidden Bar e simili la nascondono.
+        StatusItemPosition.seedIfNeeded()
         // Niente icona nel Dock (LSUIElement nell'Info.plist, qui anche per `swift run`).
         NSApplication.shared.setActivationPolicy(.accessory)
         // Avvio al login: allinea il plist alla config, solo dal bundle installato in ~/Applications.
