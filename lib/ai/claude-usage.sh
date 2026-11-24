@@ -20,7 +20,7 @@ ai_claude_usage_tool_install_cmd() {
 # _claude_usage_latest_tag: tag dal redirect di /releases/latest (niente API).
 _claude_usage_latest_tag() {
   local loc tag
-  loc="$(curl -sI --connect-timeout 10 --max-time 30 "$_CLAUDE_USAGE_RELEASES/latest" 2>/dev/null |
+  loc="$(curl -sI --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 30 "$_CLAUDE_USAGE_RELEASES/latest" 2>/dev/null |
     tr -d '\r' | awk 'tolower($1) == "location:" {print $2}' | tail -n 1)"
   tag="${loc##*/tag/}"
   case "$tag" in
@@ -40,8 +40,8 @@ ai_claude_usage_tool_install() {
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/devbar-claude-usage.XXXXXX")" || return 1
   (
     set -e
-    curl -fsSL --connect-timeout 10 --max-time 120 -o "$tmp/install.sh" "$base/install.sh"
-    curl -fsSL --connect-timeout 10 --max-time 120 -o "$tmp/checksums.txt" "$base/checksums.txt"
+    curl -fsSL --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 120 -o "$tmp/install.sh" "$base/install.sh"
+    curl -fsSL --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 120 -o "$tmp/checksums.txt" "$base/checksums.txt"
     want="$(awk '$2 == "install.sh" || $2 == "*install.sh" {print tolower($1); exit}' "$tmp/checksums.txt")"
     [ -n "$want" ] || { echo "devbar: checksum di install.sh assente in checksums.txt" >&2; exit 1; }
     got="$(shasum -a 256 "$tmp/install.sh" | awk '{print tolower($1)}')"

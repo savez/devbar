@@ -73,7 +73,7 @@ setup() {
 @test "open_in_terminal: quota i caratteri speciali" {
   run "$DEVBAR" run brew-upgrade 'a"b;c'
   [ "$status" -eq 0 ]
-  ! grep -q 'a"b;c' "$BATS_TEST_TMPDIR/osascript.calls"
+  [ "$(grep -c 'a"b;c' "$BATS_TEST_TMPDIR/osascript.calls" || true)" -eq 0 ]
   grep -qF 'a\\\"b\\;c' "$BATS_TEST_TMPDIR/osascript.calls"
 }
 

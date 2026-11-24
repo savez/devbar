@@ -6,8 +6,9 @@ default:
 test:
     bats tests
 
+# statusline/devbar-claude-statusline è escluso: copia verbatim da Sparkdock (vedi README).
 lint:
-    shellcheck -x -P SCRIPTDIR bin/devbar $(find lib -name '*.sh')
+    shellcheck -x -P SCRIPTDIR bin/devbar $(find lib -name '*.sh') scripts/install.sh app/bundle.sh
 
 # XCTest manca nelle Command Line Tools: si usa swift-testing; il plugin macro va indicato a mano.
 app-test:

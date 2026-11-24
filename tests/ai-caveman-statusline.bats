@@ -271,7 +271,10 @@ SH
   [ "$(cat "$BATS_TEST_TMPDIR/ran")" = v1.2.3 ]
   grep -q "releases/download/v1.2.3/install.sh" "$BATS_TEST_TMPDIR/curl.calls"
   grep -q "releases/download/v1.2.3/checksums.txt" "$BATS_TEST_TMPDIR/curl.calls"
-  ! grep -q "api.github.com" "$BATS_TEST_TMPDIR/curl.calls"
+  [ "$(grep -c "api.github.com" "$BATS_TEST_TMPDIR/curl.calls" || true)" -eq 0 ]
+  # ogni chiamata solo https, anche dopo i redirect
+  [ "$(wc -l <"$BATS_TEST_TMPDIR/curl.calls")" -eq 3 ]
+  [ "$(grep -c -- "--proto =https --proto-redir =https" "$BATS_TEST_TMPDIR/curl.calls")" -eq 3 ]
 }
 
 @test "tool-install claude-usage: checksum sbagliato -> rc 2, install.sh non eseguito" {

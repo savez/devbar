@@ -37,7 +37,7 @@ SH
   [ "$(readlink "$HOME/.local/bin/devbar")" = "$DEVBAR_REPO/bin/devbar" ]
   grep -q "$HOME/Applications/devbar.app/Contents/MacOS/Devbar" "$HOME/Library/LaunchAgents/it.savez.devbar.plist"
   grep -q "^bootstrap gui/501 $HOME/Library/LaunchAgents/it.savez.devbar.plist$" "$CALLS"
-  ! grep -q '^bootout' "$CALLS"
+  [ "$(grep -c '^bootout' "$CALLS" || true)" -eq 0 ]
 }
 
 @test "install con job già caricato fa bootout prima di bootstrap e sostituisce il bundle" {

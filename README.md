@@ -10,7 +10,7 @@ Due parti:
 ## Requisiti
 
 - macOS 14 o successivo
-- [Homebrew](https://brew.sh), `jq`, bash 5 (`brew install bash jq`)
+- [Homebrew](https://brew.sh) e `jq` (`brew install jq`); il motore gira con la bash di sistema di macOS (3.2)
 - Command Line Tools con Swift (per compilare l'app)
 - Per lo sviluppo: `just`, `bats-core`, `shellcheck`
 

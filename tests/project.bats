@@ -58,7 +58,7 @@ STUB
   run --separate-stderr "$DEVBAR" run project-apply "$REPO" --yes
   [ "$status" -eq 0 ]
   grep -q '^init --git-hook' "$BATS_TEST_TMPDIR/tokensave.calls"
-  ! grep -q '^install' "$BATS_TEST_TMPDIR/tokensave.calls"
+  [ "$(grep -c '^install' "$BATS_TEST_TMPDIR/tokensave.calls" || true)" -eq 0 ]
   grep -q 'Respond terse like smart caveman' "$REPO/.cursor/rules/caveman.mdc"
   grep -q 'alwaysApply: true' "$REPO/.cursor/rules/caveman.mdc"
   grep -q 'trigger: always_on' "$REPO/.windsurf/rules/caveman.md"
@@ -95,7 +95,7 @@ STUB
   run --separate-stderr "$DEVBAR" run project-status "$REPO"
   [[ "$(jq -r '.checks[] | select(.tool=="caveman") | .willWrite | join(" ")' <<<"$output")" == *AGENTS.md* ]]
   "$DEVBAR" run project-apply "$REPO" --yes >/dev/null 2>&1
-  ! grep -q vecchio "$REPO/AGENTS.md"
+  [ "$(grep -c vecchio "$REPO/AGENTS.md" || true)" -eq 0 ]
   grep -qx prima "$REPO/AGENTS.md"
   grep -qx dopo "$REPO/AGENTS.md"
   grep -q 'Respond terse' "$REPO/AGENTS.md"
@@ -116,7 +116,7 @@ STUB
   mkdir -p "$REPO/.tokensave"
   "$DEVBAR" run project-apply "$REPO" --yes >/dev/null 2>&1
   grep -q '^githooks on --local' "$BATS_TEST_TMPDIR/tokensave.calls"
-  ! grep -q '^init' "$BATS_TEST_TMPDIR/tokensave.calls"
+  [ "$(grep -c '^init' "$BATS_TEST_TMPDIR/tokensave.calls" || true)" -eq 0 ]
 }
 
 @test "dir non repo git: rc 2" {
