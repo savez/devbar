@@ -103,6 +103,8 @@ public struct PanelModel: Equatable, Sendable {
     public var brewHeadline: String
     public var brewItems: [BrewOutdatedItem]
     public var brewUpgradeEnabled: Bool
+    /// Messaggio del check se è in errore.
+    public var brewError: String?
     public var corkInstalled: Bool
     public var corkButtonTitle: String { corkInstalled ? "Apri Cork" : "Installa Cork" }
 
@@ -117,23 +119,36 @@ public struct PanelModel: Equatable, Sendable {
     public var brewVulnItems: [BrewVulnItem]
     public var npmItems: [AuditItem]
     public var composerItems: [AuditItem]
+    public var brewVulnError: String?
 
     // colima
     public var colimaState: SectionKind
     public var colimaSummary: String
     public var colimaRunning: Bool
-    /// "Avvia" se spento, "Stop" se acceso.
-    public var colimaToggleTitle: String { colimaRunning ? "Stop" : "Avvia" }
+    /// "Avvia" se spento, "Ferma" se acceso.
+    public var colimaToggleTitle: String { colimaRunning ? "Ferma" : "Avvia" }
     public var colimaProfile: String?
+    public var colimaProfiles: [ColimaProfile]
     public var colimaContainers: [ColimaContainer]
 
     // Token
     public var rtkState: SectionKind
+    /// "RTK 18%" o il riassunto del check.
     public var rtkLine: String
+    public var rtkSaved: Int?
+    /// Ultimi 7 giorni (pannello).
     public var rtkDaily: [DailySaving]
+    /// Tutti i giorni forniti dal motore (Dettagli).
+    public var rtkAllDaily: [DailySaving]
+    public var rtkCommands: Int?
     public var tokensaveState: SectionKind
+    /// "tokensave 0 risparmiati, 53 occasioni perse".
     public var tokensaveLine: String
+    public var tokensave: TokensaveGain?
+    /// "caveman full, 4.2.0".
     public var cavemanLine: String?
+    public var cavemanMode: String?
+    public var cavemanVersion: String?
     public var usageState: SectionKind
     public var usageFiveHour: Double?
     public var usageWeek: Double?
@@ -147,7 +162,6 @@ public struct PanelModel: Equatable, Sendable {
     // AI setup
     public var aiTools: [String]
     public var showsAISetup: Bool
-    public var unmanagedHarnesses: [String]
 
     public init(all: AllChecks, detect: DetectResult? = nil, now: Date = Date()) {
         // Homebrew
@@ -157,12 +171,14 @@ public struct PanelModel: Equatable, Sendable {
         brewHeadline = all.rows["brew-outdated"]?.summary ?? ""
         brewItems = bo?.items ?? []
         brewUpgradeEnabled = boState == .action
+        brewError = boState == .error ? (all.rows["brew-outdated"]?.summary ?? "errore") : nil
         corkInstalled = detect?.tools["cork"] ?? false
 
         // Vulnerabilità
         var rows: [VulnRow] = []
         let bv = all.typed(BrewVulns.self, "brew-vulns")
         brewVulnItems = bv?.items ?? []
+        brewVulnError = all.rows["brew-vulns"]?.state == .error ? (all.rows["brew-vulns"]?.summary ?? "errore") : nil
         if let r = all.rows["brew-vulns"], r.state != .unconfigured {
             rows.append(.init(id: "brew", title: "brew", summary: Self.brewVulnSummary(r, bv), hasDetails: !(bv?.items.isEmpty ?? true)))
         }
@@ -183,11 +199,11 @@ public struct PanelModel: Equatable, Sendable {
         colimaState = Self.kind(all.rows["colima"]?.state, hasRow: all.rows["colima"] != nil)
         colimaRunning = col?.running ?? false
         colimaContainers = col?.containers ?? []
+        colimaProfiles = col?.profiles ?? []
         let prof = col?.profiles.first(where: { $0.isRunning }) ?? col?.profiles.first
         colimaProfile = prof?.name
         if let p = prof {
-            let base = "\(p.cpus) CPU \(Fmt.gib(p.memoryBytes)) \(Fmt.gib(p.diskBytes))"
-            colimaSummary = (col?.running ?? false) ? "\(base) \(col?.containers.count ?? 0) cont." : "spento"
+            colimaSummary = (col?.running ?? false) ? "attivo, \(p.cpus) CPU, \(Fmt.gb(p.memoryBytes))" : "spento"
         } else {
             colimaSummary = all.rows["colima"]?.summary ?? ""
         }
@@ -195,18 +211,24 @@ public struct PanelModel: Equatable, Sendable {
         // RTK
         let rtk = all.typed(RtkGain.self, "rtk")
         rtkState = Self.kind(all.rows["rtk"]?.state, hasRow: all.rows["rtk"] != nil)
-        rtkLine = rtk.map { "RTK \(Fmt.tokens($0.saved)) salvati (\(Fmt.percent($0.pct)))" } ?? (all.rows["rtk"]?.summary ?? "")
-        rtkDaily = Array((rtk?.daily ?? []).suffix(7))
+        rtkLine = rtk.map { "RTK \(Fmt.percent($0.pct))" } ?? (all.rows["rtk"]?.summary ?? "")
+        rtkSaved = rtkState == .shown ? rtk?.saved : nil
+        rtkCommands = rtk?.commands
+        rtkAllDaily = rtk?.daily ?? []
+        rtkDaily = Array(rtkAllDaily.suffix(7))
 
         // tokensave
         let ts = all.typed(TokensaveGain.self, "tokensave")
         tokensaveState = Self.kind(all.rows["tokensave"]?.state, hasRow: all.rows["tokensave"] != nil)
-        tokensaveLine = ts.map { "tokensave \(Fmt.tokens($0.saved)) salvati, \($0.calls) chiamate (7gg)" } ?? (all.rows["tokensave"]?.summary ?? "")
+        tokensave = tokensaveState == .shown ? ts : nil
+        tokensaveLine = ts.map { "tokensave \(Fmt.tokens($0.saved)) risparmiati, \($0.missedTurns) occasioni perse" }
+            ?? (all.rows["tokensave"]?.summary ?? "")
 
         // caveman: solo se ha mode o version
         if let cv = all.typed(CavemanStatus.self, "caveman"), cv.result.state != .unconfigured,
            cv.mode != nil || cv.version != nil {
-            cavemanLine = "caveman " + [cv.mode, cv.version].compactMap { $0 }.joined(separator: " · ")
+            cavemanLine = "caveman " + [cv.mode, cv.version].compactMap { $0 }.joined(separator: ", ")
+            cavemanMode = cv.mode; cavemanVersion = cv.version
         } else {
             cavemanLine = nil
         }
@@ -232,12 +254,8 @@ public struct PanelModel: Equatable, Sendable {
             let claudeInstalled = detect?.harnesses.first(where: { $0.id == "claude" })?.installed ?? false
             aiTools = claudeInstalled ? display : Array(display.prefix(3))
         }
+        // Gli harness non gestiti si gestiscono solo nelle impostazioni: niente righe nel pannello.
         showsAISetup = detect != nil
-        if let h = all.rows["harnesses"], h.state == .action {
-            unmanagedHarnesses = h.items.compactMap { if case .string(let s) = $0 { return s } else { return nil } }
-        } else {
-            unmanagedHarnesses = []
-        }
     }
 
     /// auth prima di error: con credenziali assenti il binario mette anche un `error` in inglese.
@@ -262,9 +280,10 @@ public struct PanelModel: Equatable, Sendable {
         return bv.severe > 0 ? "\(bv.severe) alte o critiche su \(bv.items.count)" : "\(bv.items.count) basse o medie"
     }
 
-    /// Riga di piede: ultimo problema da mostrare con discrezione.
+    /// Riga di piede: ultimo problema da mostrare con discrezione. Il controllo in corso
+    /// lo dice già la riga sotto la barra di salute.
     public static func footerStatus(engineBusy: Bool, refreshError: String?, isRefreshing: Bool) -> String? {
-        if isRefreshing { return "aggiornamento…" }
+        if isRefreshing { return nil }
         if engineBusy { return "controllo già in corso" }
         return refreshError
     }

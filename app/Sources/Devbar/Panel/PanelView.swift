@@ -1,54 +1,229 @@
 import SwiftUI
+import AppKit
 import DevbarCore
 
 struct PanelView: View {
     let store: StatusStore
     let actions: PanelActions
+    /// Solo per le istantanee: niente `.task` che rilancia i controlli.
+    var loadsOnAppear = true
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         let model = PanelModel(all: AllChecks(rows: store.results, raw: store.raw), detect: actions.detect)
-        VStack(alignment: .leading, spacing: 10) {
+        let open = DetailsOpener(actions: actions, openWindow: openWindow)
+        VStack(alignment: .leading, spacing: 0) {
             if store.results.isEmpty {
                 Text(store.isRefreshing ? "Controllo in corso…" : "Nessun dato")
-                    .foregroundStyle(.secondary)
+                    .font(Typo.title).foregroundStyle(.secondary)
+                    .padding(.vertical, 10)
             } else {
-                BrewSection(model: model, actions: actions)
-                VulnsSection(model: model, actions: actions)
-                if model.colimaState != .hidden { ColimaSection(model: model, actions: actions) }
-                if model.showsTokenSection { TokensSection(model: model, actions: actions) }
-                if model.showsAISetup { AISetupSection(model: model, actions: actions) }
+                HealthStripView(strip: HealthStrip(model: model, badge: store.badge),
+                                checked: Fmt.checked(store.lastRefresh, isRefreshing: store.isRefreshing),
+                                onSelect: { area in
+                                    // AI setup non ha Dettagli: gli harness si gestiscono nelle impostazioni.
+                                    if area == .aiSetup {
+                                        NSApp.activate(ignoringOtherApps: true)
+                                        openSettings()
+                                    } else {
+                                        open(area)
+                                    }
+                                })
+                rows(model, open: open)
             }
             Divider()
             FooterBar(store: store, actions: actions)
         }
-        .padding(12)
+        .padding(.horizontal, 14)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
         .frame(width: 380)
         .task {
+            guard loadsOnAppear else { return }
             await actions.loadDetect()
             await store.panelOpened()
         }
-        .confirmationDialog(actions.pending?.title ?? "Conferma",
-                            isPresented: Bindable(actions).dialogShown, titleVisibility: .visible) {
-            Button("Conferma") { Task { await actions.confirmPending() } }
-            Button("Annulla", role: .cancel) { actions.cancelPending() }
-        } message: {
-            // Solo testo: le righe del piano non vengono mai eseguite.
-            Text(actions.plan?.text ?? "")
+        .modifier(ConfirmationHost(actions: actions, origin: .panel))
+    }
+
+    @ViewBuilder private func rows(_ model: PanelModel, open: DetailsOpener) -> some View {
+        if model.brewState == .shown {
+            Divider()
+            BrewRow(model: model, actions: actions, open: open)
+        }
+        if model.showsVulns {
+            Divider()
+            VulnsRow(model: model, open: open)
+        }
+        if model.colimaState != .hidden {
+            Divider()
+            ColimaRow(model: model, actions: actions, open: open)
+        }
+        if model.showsTokenSection {
+            Divider()
+            TokensRow(model: model, actions: actions, open: open)
+        }
+        if model.showsAISetup {
+            Divider()
+            AISetupRow(model: model, actions: actions)
         }
     }
 }
 
-/// Intestazione di sezione.
-struct SectionTitle: View {
-    let text: String
+// MARK: - Righe
+
+struct BrewRow: View {
+    let model: PanelModel
+    let actions: PanelActions
+    let open: DetailsOpener
+
     var body: some View {
-        Text(text).font(.caption).foregroundStyle(.secondary).textCase(.uppercase)
+        let r = model.brewReadout
+        ReadoutRow(title: "Homebrew", subtitle: r.subtitle, readout: r.value, tone: r.tone,
+                   busy: actions.isRunning("brew"), onDetails: { open(.homebrew) }, content: { EmptyView() }, accessory: {
+            if model.brewUpgradeEnabled && !model.brewItems.isEmpty {
+                Button("Aggiorna pacchetti") { Task { await actions.run(["run", "brew-upgrade"], refresh: false) } }
+                    .controlSize(.small).disabled(actions.isRunning("brew"))
+            }
+        })
     }
 }
 
-/// Riga "Init <strumento>" per una sezione non configurata.
-struct InitButton: View {
-    let title: String
-    let action: () -> Void
-    var body: some View { Button(title, action: action).controlSize(.small) }
+struct VulnsRow: View {
+    let model: PanelModel
+    let open: DetailsOpener
+
+    var body: some View {
+        let r = model.vulnReadout
+        ReadoutRow(title: "Vulnerabilità", subtitle: r.subtitle, note: r.note, readout: r.value, tone: r.tone,
+                   onDetails: { open(model.vulnRows.contains { $0.id == "brew" } ? .vulns : .audit) },
+                   content: { EmptyView() }, accessory: { EmptyView() })
+    }
+}
+
+struct ColimaRow: View {
+    let model: PanelModel
+    let actions: PanelActions
+    let open: DetailsOpener
+
+    var body: some View {
+        let r = model.colimaReadout
+        let busy = actions.isRunning("colima")
+        switch model.colimaState {
+        case .hidden: EmptyView()
+        case .initOnly:
+            ReadoutRow(title: "colima", subtitle: r.subtitle, busy: busy, content: { EmptyView() }, accessory: {
+                Button("Init colima") {
+                    Task { await actions.request(.init(title: "Installa colima", args: ["run", "colima-install"])) }
+                }.controlSize(.small).disabled(busy)
+            })
+        case .shown:
+            ReadoutRow(title: "colima", subtitle: r.subtitle, note: r.note, readout: r.value, tone: r.tone, busy: busy,
+                       onDetails: { open(.colima) }, content: { EmptyView() }, accessory: {
+                Button(model.colimaToggleTitle) {
+                    let verb = model.colimaRunning ? "colima-stop" : "colima-start"
+                    var args = ["run", verb]
+                    if let p = model.colimaProfile, p != "default" { args.append(p) }
+                    Task { await actions.run(args) }
+                }.controlSize(.small).disabled(busy)
+            })
+        }
+    }
+}
+
+struct TokensRow: View {
+    let model: PanelModel
+    let actions: PanelActions
+    let open: DetailsOpener
+
+    var body: some View {
+        let r = model.tokensReadout
+        ReadoutRow(title: "Token risparmiati", readout: r.value, tone: r.tone,
+                   busy: actions.isRunning("tokens"), onDetails: { open(.tokens) }) {
+            VStack(alignment: .leading, spacing: 5) {
+                if model.rtkState == .shown || model.tokensaveState == .shown {
+                    HStack(spacing: 8) {
+                        if model.rtkState == .shown {
+                            if !model.rtkDaily.isEmpty { MiniBars(daily: model.rtkDaily).frame(width: 80, height: 18) }
+                            Text(model.rtkLine).font(Typo.note).foregroundStyle(.secondary)
+                        }
+                    }
+                    if model.tokensaveState == .shown {
+                        Text(model.tokensaveLine).font(Typo.note).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                }
+                if !model.usageMeters.isEmpty {
+                    UsageMeters(meters: model.usageMeters).padding(.top, 2)
+                }
+                if let n = model.usageNote { Text(n).font(Typo.note).foregroundStyle(.secondary) }
+                let inits = initTools
+                if !inits.isEmpty {
+                    HStack(spacing: 6) {
+                        ForEach(inits, id: \.tool) { t in
+                            Button("Init \(t.title)") {
+                                Task { await actions.request(.init(title: "Installa \(t.title)",
+                                                                   args: ["run", "tool-install", t.tool])) }
+                            }.controlSize(.small).disabled(actions.isRunning("tokens"))
+                        }
+                    }
+                    .padding(.top, 2)
+                }
+            }
+        }
+    }
+
+    private var initTools: [(title: String, tool: String)] {
+        var out: [(String, String)] = []
+        if model.rtkState == .initOnly { out.append(("RTK", "rtk")) }
+        if model.tokensaveState == .initOnly { out.append(("tokensave", "tokensave")) }
+        if model.usageState == .initOnly { out.append(("claude-usage", "claude-usage")) }
+        return out
+    }
+}
+
+/// Barre minime degli ultimi giorni RTK (senza assi).
+struct MiniBars: View {
+    let daily: [DailySaving]
+    var body: some View {
+        let top = max(1, daily.map(\.saved).max() ?? 1)
+        HStack(alignment: .bottom, spacing: 2) {
+            ForEach(daily, id: \.date) { d in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(Tone.info.color.opacity(0.75))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: max(2, 18 * CGFloat(d.saved) / CGFloat(top)))
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .bottom)
+        .help("RTK, ultimi \(daily.count) giorni")
+    }
+}
+
+struct AISetupRow: View {
+    let model: PanelModel
+    let actions: PanelActions
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        ReadoutRow(title: "AI setup") {
+            // Gli harness non gestiti si gestiscono nelle impostazioni, non qui.
+            FlowLayout {
+                ForEach(model.aiTools, id: \.self) { t in
+                    Button(t) {
+                        NSApp.activate(ignoringOtherApps: true)
+                        openWindow(id: WindowID.aiSetup)
+                        Task { await actions.aiSetup.begin(displayTool: t) }
+                    }
+                }
+                Button("Init progetto") {
+                    NSApp.activate(ignoringOtherApps: true)
+                    openWindow(id: WindowID.initProject)
+                    Task { await actions.projectInit.loadRepos() }
+                }
+            }
+            .controlSize(.small)
+            .buttonStyle(.bordered)
+        }
+    }
 }

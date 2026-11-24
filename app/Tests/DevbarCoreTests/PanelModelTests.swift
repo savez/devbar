@@ -52,13 +52,13 @@ struct PanelModelTests {
         // npm e composer sono unconfigured: nascosti. Resta brew.
         #expect(m.vulnRows.map(\.id) == ["brew"])
         #expect(m.colimaState == .shown)
-        #expect(m.colimaToggleTitle == "Stop")
-        #expect(m.colimaSummary.hasPrefix("4 CPU 8GiB 60GiB"))
+        #expect(m.colimaToggleTitle == "Ferma")
+        #expect(m.colimaSummary == "attivo, 4 CPU, 8 GB")
         #expect(m.rtkState == .shown)
-        #expect(m.rtkLine.hasPrefix("RTK "))
+        #expect(m.rtkLine == "RTK 18%")
         #expect(m.rtkDaily.count <= 7 && !m.rtkDaily.isEmpty)
         #expect(m.usageState == .initOnly)
-        #expect(m.unmanagedHarnesses.count == 3)
+        #expect(m.tokensaveLine == "tokensave 0 risparmiati, 53 occasioni perse")
     }
 
     @Test func corkInstalledLabel() throws {
@@ -89,7 +89,7 @@ struct PanelModelTests {
         let a = try mutate("caveman") { $0["mode"] = .string(""); $0["version"] = .string("") }
         #expect(PanelModel(all: a, detect: detect()).cavemanLine == nil)
         let b = try all()
-        #expect(PanelModel(all: b, detect: detect()).cavemanLine == "caveman full · 4.2.0")
+        #expect(PanelModel(all: b, detect: detect()).cavemanLine == "caveman full, 4.2.0")
     }
 
     @Test func claudeUsageConfigured() throws {
@@ -128,6 +128,8 @@ struct PanelModelTests {
         #expect(PanelModel.footerStatus(engineBusy: false, refreshError: nil, isRefreshing: false) == nil)
         #expect(PanelModel.footerStatus(engineBusy: true, refreshError: "x", isRefreshing: false) == "controllo già in corso")
         #expect(PanelModel.footerStatus(engineBusy: false, refreshError: "x", isRefreshing: false) == "x")
+        // il controllo in corso lo mostra la riga della barra di salute
+        #expect(PanelModel.footerStatus(engineBusy: false, refreshError: "x", isRefreshing: true) == nil)
         let i = try! JSONDecoder().decode(AuditItem.self, from: Data(#"{"repo":"/r","critical":2,"high":1}"#.utf8))
         #expect(PanelModel.auditSummary(i) == "2 critiche, 1 alte")
     }

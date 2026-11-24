@@ -14,9 +14,14 @@ final class PanelActions {
     var pending: ConfirmableAction?
     private(set) var plan: ActionPlan?
     var dialogShown = false
-    /// Stato di espansione delle liste dettagli (`@State` non è disponibile, vedi DevbarApp).
-    var brewExpanded = false
-    var expandedVulns: Set<String> = []
+    /// Chi mostra la conferma: il pannello o la finestra Dettagli (solo quella che l'ha chiesta).
+    private(set) var dialogOrigin: DialogOrigin = .panel
+    /// Stato della finestra Dettagli (`@State` non è disponibile, vedi DevbarApp).
+    var detailsArea: Area? = .homebrew
+    var vulnFilter: VulnFilter = .all
+    var brewSort: [KeyPathComparator<BrewDetailRow>] = [KeyPathComparator(\.name)]
+    var vulnSort: [KeyPathComparator<VulnDetailRow>] = []
+    var auditSort: [KeyPathComparator<AuditDetailRow>] = []
     private(set) var lastError: String?
     /// Finestre AI setup, Init progetto e impostazioni: ognuna con la sua conferma
     /// (stesso schema request/confirm del pannello, in `PlanConfirmation`).
@@ -68,12 +73,13 @@ final class PanelActions {
     }
 
     /// Passo 1: senza --yes per ottenere il piano; poi la vista chiede conferma.
-    func request(_ action: ConfirmableAction) async {
+    func request(_ action: ConfirmableAction, from origin: DialogOrigin = .panel) async {
         guard ActionSection.of(action.args).map({ !running.contains($0) }) ?? true else { return }
         let r = await store.run(action: action.args)
         guard r.rc < 2 else { lastError = "\(action.title): piano non disponibile (rc \(r.rc))"; return }
         plan = ActionPlan.parse(r.stdout)
         pending = action
+        dialogOrigin = origin
         dialogShown = true
     }
 
@@ -93,3 +99,5 @@ final class PanelActions {
 
     func openRepo(_ path: String) async { await run(["run", "open-terminal", path], refresh: false) }
 }
+
+enum DialogOrigin { case panel, details }
