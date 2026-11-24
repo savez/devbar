@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Stub generico: invocato tramite symlink col nome del tool (vedi make_stub).
+# Stampa $STUB_FIXTURES_DIR/<tool>/<fixture>, esce con l'rc, registra gli argomenti.
+# Override per sottocomando: STUB_<TOOL>_<SUBCMD>_FIXTURE / _RC (SUBCMD = $1 maiuscolo).
+tool="$(basename "$0")"
+norm() { printf '%s' "$1" | tr '[:lower:]' '[:upper:]' | sed 's/[^A-Z0-9]/_/g'; }
+T="$(norm "$tool")"
+S=""
+if [ $# -gt 0 ]; then S="$(norm "$1")"; fi
+
+if [ -n "${BATS_TEST_TMPDIR:-}" ]; then
+  printf '%s\n' "$*" >>"$BATS_TEST_TMPDIR/$tool.calls"
+fi
+
+get() { # get <suffix> <default>
+  local v
+  if [ -n "$S" ]; then
+    v="STUB_${T}_${S}_$1"
+    if [ -n "${!v+x}" ]; then printf '%s' "${!v}"; return; fi
+  fi
+  v="STUB_${T}_$1"
+  if [ -n "${!v+x}" ]; then printf '%s' "${!v}"; return; fi
+  printf '%s' "$2"
+}
+
+fixture="$(get FIXTURE "")"
+rc="$(get RC 0)"
+if [ -n "$fixture" ]; then
+  cat "${STUB_FIXTURES_DIR:?}/$tool/$fixture"
+fi
+exit "$rc"
