@@ -100,3 +100,11 @@ setup() { setup_env; }
   run in_common 'with_lock true; with_lock true'
   [ "$status" -eq 0 ]
 }
+
+@test "with_lock rilascia il lock anche se il comando chiama emit" {
+  run in_common 'f() { emit ok 0 fatto; }; with_lock f'
+  [ "$status" -eq 1 ]
+  [ ! -e "$DEVBAR_CACHE_DIR/devbar.lock.d" ]
+  run in_common 'with_lock true'
+  [ "$status" -eq 0 ]
+}

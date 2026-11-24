@@ -83,7 +83,13 @@ with_lock() {
     fi
   fi
   echo "$$" >"$lock/pid"
+  # rilascio garantito anche se il comando chiama emit/exit o arriva un segnale
+  DEVBAR_LOCK_DIR="$lock"
+  trap 'rm -rf "$DEVBAR_LOCK_DIR"' EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
   "$@" || rc=$?
   rm -rf "$lock"
+  trap - EXIT INT TERM
   return "$rc"
 }
