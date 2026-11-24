@@ -130,7 +130,9 @@ fake_caveman_repo() {
   local i
   for i in 1 2 3; do
     mkdir -p "$J/2020010${i}T000000Z-v$i"
-    jq -n --arg id "v$i" '{id:$id,time:"2020-01-01T00:00:00Z",command:"run x",files:[]}' >"$J/2020010${i}T000000Z-v$i/meta.json"
+    jq -n --arg id "v$i" '{id:$id,time:"2020-01-01T00:00:00Z",command:"run x",
+      files:[{path:"/tmp/x",kind:"none",existed:false,sha256Before:null,sha256After:null,backup:null,linkTarget:null}]}' \
+      >"$J/2020010${i}T000000Z-v$i/meta.json"
   done
   run --separate-stderr "$DEVBAR" journal --limit 2
   [ "$status" -eq 0 ]
@@ -493,4 +495,22 @@ STUB
   chmod 600 "$HOME/.copilot/copilot-instructions.md"
   [ "$status" -eq 2 ]
   [ "$(cat "$HOME/.copilot/copilot-instructions.md")" = mio ]
+}
+
+@test "journal: voce con files vuoto (interrotta a metà) saltata da journal e undo" {
+  mkdir -p "$(dirname "$CFG")"
+  printf '{"a":1}' >"$CFG"
+  "$DEVBAR" run caveman-mode megacave --yes >/dev/null 2>&1
+  real="$(last_id)"
+  mkdir -p "$J/29991231T235959Z-vuota"
+  printf '{"id":"vuota","time":"2999-12-31T23:59:59Z","command":"run x","files":[]}' >"$J/29991231T235959Z-vuota/meta.json"
+  run --separate-stderr "$DEVBAR" journal
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '[.entries[].id] | join(",")' <<<"$output")" = "$real" ]
+  run --separate-stderr "$DEVBAR" undo
+  [ "$status" -eq 0 ]
+  [ "$(jq -r .id <<<"$output")" = "$real" ]
+  run --separate-stderr "$DEVBAR" undo vuota
+  [ "$status" -eq 2 ]
+  [[ "$(jq -r .error <<<"$output")" == *"non trovata"* ]]
 }

@@ -226,7 +226,7 @@ _journal_entries() {
 # cmd_journal [--limit N]: {entries:[{id,time,command,undone,files:[{path,kind,existed,
 # sha256Before,sha256After}]}]}, dalla più recente; con --limit solo le prime N. Solo
 # lettura di meta.json, nessun hash: se un file è cambiato lo dice il piano di undo.
-# Voci illeggibili saltate.
+# Voci illeggibili o senza file (processo interrotto a metà della prima scrittura) saltate.
 cmd_journal() {
   local d limit="" n=0
   if [ "${1:-}" = --limit ]; then
@@ -236,18 +236,20 @@ cmd_journal() {
   while IFS= read -r d; do
     [ -n "$d" ] || continue
     [ -z "$limit" ] || [ "$n" -lt "$limit" ] || break
-    jq -e 'type == "object" and (.files | type) == "array"' "$d/meta.json" >/dev/null 2>&1 || continue
+    jq -e 'type == "object" and (.files | type) == "array" and (.files | length) > 0' "$d/meta.json" >/dev/null 2>&1 || continue
     jq -c '{id, time, command, undone:(.undoneAt != null),
       files:[.files[] | {path, kind, existed, sha256Before, sha256After}]}' "$d/meta.json"
     n=$((n + 1))
   done < <(_journal_entries) | jq -s '{entries:.}'
 }
 
-# _journal_find <id>: cartella della voce; senza id la più recente non annullata.
+# _journal_find <id>: cartella della voce; senza id la più recente non annullata. Voci senza
+# file saltate (come in cmd_journal).
 _journal_find() {
   local id="$1" d
   while IFS= read -r d; do
     [ -n "$d" ] && [ -f "$d/meta.json" ] || continue
+    jq -e '(.files | length) > 0' "$d/meta.json" >/dev/null 2>&1 || continue
     if [ -n "$id" ]; then
       [ "$(jq -r .id "$d/meta.json")" = "$id" ] && { printf '%s' "$d"; return 0; }
     elif [ "$(jq -r '.undoneAt // ""' "$d/meta.json")" = "" ]; then
