@@ -37,7 +37,7 @@ build:
     cd app && swift build -c release
     app/bundle.sh
 
-# Pacchetto di release: dist/devbar-<VERSION>.zip con devbar.app e install.sh (stesso script per installare e aggiornare).
+# Pacchetto di release: dist/devbar-<VERSION>.zip con devbar.app, install.sh (stesso script per installare e aggiornare) e LICENSE.
 # Uso: just package VERSION=x.y.z (anche solo x.y.z).
 package arg:
     #!/usr/bin/env bash
@@ -47,8 +47,9 @@ package arg:
     rm -rf dist/stage && mkdir -p dist/stage
     cp -R app/.build/devbar.app dist/stage/devbar.app
     cp scripts/install.sh dist/stage/install.sh
+    cp LICENSE dist/stage/LICENSE
     rm -f "dist/devbar-$version.zip"
-    (cd dist/stage && zip -qry "../devbar-$version.zip" devbar.app install.sh)
+    (cd dist/stage && zip -qry "../devbar-$version.zip" devbar.app install.sh LICENSE)
     rm -rf dist/stage
     echo "dist/devbar-$version.zip"
 
