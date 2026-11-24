@@ -37,7 +37,22 @@ build:
     cd app && swift build -c release
     app/bundle.sh
 
-# Installa app, symlink ~/.local/bin/devbar e LaunchAgent. Il repo deve restare dov'è.
+# Pacchetto di release: dist/devbar-<VERSION>.zip con devbar.app e install.sh (stesso script per installare e aggiornare).
+# Uso: just package VERSION=x.y.z (anche solo x.y.z).
+package arg:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    version="{{arg}}"; version="${version#VERSION=}"
+    BUNDLE_VERSION="$version" just build
+    rm -rf dist/stage && mkdir -p dist/stage
+    cp -R app/.build/devbar.app dist/stage/devbar.app
+    cp scripts/install.sh dist/stage/install.sh
+    rm -f "dist/devbar-$version.zip"
+    (cd dist/stage && zip -qry "../devbar-$version.zip" devbar.app install.sh)
+    rm -rf dist/stage
+    echo "dist/devbar-$version.zip"
+
+# Installa app, symlink ~/.local/bin/devbar (verso il motore nel bundle) e LaunchAgent.
 install: build
     scripts/install.sh install
 
