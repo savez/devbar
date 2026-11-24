@@ -224,13 +224,9 @@ public extension PanelModel {
         Readout(value: rtkSaved.map(Fmt.tokens), tone: .info)
     }
 
-    /// Ardesia, salvo consumo Claude oltre le soglie.
-    var tokensTone: Tone {
-        let worst = usageMeters.map(\.tone)
-        if worst.contains(.risk) { return .risk }
-        if worst.contains(.action) { return .action }
-        return .info
-    }
+    /// Sezione informativa: sempre ardesia (le soglie di consumo colorano solo gli indicatori),
+    /// così la barra non mostra ambra che "N cose da fare" non conta.
+    var tokensTone: Tone { .info }
 
     var usageMeters: [UsageMeter] {
         guard usageState == .shown else { return [] }

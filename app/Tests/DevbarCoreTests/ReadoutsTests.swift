@@ -93,9 +93,12 @@ struct HealthStripTests {
         #expect(s.todoTone == .risk)
     }
 
-    @Test func richFixtureUsageRaisesTokens() throws {
-        let s = HealthStrip(model: try Fixture.model(rich: true), badge: (.error, 15))
-        #expect(s.segments.first { $0.area == .tokens }?.tone == .action)
+    /// Consumo al 76%: l'indicatore è ambra, il segmento Token resta informativo.
+    @Test func richFixtureTokensStayInformative() throws {
+        let m = try Fixture.model(rich: true)
+        let s = HealthStrip(model: m, badge: (.error, 15))
+        #expect(s.segments.first { $0.area == .tokens }?.tone == .info)
+        #expect(m.usageMeters.first?.tone == .action)
     }
 
     @Test func allQuiet() throws {

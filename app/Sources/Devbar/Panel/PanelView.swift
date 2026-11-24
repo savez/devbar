@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Charts
 import DevbarCore
 
 struct PanelView: View {
@@ -182,20 +183,16 @@ struct TokensRow: View {
     }
 }
 
-/// Barre minime degli ultimi giorni RTK (senza assi).
+/// Barre minime degli ultimi giorni RTK (Swift Charts, senza assi).
 struct MiniBars: View {
     let daily: [DailySaving]
     var body: some View {
-        let top = max(1, daily.map(\.saved).max() ?? 1)
-        HStack(alignment: .bottom, spacing: 2) {
-            ForEach(daily, id: \.date) { d in
-                RoundedRectangle(cornerRadius: 1)
-                    .fill(Tone.info.color.opacity(0.75))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: max(2, 18 * CGFloat(d.saved) / CGFloat(top)))
-            }
+        Chart(daily, id: \.date) { d in
+            BarMark(x: .value("Giorno", d.date), y: .value("Token risparmiati", d.saved))
+                .foregroundStyle(Tone.info.color)
+                .cornerRadius(1)
         }
-        .frame(maxHeight: .infinity, alignment: .bottom)
+        .chartXAxis(.hidden).chartYAxis(.hidden)
         .help("RTK, ultimi \(daily.count) giorni")
     }
 }
