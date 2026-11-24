@@ -30,9 +30,11 @@ ai_tokensave_state() {
 
 # _tokensave_install_paths <agente>: file che `tokensave install --agent` scrive, dai percorsi
 # che `tokensave doctor --agent <agente>` controlla (uno per riga). rc 1 se non noti.
+# ~/.claude.json escluso: Claude Code lo riscrive a ogni sessione, e un undo riporterebbe
+# indietro anche il suo stato (vedi _tokensave_unjournaled_paths).
 _tokensave_install_paths() {
   case "$1" in
-    claude) printf '%s\n' "$HOME/.claude.json" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json" \
+    claude) printf '%s\n' "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json" \
       "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/rules/tokensave.md" ;;
     opencode) printf '%s\n' "$HOME/.config/opencode/opencode.json" "$HOME/.config/opencode/AGENTS.md" ;;
     codex) printf '%s\n' "$HOME/.codex/config.toml" "$HOME/.codex/AGENTS.md" ;;
@@ -40,6 +42,14 @@ _tokensave_install_paths() {
     copilot) printf '%s\n' "$HOME/Library/Application Support/Code/User/mcp.json" \
       "$HOME/.copilot/mcp-config.json" "$HOME/.copilot/copilot-instructions.md" ;;
     cursor) printf '%s\n' "$HOME/.cursor/mcp.json" "$HOME/.cursor/hooks.json" ;;
+    *) return 1 ;;
+  esac
+}
+
+# _tokensave_unjournaled_paths <agente>: file scritti da tokensave che devbar non registra.
+_tokensave_unjournaled_paths() {
+  case "$1" in
+    claude) printf '%s\n' "$HOME/.claude.json" ;;
     *) return 1 ;;
   esac
 }
@@ -53,6 +63,9 @@ ai_tokensave_install_cmds() {
       echo "$h: annullabile da Impostazioni (Ultime modifiche) per $(tr '\n' ',' <<<"$p" | sed "s#$HOME#~#g; s/,$//; s/,/, /g")"
     else
       echo "$h: questa modifica non si può annullare da devbar (file scritti da tokensave non noti)"
+    fi
+    if p="$(_tokensave_unjournaled_paths "$h")"; then
+      echo "$h: questa modifica non si può annullare da devbar per $(tr '\n' ',' <<<"$p" | sed "s#$HOME#~#g; s/,$//; s/,/, /g") (riscritto da Claude Code a ogni sessione)"
     fi
   done
 }

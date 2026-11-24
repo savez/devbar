@@ -372,7 +372,11 @@ STUB
 @test "journal: tokensave install registra i file noti dell'agente; il piano lo dice" {
   run --separate-stderr "$DEVBAR" run ai-install tokensave claude
   [ "$status" -eq 0 ]
-  [[ "$(jq -r '.commands | join("\n")' <<<"$output")" == *"annullabile"*"~/.claude.json"* ]]
+  cmds="$(jq -r '.commands | join("\n")' <<<"$output")"
+  [[ "$cmds" == *"annullabile"*"~/.claude/rules/tokensave.md"* ]]
+  # ~/.claude.json: riscritto da Claude Code a ogni sessione, mai registrato; il piano lo dice
+  [[ "$(grep annullabile <<<"$cmds")" != *".claude.json"* ]]
+  [[ "$cmds" == *"non si può annullare da devbar per ~/.claude.json"* ]]
   rm -f "$BATS_TEST_TMPDIR/stubs/tokensave"
   cat >"$BATS_TEST_TMPDIR/stubs/tokensave" <<'STUB'
 #!/usr/bin/env bash
@@ -385,9 +389,10 @@ STUB
   printf '{"numStartups":3}' >"$HOME/.claude.json"
   run --separate-stderr "$DEVBAR" run ai-install tokensave claude --yes
   [ "$status" -eq 0 ]
+  [ "$("$DEVBAR" journal | jq -r --arg p "$HOME/.claude.json" '[.entries[0].files[].path] | index($p)')" = null ]
   run --separate-stderr "$DEVBAR" undo --yes
   [ "$status" -eq 0 ]
-  [ "$(cat "$HOME/.claude.json")" = '{"numStartups":3}' ]
+  [ "$(cat "$HOME/.claude.json")" = '{"mcpServers":{"tokensave":{}}}' ]
   [ ! -e "$HOME/.claude/rules/tokensave.md" ]
 }
 
