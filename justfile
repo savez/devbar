@@ -17,6 +17,10 @@ app-test:
 app-build:
     cd app && swift build
 
+# Istantanee PNG di pannello e Dettagli dalle fixture (nessuna chiamata alla CLI). dir relativa ad app/.
+app-snapshots dir=".build/snapshots":
+    cd app && swift build && .build/debug/Devbar --render-snapshots {{dir}} Tests/DevbarCoreTests/Fixtures
+
 # Assembla app/.build/devbar.app (release, firma ad-hoc).
 build:
     cd app && swift build -c release

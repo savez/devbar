@@ -2,7 +2,20 @@ import SwiftUI
 import AppKit
 import DevbarCore
 
+/// Punto d'ingresso: `--render-snapshots <dir> <fixtures>` disegna il pannello e i Dettagli in PNG
+/// con dati finti ed esce, senza avviare l'app né lanciare la CLI.
 @main
+enum Main {
+    static func main() {
+        let args = CommandLine.arguments
+        if let i = args.firstIndex(of: "--render-snapshots"), args.count > i + 2 {
+            MainActor.assumeIsolated { Snapshots.run(outDir: args[i + 1], fixtures: args[i + 2]) }
+            exit(0)
+        }
+        DevbarApp.main()
+    }
+}
+
 struct DevbarApp: App {
     // `@State` è un macro (SwiftUIMacros) assente nelle Command Line Tools: stato in un
     // oggetto @Observable creato una volta sola.
