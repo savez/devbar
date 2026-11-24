@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/savez/devbar/compare/v0.3.0...v0.4.0) (2026-11-24)
+
+
+### Features
+
+* **app:** scheda Informazioni più curata ([c4a4d07](https://github.com/savez/devbar/commit/c4a4d07035b73ce66e2cdb93547b523001a7979e))
+* **app:** scheda Informazioni più curata, con icona, collegamenti e il pulsante Offrimi una birra ([5a1779c](https://github.com/savez/devbar/commit/5a1779cc2483c42c03f63f4191fa60b1ded59469))
+
 ## [0.3.0](https://github.com/savez/devbar/compare/v0.2.2...v0.3.0) (2026-11-24)
 
 
