@@ -16,6 +16,12 @@ enum Fixture {
         PanelModel(all: try all(rich ? "all-rich" : "all"), detect: try detect(rich ? "detect-rich" : "detect"),
                    now: ISO8601DateFormatter().date(from: "2026-11-24T10:00:00Z")!)
     }
+    /// Moduli (Feature) aggiornati dalla stessa fixture.
+    @MainActor static func features(rich: Bool) throws -> [any Feature] {
+        let colima = ColimaFeature(runner: FakeActions(), locks: SectionLocks())
+        colima.update(from: try all(rich ? "all-rich" : "all"))
+        return [colima]
+    }
 }
 
 struct ToneTests {
@@ -83,10 +89,11 @@ struct FmtExtraTests {
     }
 }
 
+@MainActor
 struct HealthStripTests {
     @Test func realFixtureSegments() throws {
         let m = try Fixture.model(rich: false)
-        let s = HealthStrip(model: m, badge: (.error, 12))
+        let s = HealthStrip(model: m, features: try Fixture.features(rich: false), badge: (.error, 12))
         #expect(s.segments.map(\.area) == [.homebrew, .vulns, .colima, .tokens, .aiSetup])
         #expect(s.segments.map(\.tone) == [.action, .risk, .info, .info, .info])
         #expect(s.todoText == "12 cose da fare")
@@ -96,13 +103,16 @@ struct HealthStripTests {
     /// Consumo al 76%: l'indicatore è ambra, il segmento Token resta informativo.
     @Test func richFixtureTokensStayInformative() throws {
         let m = try Fixture.model(rich: true)
-        let s = HealthStrip(model: m, badge: (.error, 15))
+        let s = HealthStrip(model: m, features: try Fixture.features(rich: true), badge: (.error, 15))
         #expect(s.segments.first { $0.area == .tokens }?.tone == .info)
         #expect(m.usageMeters.first?.tone == .action)
     }
 
     @Test func allQuiet() throws {
-        let s = HealthStrip(model: PanelModel(all: try AllChecks.decode(Data("{}".utf8))), badge: (.ok, 0))
+        let empty = try AllChecks.decode(Data("{}".utf8))
+        let colima = ColimaFeature(runner: FakeActions(), locks: SectionLocks())
+        colima.update(from: empty)
+        let s = HealthStrip(model: PanelModel(all: empty), features: [colima], badge: (.ok, 0))
         #expect(s.segments.isEmpty)
         #expect(s.todoText == "Tutto a posto")
         #expect(s.todoTone == .ok)
@@ -114,7 +124,7 @@ struct HealthStripTests {
         let store = StatusStore(runner: runner, allTimeout: 5, actionTimeout: 5)
         await store.refresh(force: false)
         let m = PanelModel(all: AllChecks(rows: store.results, raw: store.raw))
-        #expect(HealthStrip(model: m, badge: store.badge).todoText == "12 cose da fare")
+        #expect(HealthStrip(model: m, features: [], badge: store.badge).todoText == "12 cose da fare")
     }
 }
 
@@ -169,15 +179,6 @@ struct ReadoutTests {
         #expect(r.subtitle == "1 repo con problemi")
     }
 
-    @Test func colima() throws {
-        let plain = try Fixture.model(rich: false).colimaReadout
-        #expect(plain.value == nil)
-        #expect(plain.subtitle == "attivo, 4 CPU, 8 GB")
-        let rich = try Fixture.model(rich: true).colimaReadout
-        #expect(rich.value == "2")
-        #expect(rich.note == "container attivi")
-    }
-
     @Test func tokens() throws {
         let m = try Fixture.model(rich: true)
         #expect(m.tokensReadout.value == "194K")
@@ -227,20 +228,11 @@ struct DetailsTests {
         #expect(!(try Fixture.model(rich: false).showsAudit))
     }
 
-    @Test func colimaRows() throws {
-        let m = try Fixture.model(rich: true)
-        #expect(m.colimaProfileRows.map(\.name) == ["default", "lab"])
-        #expect(m.colimaProfileRows.map(\.status) == ["attivo", "spento"])
-        #expect(m.colimaProfileRows.first?.memory == "8 GB")
-        #expect(m.containerRows.map(\.name) == ["postgres", "redis"])
-    }
-
     @Test func areaTones() throws {
         let m = try Fixture.model(rich: false)
         #expect(m.tone(of: .homebrew) == .action)
         #expect(m.tone(of: .vulns) == .risk)
         #expect(m.tone(of: .audit) == .info)
-        #expect(m.tone(of: .colima) == .info)
         #expect(m.tone(of: .tokens) == .info)
         #expect(Area.detailsAreas == [.homebrew, .vulns, .audit, .colima, .tokens])
     }

@@ -13,7 +13,7 @@ struct DetailsView: View {
         NavigationSplitView {
             List(Area.detailsAreas, selection: Bindable(actions).detailsArea) { a in
                 HStack(spacing: 8) {
-                    Circle().fill(model.tone(of: a).color).frame(width: 7, height: 7)
+                    Circle().fill(tone(of: a, model).color).frame(width: 7, height: 7)
                     Text(a.title)
                 }
                 .tag(a)
@@ -25,7 +25,7 @@ struct DetailsView: View {
                 case .homebrew: BrewDetails(model: model, actions: actions)
                 case .vulns: VulnDetails(model: model, actions: actions)
                 case .audit: AuditDetails(model: model, actions: actions)
-                case .colima: ColimaDetails(model: model, actions: actions)
+                case .colima: ColimaDetails(feature: actions.colima)
                 case .tokens, .aiSetup: TokenDetails(model: model)
                 }
             }
@@ -33,6 +33,11 @@ struct DetailsView: View {
         }
         .frame(minWidth: 640, minHeight: 400)
         .modifier(ConfirmationHost(actions: actions, origin: .details))
+    }
+
+    /// Le aree con un modulo (`Feature`) danno il proprio tono; le altre lo prendono da `PanelModel`.
+    private func tone(of area: Area, _ model: PanelModel) -> Tone {
+        actions.features.first { $0.area == area }?.tone ?? model.tone(of: area)
     }
 }
 
@@ -192,84 +197,6 @@ struct AuditDetails: View {
     private func count(_ n: Int, _ tone: Tone) -> some View {
         Text("\(n)").monospacedDigit()
             .foregroundStyle(n > 0 ? tone.color : Color.secondary)
-    }
-}
-
-// MARK: - colima
-
-struct ColimaDetails: View {
-    let model: PanelModel
-    let actions: PanelActions
-
-    var body: some View {
-        let busy = actions.isRunning("colima")
-        switch model.colimaState {
-        case .hidden:
-            EmptyArea(title: "colima", message: "colima non è disponibile.")
-        case .initOnly:
-            VStack(spacing: 12) {
-                EmptyArea(title: "colima non installato", message: "Installa colima per eseguire container Docker.")
-                Button("Init colima") {
-                    Task { await actions.request(.init(title: "Installa colima", args: ["run", "colima-install"]), from: .details) }
-                }.disabled(busy)
-            }
-        case .shown:
-            VStack(alignment: .leading, spacing: 0) {
-                section("Profili")
-                Table(model.colimaProfileRows) {
-                    TableColumn("Profilo", value: \.name).width(min: 80, ideal: 120)
-                    TableColumn("Stato") { r in
-                        HStack(spacing: 6) {
-                            Circle().fill(r.running ? Tone.ok.color : Tone.info.color).frame(width: 7, height: 7)
-                            Text(r.status)
-                        }
-                    }
-                    TableColumn("CPU") { Text("\($0.cpus)").monospacedDigit() }.width(40)
-                    TableColumn("Memoria", value: \.memory).width(70)
-                    TableColumn("Disco", value: \.disk).width(70)
-                    TableColumn("") { r in
-                        Button(r.running ? "Ferma" : "Avvia") {
-                            var args = ["run", r.running ? "colima-stop" : "colima-start"]
-                            if r.name != "default" { args.append(r.name) }
-                            Task { await actions.run(args) }
-                        }
-                        .buttonStyle(.link).disabled(busy)
-                    }
-                    .width(60)
-                }
-                .frame(height: CGFloat(28 + 24 * max(1, model.colimaProfileRows.count)) + 8)
-                section("Container")
-                if model.containerRows.isEmpty {
-                    Text(model.colimaRunning ? "Nessun container attivo." : "colima è spento.")
-                        .font(Typo.note).foregroundStyle(.secondary)
-                        .padding(.horizontal, 12).padding(.bottom, 12)
-                    Spacer()
-                } else {
-                    Table(model.containerRows) {
-                        TableColumn("Nome", value: \.name)
-                        TableColumn("CPU", value: \.cpu).width(70)
-                        TableColumn("Memoria", value: \.mem).width(90)
-                        TableColumn("") { c in
-                            HStack(spacing: 10) {
-                                Button("Log") { Task { await actions.run(["run", "colima-logs", c.id], refresh: false) } }
-                                Button("Ferma") { Task { await actions.run(["run", "container-stop", c.id]) } }
-                                    .disabled(busy)
-                            }
-                            .buttonStyle(.link)
-                        }
-                        .width(90)
-                    }
-                }
-            }
-            .toolbar {
-                if busy { ToolbarItem { Text("in corso…").font(Typo.note).foregroundStyle(.secondary) } }
-            }
-        }
-    }
-
-    private func section(_ t: String) -> some View {
-        Text(t).font(Typo.title)
-            .padding(.horizontal, 12).padding(.top, 12).padding(.bottom, 6)
     }
 }
 

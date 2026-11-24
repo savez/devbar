@@ -95,6 +95,12 @@ public enum SectionKind: Equatable, Sendable {
     /// Strumento assente: solo il pulsante Init.
     case initOnly
     case hidden
+
+    /// Riga assente o senza stato: nascosta; non configurata: solo Init; altrimenti i dati.
+    public static func of(_ s: CheckState?, hasRow: Bool = true) -> SectionKind {
+        guard let s, hasRow else { return .hidden }
+        return s == .unconfigured ? .initOnly : .shown
+    }
 }
 
 public struct PanelModel: Equatable, Sendable {
@@ -120,16 +126,6 @@ public struct PanelModel: Equatable, Sendable {
     public var npmItems: [AuditItem]
     public var composerItems: [AuditItem]
     public var brewVulnError: String?
-
-    // colima
-    public var colimaState: SectionKind
-    public var colimaSummary: String
-    public var colimaRunning: Bool
-    /// "Avvia" se spento, "Ferma" se acceso.
-    public var colimaToggleTitle: String { colimaRunning ? "Ferma" : "Avvia" }
-    public var colimaProfile: String?
-    public var colimaProfiles: [ColimaProfile]
-    public var colimaContainers: [ColimaContainer]
 
     // Token
     public var rtkState: SectionKind
@@ -167,7 +163,7 @@ public struct PanelModel: Equatable, Sendable {
         // Homebrew
         let bo = all.typed(BrewOutdated.self, "brew-outdated")
         let boState = all.rows["brew-outdated"]?.state
-        brewState = Self.kind(boState)
+        brewState = SectionKind.of(boState)
         brewHeadline = all.rows["brew-outdated"]?.summary ?? ""
         brewItems = bo?.items ?? []
         brewUpgradeEnabled = boState == .action
@@ -194,23 +190,9 @@ public struct PanelModel: Equatable, Sendable {
         }
         vulnRows = rows
 
-        // colima
-        let col = all.typed(ColimaStatus.self, "colima")
-        colimaState = Self.kind(all.rows["colima"]?.state, hasRow: all.rows["colima"] != nil)
-        colimaRunning = col?.running ?? false
-        colimaContainers = col?.containers ?? []
-        colimaProfiles = col?.profiles ?? []
-        let prof = col?.profiles.first(where: { $0.isRunning }) ?? col?.profiles.first
-        colimaProfile = prof?.name
-        if let p = prof {
-            colimaSummary = (col?.running ?? false) ? "attivo, \(p.cpus) CPU, \(Fmt.gb(p.memoryBytes))" : "spento"
-        } else {
-            colimaSummary = all.rows["colima"]?.summary ?? ""
-        }
-
         // RTK
         let rtk = all.typed(RtkGain.self, "rtk")
-        rtkState = Self.kind(all.rows["rtk"]?.state, hasRow: all.rows["rtk"] != nil)
+        rtkState = SectionKind.of(all.rows["rtk"]?.state, hasRow: all.rows["rtk"] != nil)
         rtkLine = rtk.map { "RTK \(Fmt.percent($0.pct))" } ?? (all.rows["rtk"]?.summary ?? "")
         rtkSaved = rtkState == .shown ? rtk?.saved : nil
         rtkCommands = rtk?.commands
@@ -219,7 +201,7 @@ public struct PanelModel: Equatable, Sendable {
 
         // tokensave
         let ts = all.typed(TokensaveGain.self, "tokensave")
-        tokensaveState = Self.kind(all.rows["tokensave"]?.state, hasRow: all.rows["tokensave"] != nil)
+        tokensaveState = SectionKind.of(all.rows["tokensave"]?.state, hasRow: all.rows["tokensave"] != nil)
         tokensave = tokensaveState == .shown ? ts : nil
         tokensaveLine = ts.map { "tokensave \(Fmt.tokens($0.saved)) risparmiati, \($0.missedTurns) occasioni perse" }
             ?? (all.rows["tokensave"]?.summary ?? "")
@@ -233,7 +215,7 @@ public struct PanelModel: Equatable, Sendable {
 
         // claude-usage
         let cu = all.typed(ClaudeUsage.self, "claude-usage")
-        usageState = Self.kind(all.rows["claude-usage"]?.state, hasRow: all.rows["claude-usage"] != nil)
+        usageState = SectionKind.of(all.rows["claude-usage"]?.state, hasRow: all.rows["claude-usage"] != nil)
         if let u = cu?.usage, usageState == .shown {
             usageFiveHour = u.cPct; usageWeek = u.wPct
             usageFiveHourReset = Fmt.reset(u.cReset, now: now)
@@ -265,11 +247,6 @@ public struct PanelModel: Equatable, Sendable {
         }
         if let e = u.error, !e.isEmpty { return e }
         return u.stale ? "dati non aggiornati" : nil
-    }
-
-    private static func kind(_ s: CheckState?, hasRow: Bool = true) -> SectionKind {
-        guard let s, hasRow else { return .hidden }
-        return s == .unconfigured ? .initOnly : .shown
     }
 
     private static func brewVulnSummary(_ r: CheckResult, _ bv: BrewVulns?) -> String {

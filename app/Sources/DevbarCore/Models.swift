@@ -68,7 +68,8 @@ public enum CheckState: Equatable, Sendable {
 
 // MARK: - Helper di decodifica tollerante
 
-private struct AnyKey: CodingKey {
+// Interni al modulo (non privati): li usano anche i modelli dei Feature.
+struct AnyKey: CodingKey {
     var stringValue: String
     var intValue: Int? { nil }
     init(_ s: String) { stringValue = s }
@@ -76,11 +77,11 @@ private struct AnyKey: CodingKey {
     init?(intValue: Int) { nil }
 }
 
-private func top(_ decoder: Decoder) throws -> KeyedDecodingContainer<AnyKey> {
+func top(_ decoder: Decoder) throws -> KeyedDecodingContainer<AnyKey> {
     try decoder.container(keyedBy: AnyKey.self)
 }
 
-private extension KeyedDecodingContainer where K == AnyKey {
+extension KeyedDecodingContainer where K == AnyKey {
     func opt<T: Decodable>(_ key: String) -> T? {
         (try? decodeIfPresent(T.self, forKey: AnyKey(key))) ?? nil
     }
@@ -211,51 +212,6 @@ public struct AuditResult: Decodable, Equatable, Sendable {
     public init(from decoder: Decoder) throws {
         result = try CheckResult(from: decoder)
         items = try top(decoder).list("items")
-    }
-}
-
-public struct ColimaProfile: Decodable, Equatable, Sendable {
-    public var name: String
-    public var status: String
-    public var cpus: Int
-    public var memoryBytes: Int
-    public var diskBytes: Int
-    public var isRunning: Bool { status == "Running" }
-    public init(from decoder: Decoder) throws {
-        let c = try top(decoder)
-        name = try c.decode(String.self, forKey: AnyKey("name"))
-        status = c.opt("status") ?? "Unknown"
-        cpus = c.opt("cpus") ?? 0
-        memoryBytes = c.opt("memoryBytes") ?? 0
-        diskBytes = c.opt("diskBytes") ?? 0
-    }
-}
-
-public struct ColimaContainer: Decodable, Equatable, Sendable {
-    public var id: String
-    public var name: String
-    public var cpu: String
-    public var mem: String
-    public init(from decoder: Decoder) throws {
-        let c = try top(decoder)
-        id = c.opt("id") ?? ""
-        name = c.opt("name") ?? ""
-        cpu = c.opt("cpu") ?? ""
-        mem = c.opt("mem") ?? ""
-    }
-}
-
-public struct ColimaStatus: Decodable, Equatable, Sendable {
-    public var result: CheckResult
-    public var profiles: [ColimaProfile]
-    public var containers: [ColimaContainer]
-    /// Il JSON non ha una chiave `running`: si deriva dai profili.
-    public var running: Bool { profiles.contains { $0.isRunning } }
-    public init(from decoder: Decoder) throws {
-        result = try CheckResult(from: decoder)
-        let c = try top(decoder)
-        profiles = c.list("profiles")
-        containers = c.list("containers")
     }
 }
 

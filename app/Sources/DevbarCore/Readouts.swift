@@ -115,14 +115,18 @@ public struct HealthStrip: Equatable, Sendable {
     public var todoText: String
     public var todoTone: Tone
 
-    public init(model: PanelModel, badge: (level: CheckState, count: Int)) {
+    /// Segmenti delle aree ancora in `PanelModel` più quelli dei moduli (`Feature`),
+    /// nell'ordine di `Area`.
+    @MainActor
+    public init(model: PanelModel, features: [any Feature], badge: (level: CheckState, count: Int)) {
         var s: [StripSegment] = []
         if model.brewState != .hidden { s.append(.init(area: .homebrew, tone: model.brewReadout.tone)) }
         if model.showsVulns { s.append(.init(area: .vulns, tone: model.vulnReadout.tone)) }
-        if model.colimaState != .hidden { s.append(.init(area: .colima, tone: .info)) }
         if model.showsTokenSection { s.append(.init(area: .tokens, tone: model.tokensTone)) }
         if model.showsAISetup { s.append(.init(area: .aiSetup, tone: .info)) }
-        segments = s
+        s += features.compactMap(\.segment)
+        let order = Area.allCases
+        segments = s.sorted { order.firstIndex(of: $0.area)! < order.firstIndex(of: $1.area)! }
         todoText = Fmt.todo(badge.count)
         switch badge.level {
         case .error: todoTone = .risk
@@ -205,18 +209,6 @@ public extension PanelModel {
         }
         if !brewShown { return Readout(value: "\(severeRepos)", tone: tone, subtitle: note) }
         return Readout(value: brewVulnError == nil ? "\(severe)" : nil, tone: tone, subtitle: sub, note: note)
-    }
-
-    /// colima: stato e risorse; container attivi come numero.
-    var colimaReadout: Readout {
-        switch colimaState {
-        case .hidden: return Readout()
-        case .initOnly: return Readout(tone: .info, subtitle: "non installato")
-        case .shown:
-            let n = colimaContainers.count
-            return Readout(value: colimaRunning && n > 0 ? "\(n)" : nil, tone: .info, subtitle: colimaSummary,
-                           note: colimaRunning && n > 0 ? (n == 1 ? "container attivo" : "container attivi") : nil)
-        }
     }
 
     /// Token risparmiati da RTK, compatti ("194K").

@@ -41,23 +41,6 @@ public struct AuditDetailRow: Equatable, Sendable, Identifiable {
     }
 }
 
-public struct ColimaProfileRow: Equatable, Sendable, Identifiable {
-    public var id: String { name }
-    public var name: String
-    public var status: String
-    public var cpus: Int
-    public var memory: String
-    public var disk: String
-    public var running: Bool
-}
-
-public struct ContainerRow: Equatable, Sendable, Identifiable {
-    public var id: String
-    public var name: String
-    public var cpu: String
-    public var mem: String
-}
-
 public enum VulnFilter: String, Equatable, Sendable, CaseIterable, Identifiable {
     case all, severe
     public var id: String { rawValue }
@@ -118,18 +101,8 @@ public extension PanelModel {
     /// L'area Audit repo ha senso solo se npm o composer sono configurati.
     var showsAudit: Bool { vulnRows.contains { $0.id != "brew" } }
 
-    var colimaProfileRows: [ColimaProfileRow] {
-        colimaProfiles.map {
-            ColimaProfileRow(name: $0.name, status: $0.isRunning ? "attivo" : "spento", cpus: $0.cpus,
-                             memory: Fmt.gb($0.memoryBytes), disk: Fmt.gb($0.diskBytes), running: $0.isRunning)
-        }
-    }
-
-    var containerRows: [ContainerRow] {
-        colimaContainers.map { ContainerRow(id: $0.id, name: $0.name, cpu: $0.cpu, mem: $0.mem) }
-    }
-
-    /// Pallino di stato per un'area della barra laterale.
+    /// Pallino di stato per un'area della barra laterale. Le aree con un modulo (`Feature`)
+    /// prendono il tono dal modulo: qui restano ardesia.
     func tone(of area: Area) -> Tone {
         switch area {
         case .homebrew: brewReadout.tone
@@ -137,8 +110,8 @@ public extension PanelModel {
         case .audit:
             auditDetailRows.contains { $0.tone == .risk } ? .risk
                 : (auditDetailRows.contains { $0.tone == .action } ? .action : (showsAudit ? .ok : .info))
-        case .colima, .aiSetup: .info
         case .tokens: tokensTone
+        default: .info
         }
     }
 

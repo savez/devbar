@@ -44,6 +44,8 @@ public final class StatusStore {
     private let actionTimeout: TimeInterval
     private let longActionTimeout: TimeInterval
 
+    /// Dopo ogni refresh riuscito, con i nuovi risultati: aggiorna i moduli (`Feature`).
+    @ObservationIgnored public var onResults: ((AllChecks) -> Void)?
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     @ObservationIgnored private var pathMonitor: NWPathMonitor?
     @ObservationIgnored private var dailyTask: Task<Void, Never>?
@@ -123,6 +125,7 @@ public final class StatusStore {
         results = all.rows
         raw = all.raw
         lastRefresh = now()
+        onResults?(all)
     }
 
     /// Apertura del pannello: rilancia solo se l'ultimo refresh ha più di 5 minuti.

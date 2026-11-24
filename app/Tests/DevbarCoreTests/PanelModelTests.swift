@@ -51,9 +51,6 @@ struct PanelModelTests {
         #expect(m.corkButtonTitle == "Installa Cork")
         // npm e composer sono unconfigured: nascosti. Resta brew.
         #expect(m.vulnRows.map(\.id) == ["brew"])
-        #expect(m.colimaState == .shown)
-        #expect(m.colimaToggleTitle == "Ferma")
-        #expect(m.colimaSummary == "attivo, 4 CPU, 8 GB")
         #expect(m.rtkState == .shown)
         #expect(m.rtkLine == "RTK 18%")
         #expect(m.rtkDaily.count <= 7 && !m.rtkDaily.isEmpty)
@@ -63,21 +60,6 @@ struct PanelModelTests {
 
     @Test func corkInstalledLabel() throws {
         #expect(PanelModel(all: try all(), detect: detect(cork: true)).corkButtonTitle == "Apri Cork")
-    }
-
-    @Test func colimaStoppedShowsAvvia() throws {
-        let a = try mutate("colima") { o in
-            o["profiles"] = .array([.object(["name": .string("default"), "status": .string("Stopped"),
-                "cpus": .number(4), "memoryBytes": .number(8_589_934_592), "diskBytes": .number(64_424_509_440)])])
-        }
-        let m = PanelModel(all: a, detect: detect())
-        #expect(m.colimaToggleTitle == "Avvia")
-        #expect(m.colimaSummary == "spento")
-    }
-
-    @Test func colimaMissingShowsInit() throws {
-        let a = try mutate("colima") { $0["status"] = .string("unconfigured"); $0["rc"] = .number(3) }
-        #expect(PanelModel(all: a, detect: detect()).colimaState == .initOnly)
     }
 
     @Test func statuslineOnlyWithClaude() throws {

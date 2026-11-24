@@ -7,9 +7,8 @@ import DevbarCore
 final class PanelActions {
     let store: StatusStore
     private(set) var detect: DetectResult?
-    /// Sezioni (ActionSection) con un'azione in corso: i loro pulsanti sono disattivati,
-    /// così un doppio clic non lancia due `colima start`.
-    private(set) var running: Set<String> = []
+    /// Sezioni con un'azione in corso, condivise con i moduli (vedi `SectionLocks`).
+    let locks = SectionLocks()
     /// Azione in attesa di conferma, con il piano restituito dalla CLI (senza --yes).
     var pending: ConfirmableAction?
     private(set) var plan: ActionPlan?
@@ -30,6 +29,9 @@ final class PanelActions {
     let settings: SettingsModel
     /// Riga caveman del pannello: scrive la modalità di default (esecuzione diretta).
     let caveman: CavemanControl
+    /// Aree come moduli a sé (logica e stato propri): per ora solo colima.
+    let colima: ColimaFeature
+    var features: [any Feature] { [colima] }
 
     init(store: StatusStore, configStore: ConfigStore = ConfigStore()) {
         self.store = store
@@ -37,6 +39,13 @@ final class PanelActions {
         caveman = CavemanControl(runner: store)
         projectInit = ProjectInitModel(runner: store)
         settings = SettingsModel(configStore: configStore, runner: store, login: LaunchAgentManager())
+        colima = ColimaFeature(runner: store, locks: locks)
+        colima.confirm = { [weak self] action, origin in await self?.request(action, from: origin) }
+        colima.onApplied = { [store] in await store.refresh(force: false) }
+        colima.onError = { [weak self] in self?.lastError = $0 }
+        let all = AllChecks(rows: store.results, raw: store.raw)
+        for f in features { f.update(from: all) }
+        store.onResults = { [weak self] all in self?.features.forEach { $0.update(from: all) } }
         aiSetup.onApplied = { [weak self] in await self?.refreshAfterChange(force: true) }
         caveman.onApplied = { [weak self] in await self?.refreshAfterChange(force: true) }
         settings.onSaved = { [store] in store.reloadConfig() }
@@ -54,31 +63,19 @@ final class PanelActions {
         if let d = try? JSONDecoder().decode(DetectResult.self, from: r.stdout) { detect = d }
     }
 
-    func isRunning(_ section: String) -> Bool { running.contains(section) }
-
-    /// Segna la sezione dell'azione come occupata finché `body` gira. false se lo era già.
-    private func occupy(_ args: [String], _ body: () async -> Void) async -> Bool {
-        let section = ActionSection.of(args)
-        if let section {
-            guard !running.contains(section) else { return false }
-            running.insert(section)
-        }
-        await body()
-        if let section { running.remove(section) }
-        return true
-    }
+    func isRunning(_ section: String) -> Bool { locks.isRunning(section) }
 
     /// Azione non distruttiva (avvia/ferma, apri): lancia e poi aggiorna.
     func run(_ args: [String], refresh: Bool = true) async {
         var r: (rc: Int32, stdout: Data) = (0, Data())
-        guard await occupy(args, { r = await store.run(action: args) }) else { return }
-        lastError = r.rc >= 2 ? "\(args.prefix(2).joined(separator: " ")): errore (rc \(r.rc))" : nil
+        guard await locks.occupy(args, { r = await store.run(action: args) }) else { return }
+        lastError = SectionLocks.directError(args, rc: r.rc)
         if refresh { await store.refresh(force: false) }
     }
 
     /// Passo 1: senza --yes per ottenere il piano; poi la vista chiede conferma.
     func request(_ action: ConfirmableAction, from origin: DialogOrigin = .panel) async {
-        guard ActionSection.of(action.args).map({ !running.contains($0) }) ?? true else { return }
+        guard ActionSection.of(action.args).map({ !locks.isRunning($0) }) ?? true else { return }
         let r = await store.run(action: action.args)
         guard r.rc < 2 else { lastError = "\(action.title): piano non disponibile (rc \(r.rc))"; return }
         plan = ActionPlan.parse(r.stdout)
@@ -92,7 +89,7 @@ final class PanelActions {
         guard let a = pending else { return }
         pending = nil; plan = nil
         var r: (rc: Int32, stdout: Data) = (0, Data())
-        guard await occupy(a.args, { r = await store.run(action: a.confirmedArgs) }) else { return }
+        guard await locks.occupy(a.args, { r = await store.run(action: a.confirmedArgs) }) else { return }
         lastError = r.rc >= 2
             ? "\(a.title): " + (PlanConfirmation.engineError(r.stdout) ?? "fallito (rc \(r.rc))") : nil
         await store.refresh(force: true)
@@ -103,5 +100,3 @@ final class PanelActions {
 
     func openRepo(_ path: String) async { await run(["run", "open-terminal", path], refresh: false) }
 }
-
-enum DialogOrigin { case panel, details }

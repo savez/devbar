@@ -98,13 +98,6 @@ struct ModelsTests {
         #expect(c.version == nil)
     }
 
-    @Test func testColimaStoppedNotRunning() throws {
-        let d = Data(#"{"status":"ok","rc":1,"profiles":[{"name":"default","status":"Stopped"}]}"#.utf8)
-        let c = try JSONDecoder().decode(ColimaStatus.self, from: d)
-        #expect(!c.running)
-        #expect(c.containers.isEmpty)
-    }
-
     @Test func testClaudeUsageValues() throws {
         let d = Data(#"{"status":"ok","rc":1,"usage":{"c_pct":42,"c_reset":"2026-11-24T18:00:00Z","w_pct":17,"w_reset":null,"stale":false,"auth":"valid","error":null}}"#.utf8)
         let u = try JSONDecoder().decode(ClaudeUsage.self, from: d)

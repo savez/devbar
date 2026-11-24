@@ -20,7 +20,7 @@ struct PanelView: View {
                     .font(Typo.title).foregroundStyle(.secondary)
                     .padding(.vertical, 10)
             } else {
-                HealthStripView(strip: HealthStrip(model: model, badge: store.badge),
+                HealthStripView(strip: HealthStrip(model: model, features: actions.features, badge: store.badge),
                                 checked: Fmt.checked(store.lastRefresh, isRefreshing: store.isRefreshing),
                                 onSelect: { area in
                                     // AI setup non ha Dettagli: gli harness si gestiscono nelle impostazioni.
@@ -57,9 +57,9 @@ struct PanelView: View {
             Divider()
             VulnsRow(model: model, open: open)
         }
-        if model.colimaState != .hidden {
+        if actions.colima.readout != nil {
             Divider()
-            ColimaRow(model: model, actions: actions, open: open)
+            ColimaRow(feature: actions.colima, open: open)
         }
         if model.showsTokenSection {
             Divider()
@@ -104,36 +104,6 @@ struct VulnsRow: View {
         ReadoutRow(title: "Vulnerabilità", subtitle: r.subtitle, note: r.note, readout: r.value, tone: r.tone,
                    onDetails: { open(model.vulnRows.contains { $0.id == "brew" } ? .vulns : .audit) },
                    content: { EmptyView() }, accessory: { EmptyView() })
-    }
-}
-
-struct ColimaRow: View {
-    let model: PanelModel
-    let actions: PanelActions
-    let open: DetailsOpener
-
-    var body: some View {
-        let r = model.colimaReadout
-        let busy = actions.isRunning("colima")
-        switch model.colimaState {
-        case .hidden: EmptyView()
-        case .initOnly:
-            ReadoutRow(title: "colima", subtitle: r.subtitle, busy: busy, content: { EmptyView() }, accessory: {
-                Button("Init colima") {
-                    Task { await actions.request(.init(title: "Installa colima", args: ["run", "colima-install"])) }
-                }.controlSize(.small).disabled(busy)
-            })
-        case .shown:
-            ReadoutRow(title: "colima", subtitle: r.subtitle, note: r.note, readout: r.value, tone: r.tone, busy: busy,
-                       onDetails: { open(.colima) }, content: { EmptyView() }, accessory: {
-                Button(model.colimaToggleTitle) {
-                    let verb = model.colimaRunning ? "colima-stop" : "colima-start"
-                    var args = ["run", verb]
-                    if let p = model.colimaProfile, p != "default" { args.append(p) }
-                    Task { await actions.run(args) }
-                }.controlSize(.small).disabled(busy)
-            })
-        }
     }
 }
 
