@@ -1,0 +1,2 @@
+Ingested 5 new turns from Claude Code sessions.
+{"since":"7d","recoverable_fraction":0.5,"total_turns":2462,"replaceable_turns":33,"buckets":[]}
