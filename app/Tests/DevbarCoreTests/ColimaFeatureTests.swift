@@ -53,9 +53,8 @@ struct ColimaFeatureTests {
         #expect(f.panel.toggleTitle == "Ferma")
         #expect(f.panel.summary == "attivo, 4 CPU, 8 GB")
         #expect(f.tone(of: .colima) == .info)
-        // Riga e segmento hanno lo stesso tono.
+        // Riga e barra laterale dei Dettagli hanno lo stesso tono.
         #expect(f.readout?.tone == f.tone(of: .colima))
-        #expect(f.segment == StripSegment(area: .colima, tone: .info))
     }
 
     @Test func stoppedShowsAvvia() throws {
@@ -183,16 +182,5 @@ struct ColimaFeatureTests {
         let before = f.panel
         f.update(from: FeatureInput(all: try Fixture.all(), detect: try Fixture.detect()))
         #expect(f.panel == before)
-    }
-
-    // MARK: Barra e Dettagli
-
-    @Test func stripTakesColimaFromFeature() throws {
-        let m = try Fixture.model(rich: false)
-        let s = HealthStrip(model: m, features: [try feature()], badge: (.error, 12))
-        #expect(s.segments.map(\.area) == [.homebrew, .vulns, .colima, .tokens, .aiSetup])
-        let hidden = try feature(try AllChecks.decode(Data("{}".utf8)))
-        #expect(hidden.segment == nil)
-        #expect(!HealthStrip(model: m, features: [hidden], badge: (.ok, 0)).segments.contains { $0.area == .colima })
     }
 }
