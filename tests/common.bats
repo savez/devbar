@@ -108,3 +108,11 @@ setup() { setup_env; }
   run in_common 'with_lock true'
   [ "$status" -eq 0 ]
 }
+
+@test "emit con extra-json: campi uniti al top level" {
+  run in_common 'emit ok 0 "x" "[]" "{\"severe\":3,\"profiles\":[1]}"'
+  [ "$status" -eq 1 ]
+  [ "$(jq -r .severe <<<"$output")" = 3 ]
+  [ "$(jq -c .profiles <<<"$output")" = "[1]" ]
+  [ "$(jq -r .status <<<"$output")" = ok ]
+}

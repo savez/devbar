@@ -43,10 +43,11 @@ cache_write() {
   mv "$tmp" "$dir/$1.json"
 }
 
-# emit <status> <count> <summary> [items-json]: stampa il JSON ed esce.
+# emit <status> <count> <summary> [items-json] [extra-json]: stampa il JSON ed esce.
+# extra-json: oggetto unito al top level (campi aggiuntivi specifici del check).
 # action=0 ok=1 error=2 unconfigured=3 (status sconosciuto -> error).
 emit() {
-  local status="$1" count="$2" summary="$3" items="${4:-[]}" rc
+  local status="$1" count="$2" summary="$3" items="${4:-[]}" extra="${5:-}" rc
   case "$status" in
     action) rc=0 ;;
     ok) rc=1 ;;
@@ -54,9 +55,10 @@ emit() {
     unconfigured) rc=3 ;;
     *) status=error rc=2 ;;
   esac
+  [ -n "$extra" ] || extra='{}'
   jq -n --arg s "$status" --argjson c "$count" --arg m "$summary" \
-    --argjson i "$items" --arg t "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-    '{status:$s,count:$c,summary:$m,items:$i,checkedAt:$t}'
+    --argjson i "$items" --argjson x "$extra" --arg t "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '{status:$s,count:$c,summary:$m,items:$i,checkedAt:$t} + $x'
   exit "$rc"
 }
 

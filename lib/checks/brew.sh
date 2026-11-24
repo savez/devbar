@@ -54,12 +54,9 @@ check_brew_vulns() {
     emit error 0 "cache di brew vulns non valida"
   count="$(jq 'length' <<<"$items")"
   severe="$(jq '[.[] | select(.severity | ascii_upcase | . == "HIGH" or . == "CRITICAL")] | length' <<<"$items")"
-  # emit esce dal sottoprocesso della pipeline: rc preso da PIPESTATUS
   if [ "$count" -eq 0 ]; then
-    emit ok 0 "Nessuna vulnerabilità Homebrew" "[]" | jq --argjson s 0 '. + {severe:$s}'
+    emit ok 0 "Nessuna vulnerabilità Homebrew" "[]" "{\"severe\":0}"
   else
-    emit action "$count" "$count vulnerabilità Homebrew ($severe alte o critiche)" "$items" |
-      jq --argjson s "$severe" '. + {severe:$s}'
+    emit action "$count" "$count vulnerabilità Homebrew ($severe alte o critiche)" "$items" "{\"severe\":$severe}"
   fi
-  exit "${PIPESTATUS[0]}"
 }
