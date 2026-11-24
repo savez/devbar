@@ -3,6 +3,7 @@ import DevbarCore
 
 struct SettingsView: View {
     let model: SettingsModel
+    let journal: JournalModel
 
     var body: some View {
         Form {
@@ -70,6 +71,8 @@ struct SettingsView: View {
                                                        set: { model.setLaunchAtLogin($0) }))
                 if let e = model.loginError { Text(e).font(.caption).foregroundStyle(.red) }
             }
+
+            JournalSection(model: journal)
         }
         .formStyle(.grouped)
         .frame(width: 480, height: 560)

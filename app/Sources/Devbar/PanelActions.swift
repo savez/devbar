@@ -27,6 +27,8 @@ final class PanelActions {
     let aiSetup: AISetupModel
     let projectInit: ProjectInitModel
     let settings: SettingsModel
+    /// "Ultime modifiche" nelle impostazioni: registro e annullamento (`devbar journal`/`undo`).
+    let journal: JournalModel
     /// Riga caveman del pannello: scrive la modalità di default (esecuzione diretta).
     let caveman: CavemanControl
     /// Aree come moduli a sé (logica e stato propri): per ora solo colima.
@@ -40,10 +42,12 @@ final class PanelActions {
         caveman = CavemanControl(runner: store)
         projectInit = ProjectInitModel(runner: store)
         settings = SettingsModel(configStore: configStore, runner: store, login: LaunchAgentManager())
+        journal = JournalModel(runner: store)
         updateFeatures(AllChecks(rows: store.results, raw: store.raw))
         store.onResults = { [weak self] all in self?.updateFeatures(all) }
         aiSetup.onApplied = { [weak self] in await self?.refreshAfterChange(force: true) }
         caveman.onApplied = { [weak self] in await self?.refreshAfterChange(force: true) }
+        journal.onApplied = { [weak self] in await self?.refreshAfterChange(force: true) }
         settings.onSaved = { [store] in store.reloadConfig() }
         settings.onApplied = { [weak self] in await self?.refreshAfterChange(force: false) }
     }

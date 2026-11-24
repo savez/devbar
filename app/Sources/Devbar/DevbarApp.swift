@@ -59,7 +59,7 @@ struct DevbarApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Settings { SettingsView(model: actions.settings) }
+        Settings { SettingsView(model: actions.settings, journal: actions.journal) }
 
         Window("AI setup", id: WindowID.aiSetup) { HarnessPicker(model: actions.aiSetup) }
             .windowResizability(.contentSize)

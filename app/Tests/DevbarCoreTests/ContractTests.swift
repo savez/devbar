@@ -223,6 +223,18 @@ struct ContractTests {
         #expect(o["tool"] == .string("claude-usage"))
     }
 
+    @Test func journalAndUndo() throws {
+        let l = try decode(JournalList.self, "journal")
+        let e = try #require(l.entries.first)
+        expectKeys(["id", "time", "command", "undone", "files"], in: try nested("journal", "entries"), "journal entry")
+        #expect(!e.id.isEmpty && !e.files.isEmpty && e.canUndo)
+        #expect(e.title == "caveman-mode megacave")
+        // piano di undo: lo legge PlanConfirmation (righe da `commands`)
+        #expect(!ActionPlan.parse(try data("undo.plan")).lines.isEmpty)
+        expectKeys(["plan", "needsForce", "files"], in: try object("undo.plan"), "undo.plan")
+        #expect(PlanConfirmation.engineError(try data("undo.error")) != nil)
+    }
+
     // MARK: helpers
 
     func firstItem(_ name: String) throws -> [String: JSONValue] {
