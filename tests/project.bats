@@ -148,3 +148,34 @@ STUB
   [ "$(jq -r '.checks[] | select(.tool=="tokensave") | .ok' <<<"$output")" = false ]
   [ "$(jq -r '.checks[] | select(.tool=="tokensave") | .willWrite | length' <<<"$output")" -eq 3 ]
 }
+
+# PATH senza tokensave (né quello reale): stub, git, jq e sistema.
+no_tokensave_path() {
+  rm -f "$BATS_TEST_TMPDIR/stubs/tokensave"
+  mkdir -p "$BATS_TEST_TMPDIR/bin"
+  ln -sf "$(command -v jq)" "$BATS_TEST_TMPDIR/bin/jq"
+  ln -sf "$(command -v git)" "$BATS_TEST_TMPDIR/bin/git"
+  printf '%s' "$BATS_TEST_TMPDIR/stubs:$DEVBAR_REPO/tests/stubs:$BATS_TEST_TMPDIR/bin:/usr/bin:/bin"
+}
+
+@test "project-status senza tokensave: non ok, 'tokensave non installato', niente willWrite" {
+  PATH="$(no_tokensave_path)" run --separate-stderr "$DEVBAR" run project-status "$REPO"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '.checks[] | select(.tool=="tokensave") | .ok' <<<"$output")" = false ]
+  [[ "$(jq -r '.checks[] | select(.tool=="tokensave") | .detail' <<<"$output")" == *"tokensave non installato"* ]]
+  [ "$(jq -r '.checks[] | select(.tool=="tokensave") | .willWrite | length' <<<"$output")" -eq 0 ]
+}
+
+@test "project-apply --yes senza tokensave: rc 3, nessun file scritto" {
+  PATH="$(no_tokensave_path)" run --separate-stderr "$DEVBAR" run project-apply "$REPO" --yes
+  [ "$status" -eq 3 ]
+  [[ "$(jq -r .error <<<"$output")" == *"tokensave non installato"* ]]
+  [ ! -e "$REPO/AGENTS.md" ]
+  [ ! -e "$REPO/.cursor" ]
+  [ ! -e "$REPO/.tokensave" ]
+}
+
+@test "project-status tokensave: il dettaglio avvisa sugli hook git esistenti" {
+  run --separate-stderr "$DEVBAR" run project-status "$REPO"
+  [[ "$(jq -r '.checks[] | select(.tool=="tokensave") | .detail' <<<"$output")" == *"core.hooksPath"* ]]
+}

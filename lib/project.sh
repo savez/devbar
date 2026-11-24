@@ -151,17 +151,24 @@ _proj_ts_state() {
   echo ok
 }
 
+_PROJ_TS_HOOK_NOTE="gli hook git post-checkout, post-commit e post-merge vengono scritti: hook esistenti non tokensave (husky, core.hooksPath) possono esserne toccati"
+
 _proj_check_tokensave() {
   local root="$1" st h hooks=()
   st="$(_proj_ts_state "$root")"
+  if [ "$st" != ok ] && ! command -v tokensave >/dev/null 2>&1; then
+    jq -nc '{tool:"tokensave",ok:false,detail:"tokensave non installato (usa AI setup, Init tokensave)",willWrite:[]}'
+    return
+  fi
   for h in $_PROJ_TS_HOOKS; do hooks+=("$(_proj_gitpath "$root" "hooks/$h")"); done
   case "$st" in
     ok) jq -nc '{tool:"tokensave",ok:true,detail:"indice e git hook presenti",willWrite:[]}' ;;
     noindex)
-      jq -nc --arg d "$root/.tokensave/" --arg x "$(_proj_gitpath "$root" info/exclude)" \
-        '{tool:"tokensave",ok:false,detail:"indice assente",willWrite:([$d,$x] + $ARGS.positional)}' --args "${hooks[@]}" ;;
+      jq -nc --arg d "$root/.tokensave/" --arg x "$(_proj_gitpath "$root" info/exclude)" --arg n "$_PROJ_TS_HOOK_NOTE" \
+        '{tool:"tokensave",ok:false,detail:("indice assente; " + $n),willWrite:([$d,$x] + $ARGS.positional)}' --args "${hooks[@]}" ;;
     nohook)
-      jq -nc '{tool:"tokensave",ok:false,detail:"git hook assenti o incompleti",willWrite:$ARGS.positional}' --args "${hooks[@]}" ;;
+      jq -nc --arg n "$_PROJ_TS_HOOK_NOTE" \
+        '{tool:"tokensave",ok:false,detail:("git hook assenti o incompleti; " + $n),willWrite:$ARGS.positional}' --args "${hooks[@]}" ;;
   esac
 }
 
@@ -186,7 +193,7 @@ action_project_status() {
 }
 
 action_project_apply() {
-  local dir="" yes=false a root rel mode fm st rc=0
+  local dir="" yes=false a root rel mode fm st ts rc=0
   for a in "$@"; do
     if [ "$a" = "--yes" ]; then yes=true; elif [ -z "$dir" ]; then dir="$a"; fi
   done
@@ -194,6 +201,12 @@ action_project_apply() {
   if [ "$yes" = false ]; then
     _proj_status_json "$root"
     return 0
+  fi
+  # Ogni strumento necessario si verifica prima di scrivere qualsiasi file.
+  ts="$(_proj_ts_state "$root")"
+  if [ "$ts" != ok ] && ! command -v tokensave >/dev/null 2>&1; then
+    jq -nc '{status:"error",error:"tokensave non installato: nessun file scritto (usa AI setup, Init tokensave)"}'
+    return 3
   fi
   while IFS='|' read -r rel mode fm; do
     st="$(_proj_caveman_file_state "$root/$rel" "$mode")"
@@ -205,17 +218,9 @@ action_project_apply() {
   done < <(_proj_caveman_targets)
   # tokensave: init (indice + hook del repo) oppure solo hook se l'indice c'è.
   # `tokensave install --git-hook yes` non va bene: configura anche gli agenti.
-  case "$(_proj_ts_state "$root")" in
-    noindex)
-      if command -v tokensave >/dev/null 2>&1; then
-        (cd "$root" && tokensave init --git-hook </dev/null) >&2 || rc=$?
-      else rc=3; fi
-      ;;
-    nohook)
-      if command -v tokensave >/dev/null 2>&1; then
-        (cd "$root" && tokensave githooks on --local </dev/null) >&2 || rc=$?
-      else rc=3; fi
-      ;;
+  case "$ts" in
+    noindex) (cd "$root" && tokensave init --git-hook </dev/null) >&2 || rc=$? ;;
+    nohook) (cd "$root" && tokensave githooks on --local </dev/null) >&2 || rc=$? ;;
   esac
   [ "$rc" -eq 0 ] || { _ai_error "tokensave fallito (rc $rc)"; return 2; }
   _proj_status_json "$root"
