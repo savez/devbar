@@ -16,21 +16,61 @@ Due parti:
 
 La statusline per Claude Code (`statusline/devbar-claude-statusline`) richiede bash >= 4.2.
 
-## Installazione
+## Installare e aggiornare
+
+L'app porta con sé il motore (`Contents/Resources/engine/`: `bin/`, `lib/`, `statusline/`): non serve il repo per usarla.
+
+### Da release (consigliato)
+
+1. Scaricare `devbar-x.y.z.zip` dagli asset dell'ultima release su GitHub. Il repo è privato: serve l'accesso. Con `gh`:
+   ```
+   gh release download --repo savez/devbar --pattern 'devbar-*.zip'
+   ```
+2. Scompattare lo zip ed entrare nella cartella.
+3. Lanciare `./install.sh`.
+
+**Aggiornare** è la stessa cosa con lo zip della versione nuova: `install.sh` ferma il LaunchAgent, sostituisce `~/Applications/devbar.app` nello stesso posto, e lo riavvia. La config in `~/.config/devbar` non si tocca.
+
+### Da sorgente
 
 ```
-just install     # compila, installa ~/Applications/devbar.app, avvia il LaunchAgent
-just uninstall   # ferma e rimuove app, symlink e LaunchAgent (la config resta)
+git pull && just install
 ```
 
-`just install`:
+### Cosa fa `install.sh` (stesso script da zip e da sorgente)
 
-1. compila in release e assembla `app/.build/devbar.app` (`LSUIElement`, firma ad-hoc);
-2. copia il bundle in `~/Applications/devbar.app`;
-3. crea il symlink `~/.local/bin/devbar` verso `bin/devbar` di questo repo;
+1. rimuove la quarantena dal bundle (`xattr -dr com.apple.quarantine`);
+2. copia `devbar.app` in `~/Applications/devbar.app`;
+3. crea il symlink `~/.local/bin/devbar` verso `~/Applications/devbar.app/Contents/Resources/engine/bin/devbar`;
 4. scrive `~/Library/LaunchAgents/it.savez.devbar.plist` (`RunAtLoad`, `ProcessType Interactive`, `LimitLoadToSessionType Aqua`) e fa `launchctl bootstrap gui/$(id -u)`. Il plist lo genera l'app stessa (`Devbar --print-launch-agent-plist <eseguibile>`): una sola fonte, la stessa che usa l'opzione "Avvio al login" nelle impostazioni.
 
-**Il repo deve restare dov'è.** Il motore non è dentro il bundle: `~/.local/bin/devbar` è un symlink al repo, e `lib/ai/rtk-run`, `lib/ai/patches/` e `statusline/` vengono letti da lì. Spostare o cancellare il clone rompe l'installazione; dopo uno spostamento, rilanciare `just install`.
+`just install` compila prima in release (`app/.build/devbar.app`, firma ad-hoc) e poi lancia lo stesso `install.sh`.
+
+### Firma ad-hoc e quarantena
+
+L'app è firmata ad-hoc (`codesign --sign -`): niente Developer ID, niente notarizzazione. Un file scaricato dal browser o da `gh` può portare l'attributo di quarantena, e Gatekeeper rifiuterebbe un'app non notarizzata. Per questo `install.sh` rimuove la quarantena dal bundle installato. Chi apre `devbar.app` a mano dallo zip, senza `install.sh`, deve farlo da sé: `xattr -dr com.apple.quarantine devbar.app`.
+
+### Statusline di Claude Code
+
+Il comando della statusline in `settings.json` usa `DEVBAR_ROOT`, che ora punta dentro l'app installata (`~/Applications/devbar.app/Contents/Resources/engine`). Il percorso resta stabile tra gli aggiornamenti. Chi aveva la statusline puntata al repo rilancia una volta "AI setup, statusline" dall'app.
+
+### Come esce una release
+
+1. i commit su `main` seguono i prefissi conventional (`feat:`, `fix:`, `refactor:`, ...);
+2. al merge su `main` il workflow `.github/workflows/release.yml` fa girare release-please (Linux) che apre o aggiorna una PR di release (versione in `version.txt`, `CHANGELOG.md`);
+3. il merge di quella PR crea tag e release su GitHub;
+4. solo allora parte il job macOS: `just package VERSION=x.y.z` e `gh release upload` di `dist/devbar-x.y.z.zip`.
+
+La pipeline non esegue test (girano in locale: `just test`, `just app-test`). Le action sono fissate a una versione maggiore (`googleapis/release-please-action@v4`, `actions/checkout@v4`): vanno aggiornate a mano quando ne esce una nuova.
+
+### Disinstallare
+
+```
+./install.sh uninstall   # da zip
+just uninstall           # da sorgente
+```
+
+Ferma e rimuove app, symlink (solo se punta al motore nel bundle o al repo) e LaunchAgent; la config resta.
 
 L'app ammette una sola istanza (controllo sul bundle id `it.savez.devbar`). All'avvio allinea il plist del LaunchAgent alla chiave `launchAtLogin`.
 
