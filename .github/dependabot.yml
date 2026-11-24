@@ -1,0 +1,15 @@
+# Aggiornamenti di routine delle action usate dalla pipeline di rilascio.
+# Gli alert di sicurezza arrivano comunque: qui si governa solo la manutenzione ordinaria.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    # Commit convenzionali: release-please legge i prefissi.
+    commit-message:
+      prefix: chore
+    groups:
+      github-actions:
+        patterns:
+          - '*'
