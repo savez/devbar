@@ -36,6 +36,8 @@ struct ProjectInitView: View {
                     }
                 }
             }
+            // azione lunga in background (fino a 600 s): poi lo stato si ricarica
+            if model.confirmation.busy { Text("in corso…").font(.caption).foregroundStyle(.secondary) }
             if let e = model.confirmation.error { Text(e).font(.caption).foregroundStyle(.red) }
             Spacer(minLength: 0)
             HStack {

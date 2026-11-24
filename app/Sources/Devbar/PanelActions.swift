@@ -7,7 +7,9 @@ import DevbarCore
 final class PanelActions {
     let store: StatusStore
     private(set) var detect: DetectResult?
-    private(set) var busy = false
+    /// Sezioni (ActionSection) con un'azione in corso: i loro pulsanti sono disattivati,
+    /// così un doppio clic non lancia due `colima start`.
+    private(set) var running: Set<String> = []
     /// Azione in attesa di conferma, con il piano restituito dalla CLI (senza --yes).
     var pending: ConfirmableAction?
     private(set) var plan: ActionPlan?
@@ -43,17 +45,31 @@ final class PanelActions {
         if let d = try? JSONDecoder().decode(DetectResult.self, from: r.stdout) { detect = d }
     }
 
+    func isRunning(_ section: String) -> Bool { running.contains(section) }
+
+    /// Segna la sezione dell'azione come occupata finché `body` gira. false se lo era già.
+    private func occupy(_ args: [String], _ body: () async -> Void) async -> Bool {
+        let section = ActionSection.of(args)
+        if let section {
+            guard !running.contains(section) else { return false }
+            running.insert(section)
+        }
+        await body()
+        if let section { running.remove(section) }
+        return true
+    }
+
     /// Azione non distruttiva (avvia/ferma, apri): lancia e poi aggiorna.
     func run(_ args: [String], refresh: Bool = true) async {
-        busy = true; defer { busy = false }
-        let r = await store.run(action: args)
+        var r: (rc: Int32, stdout: Data) = (0, Data())
+        guard await occupy(args, { r = await store.run(action: args) }) else { return }
         lastError = r.rc >= 2 ? "\(args.prefix(2).joined(separator: " ")): errore (rc \(r.rc))" : nil
         if refresh { await store.refresh(force: false) }
     }
 
     /// Passo 1: senza --yes per ottenere il piano; poi la vista chiede conferma.
     func request(_ action: ConfirmableAction) async {
-        busy = true; defer { busy = false }
+        guard ActionSection.of(action.args).map({ !running.contains($0) }) ?? true else { return }
         let r = await store.run(action: action.args)
         guard r.rc < 2 else { lastError = "\(action.title): piano non disponibile (rc \(r.rc))"; return }
         plan = ActionPlan.parse(r.stdout)
@@ -65,9 +81,10 @@ final class PanelActions {
     func confirmPending() async {
         guard let a = pending else { return }
         pending = nil; plan = nil
-        busy = true; defer { busy = false }
-        let r = await store.run(action: a.confirmedArgs)
-        lastError = r.rc >= 2 ? "\(a.title): fallito (rc \(r.rc))" : nil
+        var r: (rc: Int32, stdout: Data) = (0, Data())
+        guard await occupy(a.args, { r = await store.run(action: a.confirmedArgs) }) else { return }
+        lastError = r.rc >= 2
+            ? "\(a.title): " + (PlanConfirmation.engineError(r.stdout) ?? "fallito (rc \(r.rc))") : nil
         await store.refresh(force: true)
         await loadDetect()
     }

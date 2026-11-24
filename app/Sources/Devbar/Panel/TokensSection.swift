@@ -52,7 +52,7 @@ struct TokensSection: View {
             Spacer()
             InitButton(title: "Init \(title)") {
                 Task { await actions.request(.init(title: "Installa \(title)", args: ["run", "tool-install", tool])) }
-            }
+            }.disabled(actions.isRunning("tokens"))
         }
     }
 

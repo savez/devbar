@@ -9,6 +9,8 @@ struct HarnessPicker: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(model.tool.isEmpty ? "AI setup" : "AI setup: \(model.tool)").font(.headline)
             content
+            // azione lunga in background (fino a 600 s): poi lo stato si ricarica
+            if model.confirmation.busy { Text("in corso…").font(.caption).foregroundStyle(.secondary) }
             if let e = model.confirmation.error { Text(e).font(.caption).foregroundStyle(.red) }
         }
         .padding(16)

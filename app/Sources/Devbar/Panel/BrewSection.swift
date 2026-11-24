@@ -19,7 +19,7 @@ struct BrewSection: View {
                         Button(actions.brewExpanded ? "Nascondi" : "Dettagli") { actions.brewExpanded.toggle() }.controlSize(.small)
                     }
                     Button("Aggiorna") { Task { await actions.run(["run", "brew-upgrade"], refresh: false) } }
-                        .controlSize(.small).disabled(!model.brewUpgradeEnabled)
+                        .controlSize(.small).disabled(!model.brewUpgradeEnabled || actions.isRunning("brew"))
                 }
                 if actions.brewExpanded {
                     ForEach(model.brewItems, id: \.name) { i in
@@ -30,7 +30,7 @@ struct BrewSection: View {
                             Button("Aggiorna") { Task { await actions.run(["run", "brew-upgrade", i.name], refresh: false) } }
                             Button("Escludi") { Task { await actions.run(["run", "brew-exclude", i.name]) } }
                         }
-                        .font(.caption).buttonStyle(.link)
+                        .font(.caption).buttonStyle(.link).disabled(actions.isRunning("brew"))
                     }
                 }
                 Button(model.corkButtonTitle) {
@@ -39,7 +39,7 @@ struct BrewSection: View {
                     } else {
                         Task { await actions.request(.init(title: "Installa Cork", args: ["run", "cork-install"])) }
                     }
-                }.controlSize(.small)
+                }.controlSize(.small).disabled(actions.isRunning("brew"))
             }
         }
     }

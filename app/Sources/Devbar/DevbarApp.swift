@@ -24,8 +24,9 @@ struct DevbarApp: App {
         }
         // Niente icona nel Dock (LSUIElement nell'Info.plist, qui anche per `swift run`).
         NSApplication.shared.setActivationPolicy(.accessory)
-        // Avvio al login: allinea il plist alla config, solo se si gira da bundle installato.
-        if let exe = Bundle.main.executablePath, Bundle.main.bundlePath.hasSuffix(".app") {
+        // Avvio al login: allinea il plist alla config, solo dal bundle installato in ~/Applications.
+        if let exe = Bundle.main.executablePath,
+           LoginReconciler.shouldReconcile(bundlePath: Bundle.main.bundlePath, home: NSHomeDirectory()) {
             let (cfg, err) = ConfigStore().load()
             if err == nil {
                 _ = try? LoginReconciler.reconcile(launchAtLogin: cfg.launchAtLogin, plistURL: LaunchAgent.plistURL(), executablePath: exe)

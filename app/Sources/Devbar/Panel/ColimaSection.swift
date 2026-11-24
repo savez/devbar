@@ -14,7 +14,7 @@ struct ColimaSection: View {
                 Spacer()
                 InitButton(title: "Init colima") {
                     Task { await actions.request(.init(title: "Installa colima", args: ["run", "colima-install"])) }
-                }
+                }.disabled(actions.isRunning("colima"))
             }
         case .shown:
             VStack(alignment: .leading, spacing: 4) {
@@ -24,12 +24,13 @@ struct ColimaSection: View {
                         .foregroundStyle(model.colimaRunning ? .green : .secondary)
                     Text(model.colimaSummary).foregroundStyle(.secondary).lineLimit(1)
                     Spacer()
+                    if actions.isRunning("colima") { Text("in corso…").font(.caption).foregroundStyle(.secondary) }
                     Button(model.colimaToggleTitle) {
                         let verb = model.colimaRunning ? "colima-stop" : "colima-start"
                         var args = ["run", verb]
                         if let p = model.colimaProfile, p != "default" { args.append(p) }
                         Task { await actions.run(args) }
-                    }.controlSize(.small)
+                    }.controlSize(.small).disabled(actions.isRunning("colima"))
                 }
                 ForEach(model.colimaContainers, id: \.id) { c in
                     HStack {
@@ -38,6 +39,7 @@ struct ColimaSection: View {
                         Spacer()
                         Button("Log") { Task { await actions.run(["run", "colima-logs", c.id], refresh: false) } }
                         Button("Ferma") { Task { await actions.run(["run", "container-stop", c.id]) } }
+                            .disabled(actions.isRunning("colima"))
                     }
                     .font(.caption).buttonStyle(.link)
                 }
