@@ -26,5 +26,11 @@ open_in_terminal() {
 # action_open_terminal <path>: apre il terminale nella cartella (deve esistere).
 action_open_terminal() {
   [ -n "${1:-}" ] && [ -d "$1" ] || { echo "uso: devbar run open-terminal <cartella esistente>" >&2; return 2; }
-  open_in_terminal cd "$1"
+  # iTerm e Ghostty: il comando È il processo della finestra, `cd` da solo uscirebbe
+  # subito e la finestra si chiuderebbe: dopo il cd si resta in una shell di login.
+  case "$(config_get .terminal)" in
+    iTerm | iTerm2 | Ghostty)
+      open_in_terminal sh -c "cd $(printf '%q' "$1") && exec \"\${SHELL:-/bin/zsh}\" -l" ;;
+    *) open_in_terminal cd "$1" ;;
+  esac
 }

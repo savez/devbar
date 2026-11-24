@@ -140,3 +140,19 @@ setup() {
   [ "$status" -eq 2 ]
   [ ! -e "$BATS_TEST_TMPDIR/osascript.calls" ]
 }
+
+@test "run open-terminal: iTerm e Ghostty restano in una shell dopo il cd" {
+  mkdir -p "$BATS_TEST_TMPDIR/repo"
+  local t
+  for t in iTerm Ghostty; do
+    rm -f "$BATS_TEST_TMPDIR/osascript.calls"
+    write_config "{\"terminal\":\"$t\"}"
+    run "$DEVBAR" run open-terminal "$BATS_TEST_TMPDIR/repo"
+    [ "$status" -eq 0 ]
+    grep -q "$t" "$BATS_TEST_TMPDIR/osascript.calls"
+    grep -qF 'sh -c cd' "$BATS_TEST_TMPDIR/osascript.calls"
+    grep -qF "$BATS_TEST_TMPDIR/repo" "$BATS_TEST_TMPDIR/osascript.calls"
+    grep -qF 'exec' "$BATS_TEST_TMPDIR/osascript.calls"
+    grep -qF 'SHELL' "$BATS_TEST_TMPDIR/osascript.calls"
+  done
+}
