@@ -18,6 +18,8 @@ cp "${package_dir}/.build/${configuration}/Devbar" "${app}/Contents/MacOS/Devbar
 cp "${package_dir}/Info.plist" "${app}/Contents/Info.plist"
 cp "${package_dir}/Icon/AppIcon.icns" "${app}/Contents/Resources/AppIcon.icns"
 repo_root="$(cd "${package_dir}/.." && pwd)"
+# Chi riceve l'app deve avere il testo della licenza (GPLv3) e sapere dov'è il sorgente.
+cp "${repo_root}/LICENSE" "${app}/Contents/Resources/LICENSE"
 engine="${app}/Contents/Resources/engine"
 mkdir -p "${engine}"
 cp -R "${repo_root}/bin" "${repo_root}/lib" "${repo_root}/statusline" "${engine}/"

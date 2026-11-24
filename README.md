@@ -95,7 +95,7 @@ L'app porta con sé il motore (`Contents/Resources/engine/`: `bin/`, `lib/`, `st
    ```
    gh release download --repo savez/devbar --pattern 'devbar-*.zip'
    ```
-2. Scompattare lo zip ed entrare nella cartella.
+2. Scompattare lo zip ed entrare nella cartella (dentro ci sono `devbar.app`, `install.sh` e `LICENSE`).
 3. Lanciare `./install.sh`.
 
 **Aggiornare** è la stessa cosa con lo zip della versione nuova: `install.sh` ferma il LaunchAgent, sostituisce `~/Applications/devbar.app` nello stesso posto, e lo riavvia. La config in `~/.config/devbar` non si tocca.
