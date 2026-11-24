@@ -3,21 +3,66 @@ import Observation
 
 // MARK: - Modulo di un'area
 
+/// Ingresso di un modulo: risultati di `check all` e, quando caricato, `detect`.
+public struct FeatureInput: Sendable {
+    public var all: AllChecks
+    public var detect: DetectResult?
+    public init(all: AllChecks, detect: DetectResult? = nil) { self.all = all; self.detect = detect }
+}
+
 /// Un'area del pannello che possiede logica e stato propri (modello + view-model), aggiornata
-/// dai risultati di `check all`. Il pannello, la barra di salute e la barra laterale dei
-/// Dettagli ne leggono solo tono e numero. Volutamente minimo: ciò che serve a un'area sola
-/// resta nel suo modulo.
+/// dai risultati di `check all` e da `detect`. Il pannello, la barra di salute e la barra
+/// laterale dei Dettagli ne leggono solo tono e numero. Volutamente minimo: ciò che serve a
+/// un'area sola resta nel suo modulo.
 @MainActor public protocol Feature: AnyObject, Observable {
-    var area: Area { get }
-    var tone: Tone { get }
+    /// Aree dei Dettagli possedute dal modulo; la prima è quella della riga del pannello.
+    var areas: [Area] { get }
+    /// Pallino di un'area posseduta nella barra laterale dei Dettagli.
+    func tone(of area: Area) -> Tone
     /// Riga del pannello; nil: area nascosta (niente riga né segmento nella barra).
+    /// Il suo tono colora anche il segmento: riga e barra non possono divergere.
     var readout: Readout? { get }
-    func update(from all: AllChecks)
+    func update(from input: FeatureInput)
+    /// Sezione di lock e verbi lunghi delle azioni del modulo (letti anche fuori dal main actor).
+    nonisolated static var actions: FeatureActionSpec { get }
 }
 
 public extension Feature {
-    /// Segmento della barra di salute, se l'area è visibile.
-    var segment: StripSegment? { readout == nil ? nil : StripSegment(area: area, tone: tone) }
+    /// Segmento della barra di salute, se l'area è visibile: stesso tono della riga.
+    var segment: StripSegment? {
+        guard let r = readout, let a = areas.first else { return nil }
+        return StripSegment(area: a, tone: r.tone)
+    }
+}
+
+/// Azioni `devbar run <verbo>` di un modulo: quali verbi gli appartengono (per prefisso),
+/// la sezione che occupano mentre girano e quali restano in background a lungo.
+public struct FeatureActionSpec: Sendable, Equatable {
+    public var section: String
+    public var verbPrefixes: [String]
+    public var longVerbs: Set<String>
+    public init(section: String, verbPrefixes: [String], longVerbs: Set<String> = []) {
+        self.section = section; self.verbPrefixes = verbPrefixes; self.longVerbs = longVerbs
+    }
+    public func owns(_ verb: String) -> Bool { verbPrefixes.contains { verb.hasPrefix($0) } }
+}
+
+/// Moduli registrati, consultati da `ActionSection` e `ActionTimeout`. Le aree non ancora
+/// migrate restano scritte lì finché non diventano moduli.
+public enum FeatureRegistry {
+    public static let actionSpecs: [FeatureActionSpec] = [ColimaFeature.actions]
+
+    static func spec(forVerb verb: String) -> FeatureActionSpec? { actionSpecs.first { $0.owns(verb) } }
+}
+
+/// Servizi del pannello per i moduli, passati alla creazione: conferma comune (piano senza
+/// `--yes`, dialogo, poi `--yes`), refresh dopo un'azione, errore nel piede.
+@MainActor public protocol FeatureHost: AnyObject {
+    func request(_ action: ConfirmableAction, from origin: DialogOrigin) async
+    /// Dopo un'azione che cambia lo stato: rilancia i controlli.
+    func applied() async
+    /// Esito dell'ultima azione diretta per il piede del pannello (nil: riuscita).
+    func report(error: String?)
 }
 
 // MARK: - Servizi comuni ai moduli

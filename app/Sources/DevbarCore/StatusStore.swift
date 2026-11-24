@@ -233,8 +233,8 @@ private final class PathTracker: @unchecked Sendable {
 public enum ActionTimeout {
     public static func isLong(_ args: [String]) -> Bool {
         guard args.first == "run", args.count > 1 else { return false }
+        if let spec = FeatureRegistry.spec(forVerb: args[1]) { return spec.longVerbs.contains(args[1]) }
         switch args[1] {
-        case "colima-start", "colima-stop": return true
         case "ai-install", "project-apply": return args.contains("--yes")
         default: return false
         }
@@ -246,7 +246,7 @@ public enum ActionSection {
     public static func of(_ args: [String]) -> String? {
         guard args.first == "run", args.count > 1 else { return nil }
         let verb = args[1]
-        if verb.hasPrefix("colima-") || verb.hasPrefix("container-") { return "colima" }
+        if let spec = FeatureRegistry.spec(forVerb: verb) { return spec.section }
         if verb.hasPrefix("brew-") || verb.hasPrefix("cork-") { return "brew" }
         if verb == "tool-install" { return "tokens" }
         return nil

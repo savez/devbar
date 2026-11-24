@@ -241,6 +241,27 @@ struct StatusStoreTests {
         #expect(store.badge.count == 6)
     }
 
+    /// Il punto d'aggancio dei moduli: solo dopo un refresh riuscito, mai su motore
+    /// occupato, errore globale o output non decodificabile.
+    @Test func testOnResultsOnlyOnSuccessfulRefresh() async {
+        let runner = FakeRunner(["check all": .init(rc: 1, stdout: allJSON(quietRows))])
+        let store = makeStore(runner)
+        var seen: [Int] = []
+        store.onResults = { seen.append($0.rows.count) }
+        await store.refresh(force: false)
+        #expect(seen == [quietRows.count])
+        await runner.set("check all", .init(rc: 2, stdout: #"{"status":"error","error":"busy"}"#))
+        await store.refresh(force: true)
+        await runner.set("check all", .init(rc: 2, stdout: #"{"status":"error","error":"jq mancante"}"#))
+        await store.refresh(force: true)
+        await runner.set("check all", .init(rc: 2, stdout: "non json"))
+        await store.refresh(force: true)
+        #expect(seen == [quietRows.count])
+        await runner.set("check all", .init(rc: 1, stdout: allJSON(rows(["rtk": row("ok", rc: 1)]))))
+        await store.refresh(force: true)
+        #expect(seen.count == 2)
+    }
+
     @Test func testForceFlagPassed() async {
         let runner = FakeRunner(["check all": .init(rc: 1, stdout: allJSON(quietRows))])
         let store = makeStore(runner)

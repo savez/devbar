@@ -30,7 +30,8 @@ final class PanelActions {
     /// Riga caveman del pannello: scrive la modalità di default (esecuzione diretta).
     let caveman: CavemanControl
     /// Aree come moduli a sé (logica e stato propri): per ora solo colima.
-    let colima: ColimaFeature
+    /// `lazy`: il modulo riceve `self` come host, disponibile solo a init completato.
+    @ObservationIgnored private(set) lazy var colima = ColimaFeature(runner: store, locks: locks, host: self)
     var features: [any Feature] { [colima] }
 
     init(store: StatusStore, configStore: ConfigStore = ConfigStore()) {
@@ -39,13 +40,8 @@ final class PanelActions {
         caveman = CavemanControl(runner: store)
         projectInit = ProjectInitModel(runner: store)
         settings = SettingsModel(configStore: configStore, runner: store, login: LaunchAgentManager())
-        colima = ColimaFeature(runner: store, locks: locks)
-        colima.confirm = { [weak self] action, origin in await self?.request(action, from: origin) }
-        colima.onApplied = { [store] in await store.refresh(force: false) }
-        colima.onError = { [weak self] in self?.lastError = $0 }
-        let all = AllChecks(rows: store.results, raw: store.raw)
-        for f in features { f.update(from: all) }
-        store.onResults = { [weak self] all in self?.features.forEach { $0.update(from: all) } }
+        updateFeatures(AllChecks(rows: store.results, raw: store.raw))
+        store.onResults = { [weak self] all in self?.updateFeatures(all) }
         aiSetup.onApplied = { [weak self] in await self?.refreshAfterChange(force: true) }
         caveman.onApplied = { [weak self] in await self?.refreshAfterChange(force: true) }
         settings.onSaved = { [store] in store.reloadConfig() }
@@ -60,7 +56,16 @@ final class PanelActions {
 
     func loadDetect() async {
         let r = await store.run(action: ["detect"])
-        if let d = try? JSONDecoder().decode(DetectResult.self, from: r.stdout) { detect = d }
+        if let d = try? JSONDecoder().decode(DetectResult.self, from: r.stdout) {
+            detect = d
+            updateFeatures(AllChecks(rows: store.results, raw: store.raw))
+        }
+    }
+
+    /// I moduli ricevono i risultati di `check all` e `detect`: dopo ogni refresh e ogni detect.
+    private func updateFeatures(_ all: AllChecks) {
+        let input = FeatureInput(all: all, detect: detect)
+        for f in features { f.update(from: input) }
     }
 
     func isRunning(_ section: String) -> Bool { locks.isRunning(section) }
@@ -99,4 +104,10 @@ final class PanelActions {
     func cancelPending() { pending = nil; plan = nil }
 
     func openRepo(_ path: String) async { await run(["run", "open-terminal", path], refresh: false) }
+}
+
+/// Servizi per i moduli: conferma comune, refresh dopo un'azione, errore nel piede.
+extension PanelActions: FeatureHost {
+    func applied() async { await store.refresh(force: false) }
+    func report(error: String?) { lastError = error }
 }

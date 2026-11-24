@@ -35,9 +35,10 @@ struct DetailsView: View {
         .modifier(ConfirmationHost(actions: actions, origin: .details))
     }
 
-    /// Le aree con un modulo (`Feature`) danno il proprio tono; le altre lo prendono da `PanelModel`.
+    /// Le aree di un modulo (`Feature`) prendono il tono dal modulo che le possiede;
+    /// le altre da `PanelModel`.
     private func tone(of area: Area, _ model: PanelModel) -> Tone {
-        actions.features.first { $0.area == area }?.tone ?? model.tone(of: area)
+        actions.features.first { $0.areas.contains(area) }?.tone(of: area) ?? model.tone(of: area)
     }
 }
 

@@ -17,9 +17,10 @@ enum Fixture {
                    now: ISO8601DateFormatter().date(from: "2026-11-24T10:00:00Z")!)
     }
     /// Moduli (Feature) aggiornati dalla stessa fixture.
+    @MainActor static let host = FakeHost()
     @MainActor static func features(rich: Bool) throws -> [any Feature] {
-        let colima = ColimaFeature(runner: FakeActions(), locks: SectionLocks())
-        colima.update(from: try all(rich ? "all-rich" : "all"))
+        let colima = ColimaFeature(runner: FakeActions(), locks: SectionLocks(), host: host)
+        colima.update(from: FeatureInput(all: try all(rich ? "all-rich" : "all")))
         return [colima]
     }
 }
@@ -110,8 +111,8 @@ struct HealthStripTests {
 
     @Test func allQuiet() throws {
         let empty = try AllChecks.decode(Data("{}".utf8))
-        let colima = ColimaFeature(runner: FakeActions(), locks: SectionLocks())
-        colima.update(from: empty)
+        let colima = ColimaFeature(runner: FakeActions(), locks: SectionLocks(), host: Fixture.host)
+        colima.update(from: FeatureInput(all: empty))
         let s = HealthStrip(model: PanelModel(all: empty), features: [colima], badge: (.ok, 0))
         #expect(s.segments.isEmpty)
         #expect(s.todoText == "Tutto a posto")

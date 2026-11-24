@@ -2,43 +2,49 @@ import Foundation
 import Observation
 
 /// Area colima: stato (da `check all`) e azioni. Le azioni dirette passano dal runner comune
-/// (`StatusStore`) e occupano la sezione "colima" nei `SectionLocks` condivisi, così non
-/// partono due `colima start`; l'installazione passa dalla conferma comune del pannello.
+/// (`StatusStore`) e occupano la sezione dichiarata in `actions` nei `SectionLocks` condivisi,
+/// così non partono due `colima start`; l'installazione passa dalla conferma comune dell'host.
 @Observable @MainActor
 public final class ColimaFeature: Feature {
-    public let area: Area = .colima
+    public let areas: [Area] = [.colima]
     public private(set) var panel: ColimaPanel
 
-    /// Conferma comune (piano senza `--yes`, dialogo, poi `--yes`): la fornisce `PanelActions`.
-    @ObservationIgnored public var confirm: ((ConfirmableAction, DialogOrigin) async -> Void)?
-    /// Dopo un'azione che cambia lo stato: rilancia i controlli.
-    @ObservationIgnored public var onApplied: (() async -> Void)?
-    /// Esito dell'ultima azione diretta per il piede del pannello (nil: riuscita).
-    @ObservationIgnored public var onError: ((String?) -> Void)?
+    /// `colima-*` e `container-*` occupano "colima"; avvio e arresto restano in background.
+    public nonisolated static let actions = FeatureActionSpec(
+        section: "colima", verbPrefixes: ["colima-", "container-"], longVerbs: ["colima-start", "colima-stop"])
+
     @ObservationIgnored private let runner: any ActionRunning
     @ObservationIgnored private let locks: SectionLocks
+    /// `unowned`: l'host (PanelActions) possiede il modulo.
+    @ObservationIgnored private unowned let host: any FeatureHost
 
-    public init(runner: any ActionRunning, locks: SectionLocks) {
+    public init(runner: any ActionRunning, locks: SectionLocks, host: any FeatureHost) {
         self.runner = runner
         self.locks = locks
+        self.host = host
         panel = ColimaPanel(all: AllChecks(rows: [:], raw: [:]))
     }
 
     // MARK: Feature
 
     /// Sezione informativa: sempre ardesia.
-    public var tone: Tone { .info }
-    public var readout: Readout? { panel.kind == .hidden ? nil : panel.readout }
+    public func tone(of area: Area) -> Tone { .info }
+    public var readout: Readout? {
+        guard panel.kind != .hidden else { return nil }
+        var r = panel.readout
+        r.tone = tone(of: .colima)
+        return r
+    }
 
-    public func update(from all: AllChecks) {
-        let p = ColimaPanel(all: all)
+    public func update(from input: FeatureInput) {
+        let p = ColimaPanel(all: input.all)
         if p != panel { panel = p }
     }
 
     // MARK: Azioni
 
     /// Un'azione colima è in corso (anche l'installazione confermata).
-    public var busy: Bool { locks.isRunning("colima") }
+    public var busy: Bool { locks.isRunning(Self.actions.section) }
 
     /// Avvia o ferma il profilo del pannello.
     public func toggle() async {
@@ -56,13 +62,13 @@ public final class ColimaFeature: Feature {
     public func openLogs(_ id: String) async { await run(["run", "colima-logs", id], refresh: false) }
 
     public func installColima(from origin: DialogOrigin = .panel) async {
-        await confirm?(ConfirmableAction(title: "Installa colima", args: ["run", "colima-install"]), origin)
+        await host.request(ConfirmableAction(title: "Installa colima", args: ["run", "colima-install"]), from: origin)
     }
 
     private func run(_ args: [String], refresh: Bool) async {
         var r: (rc: Int32, stdout: Data) = (0, Data())
         guard await locks.occupy(args, { r = await runner.run(action: args) }) else { return }
-        onError?(SectionLocks.directError(args, rc: r.rc))
-        if refresh { await onApplied?() }
+        host.report(error: SectionLocks.directError(args, rc: r.rc))
+        if refresh { await host.applied() }
     }
 }
