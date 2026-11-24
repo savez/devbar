@@ -52,7 +52,7 @@ _audit_repo_counts() {
   # errore dichiarato dallo strumento (es. rete assente): il messaggio va nel file di errore
   # (_AUDIT_ERRFILE, impostato da audit_repos), il risultato resta vuoto.
   if [ -n "${_AUDIT_ERRFILE:-}" ]; then
-    jq -r 'select(type == "object" and has("error")) | .error
+    jq -r 'select(type == "object" and .error != null) | .error
       | if type == "object" then (.summary // .message // .code // "errore sconosciuto") else tostring end
       | gsub("\n"; " ") | .[0:200]' <<<"$json" 2>/dev/null | head -n 1 >>"$_AUDIT_ERRFILE" || true
   fi

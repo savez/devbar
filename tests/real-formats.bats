@@ -213,6 +213,24 @@ _audit_repo() {
   [ "$(jq -r .summary <<<"$output")" = "npm audit non riuscito: request to https://registry.npmjs.org failed" ]
 }
 
+@test "npm-audit: \"error\":null con conteggi -> risultato normale" {
+  _audit_repo package-lock.json
+  export STUB_NPM_AUDIT_FIXTURE=../wrong/npm-error-null.json STUB_NPM_RC=1
+  run --separate-stderr "$DEVBAR" check npm-audit --force
+  [ "$status" -eq 0 ]
+  [[ "$(jq -r .summary <<<"$output")" != *"non riuscito"* ]]
+  [ "$(jq -r '.items[0].high' <<<"$output")" = 1 ]
+}
+
+@test "npm-audit: \"error\":null senza conteggi -> formato non riconosciuto, mai \"non riuscito: null\"" {
+  _audit_repo package-lock.json
+  export STUB_NPM_AUDIT_FIXTURE=../wrong/npm-error-null-nometa.json STUB_NPM_RC=1
+  run --separate-stderr "$DEVBAR" check npm-audit --force
+  [ "$status" -eq 2 ]
+  [[ "$(jq -r .summary <<<"$output")" == *"formato di npm non riconosciuto"* ]]
+  [[ "$(jq -r .summary <<<"$output")" != *"null"* ]]
+}
+
 @test "composer-audit: errore dichiarato -> non riuscito con il messaggio" {
   _audit_repo composer.lock
   export STUB_COMPOSER_AUDIT_FIXTURE=../wrong/composer-error.json STUB_COMPOSER_RC=1
