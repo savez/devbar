@@ -84,7 +84,36 @@ mostrerebbe lo stato di ognuno e offrirebbe "installa" e "aggiorna".
 - Avviso se il repo remoto ha commit nuovi.
 - Azioni: `chezmoi apply`, `chezmoi update`, salva un file (`chezmoi add`).
 
-### 8. Altre idee (da valutare)
+### 8. Risparmio token (RTK e tokensave)
+
+Una scheda della dashboard per capire se gli strumenti di risparmio
+funzionano. Entrambi hanno un output JSON, quindi la UI non deve leggere
+tabelle di testo.
+
+- **RTK** (accorcia l'output dei comandi che l'agente lancia):
+  - Totale: `rtk gain -f json` dà comandi, token in ingresso, token
+    risparmiati e percentuale media (al 23/11: 2618 comandi, 178.0K token
+    risparmiati, 18.4%).
+  - Andamento: `rtk gain --daily` / `--weekly`, o `--graph`.
+  - Dettaglio: quali comandi risparmiano di più (oggi `rtk grep`), e
+    `rtk gain --failures` per i comandi che tornano all'output grezzo.
+- **tokensave** (indice del codice al posto delle letture di file):
+  - Risparmio: `tokensave gain --all --json --range 7d` dà chiamate, token e
+    dollari risparmiati; `--by-tool` divide per tool.
+  - Occasioni perse: `tokensave discover --json --since 7d` conta i turni in
+    cui l'agente ha usato `Read` dove bastava tokensave. Se restano alti, va
+    rinforzata la regola in `~/.claude/CLAUDE.md`.
+  - Salute: `tokensave doctor` (integrazione con gli agenti) e
+    `tokensave status` (progetti indicizzati, ultimo sync).
+- Codici di uscita per il controllo, da definire: per esempio `0` se
+  tokensave non viene usato da 7 giorni o `discover` trova molte occasioni
+  perse, `1` se va tutto bene.
+- Al 23/11 tokensave è appena collegato a Claude Code (regole e indice di
+  Sparkdock creati quel pomeriggio): 3 chiamate in tutto, 0 token risparmiati,
+  48 turni con `Read` negli ultimi 30 giorni (quasi tutti precedenti).
+  Da ricontrollare dopo una settimana.
+
+### 9. Altre idee (da valutare)
 
 - Aggiornamenti di Claude Code e Codex.
 - Aggiornamento del clone di Sparkdock (`git pull`).
@@ -143,6 +172,8 @@ Domande aperte:
 - Come si sovrappone allo stile di output **Concise** (anche lui accorcia le
   risposte) e a RTK (che accorcia l'output dei comandi, non le risposte)?
 - RTK: quanto risparmia, con `rtk gain` e `rtk gain --history`.
+- tokensave: se l'agente lo usa davvero al posto di `Read` (vedi la
+  funzione 8).
 - Misura approssimativa: `scripts/token-compare.py --since "2026-11-23 18:00"`
   confronta i token di output per risposta prima e dopo l'attivazione. Al
   23/11 c'erano solo 7 risposte dopo (media 721 contro 1.620 prima), e lo
@@ -158,6 +189,6 @@ Domande aperte:
 3. Linguaggio del motore: bash o Go.
 4. Dove vive la configurazione (proposta: `~/.config/devbar/config.toml`, in
    chezmoi).
-5. Quali funzioni nella prima versione (proposta: 1, 2, 5 e 7).
+5. Quali funzioni nella prima versione (proposta: 1, 2, 5, 7 e 8).
 6. Se la menu bar sostituisce lo script `run_onchange_after_20-ai-agents.sh`
    o lo richiama.
