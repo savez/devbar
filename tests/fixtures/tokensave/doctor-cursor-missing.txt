@@ -1,0 +1,3 @@
+Cursor integration
+  ! /home/u/.cursor/mcp.json not found — run `tokensave install --agent cursor` if you use Cursor
+  ! /home/u/.cursor/hooks.json not found — run `tokensave install --agent cursor` to add hooks
