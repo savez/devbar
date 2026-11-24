@@ -76,10 +76,20 @@ public final class PlanConfirmation {
         error = nil
         for s in todo {
             let r = await runner.run(action: s.action.confirmedArgs)
-            if r.rc >= 2 { error = "\(s.action.title): fallito (rc \(r.rc))"; return false }
+            if r.rc >= 2 {
+                error = "\(s.action.title): " + (Self.engineError(r.stdout) ?? "fallito (rc \(r.rc))")
+                return false
+            }
         }
         return true
     }
 
     public func cancel() { steps = []; dialogShown = false }
+
+    /// Campo `error` del JSON del motore, se c'è.
+    public nonisolated static func engineError(_ d: Data) -> String? {
+        guard case .object(let o)? = try? JSONDecoder().decode(JSONValue.self, from: d),
+              case .string(let e)? = o["error"], !e.isEmpty else { return nil }
+        return e
+    }
 }

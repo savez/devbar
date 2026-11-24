@@ -37,10 +37,12 @@ public struct CLIRunner: CLIRunning {
         return candidates.first(where: isExecutable)
     }
 
-    /// Un LaunchAgent riceve un PATH minimo: si antepongono i bin di Homebrew.
-    public static func childPath(inherited: String?) -> String {
+    /// Un LaunchAgent riceve un PATH minimo: si antepongono i bin di Homebrew e
+    /// `~/.local/bin` (claude-usage, rtk-run, devbar stesso).
+    public static func childPath(inherited: String?, home: String) -> String {
         let base = (inherited?.isEmpty == false) ? inherited! : "/usr/bin:/bin:/usr/sbin:/sbin"
-        return "/opt/homebrew/bin:/usr/local/bin:" + base
+        let local = (home as NSString).appendingPathComponent(".local/bin")
+        return "/opt/homebrew/bin:/usr/local/bin:\(local):" + base
     }
 
     public func run(_ args: [String], timeout: TimeInterval) async -> (rc: Int32, stdout: Data, stderr: String) {
@@ -48,7 +50,7 @@ public struct CLIRunner: CLIRunning {
             return (2, Data(), "devbar non trovato (DEVBAR_BIN, /opt/homebrew/bin, ~/.local/bin)")
         }
         var env = environment
-        env["PATH"] = Self.childPath(inherited: environment["PATH"])
+        env["PATH"] = Self.childPath(inherited: environment["PATH"], home: home)
         let envList = env.map { "\($0.key)=\($0.value)" }
         let argv = [bin] + args
         // Tutto il lavoro bloccante (waitpid, read) gira fuori dal main actor.

@@ -322,7 +322,8 @@ public struct ClaudeUsageValues: Decodable, Equatable, Sendable {
     public var wPct: Double?
     public var wReset: String?
     public var stale: Bool
-    public var auth: Bool?
+    /// "valid" | "missing" | "expired" (stringa nel binario reale).
+    public var auth: String?
     public var error: String?
     public init(from decoder: Decoder) throws {
         let c = try top(decoder)
@@ -359,10 +360,14 @@ public struct HarnessInfo: Decodable, Equatable, Sendable {
 public struct DetectResult: Decodable, Equatable, Sendable {
     public var harnesses: [HarnessInfo]
     public var tools: [String: Bool]
+    /// Per strumento AI (rtk, caveman, tokensave, statusline): almeno un harness
+    /// installato e supportato. nil se il motore non lo fornisce.
+    public var aiTools: [String: Bool]?
     public init(from decoder: Decoder) throws {
         let c = try top(decoder)
         harnesses = c.list("harnesses")
         tools = c.opt("tools") ?? [:]
+        aiTools = c.opt("aiTools")
     }
 }
 

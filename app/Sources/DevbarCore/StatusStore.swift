@@ -6,8 +6,20 @@ import Network
 /// Stato dei check per la UI. Esegue solo la CLI: nessuna logica di check qui.
 @Observable @MainActor
 public final class StatusStore {
-    /// Check solo informativi: non contribuiscono mai al badge.
-    public static let informative: Set<String> = ["colima", "rtk", "tokensave", "caveman", "claude-usage"]
+    /// Check solo informativi: non contribuiscono mai al badge (né al conteggio né al colore).
+    public static let informative: Set<String> = ["colima", "rtk", "tokensave", "caveman", "claude-usage", "harnesses"]
+    /// Timeout per check del motore dentro `check all` (stessi valori di `devbar check-timeouts`,
+    /// verificati da un test). Il motore uccide il check oltre il suo timeout.
+    public nonisolated static let checkTimeouts: [String: TimeInterval] = [
+        "brew-outdated": 60, "brew-vulns": 60, "npm-audit": 300, "composer-audit": 300,
+        "colima": 60, "rtk": 60, "tokensave": 60, "caveman": 60, "claude-usage": 60, "harnesses": 60,
+    ]
+    /// Riserva per `check all`: caso peggiore del motore (somma dei timeout) + 5 s per check.
+    public nonisolated static var defaultAllTimeout: TimeInterval {
+        checkTimeouts.values.reduce(0, +) + 5 * TimeInterval(checkTimeouts.count)
+    }
+    /// Azioni lunghe in background (colima start/stop, ai-install e project-apply con --yes).
+    public nonisolated static let defaultLongActionTimeout: TimeInterval = 600
     /// `panelOpened()` rilancia solo se l'ultimo refresh è più vecchio di così.
     public static let panelThrottle: TimeInterval = 5 * 60
 
@@ -30,25 +42,29 @@ public final class StatusStore {
     private let configStore: ConfigStore
     private let allTimeout: TimeInterval
     private let actionTimeout: TimeInterval
+    private let longActionTimeout: TimeInterval
 
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     @ObservationIgnored private var pathMonitor: NWPathMonitor?
     @ObservationIgnored private var dailyTask: Task<Void, Never>?
 
     /// - Parameters:
-    ///   - allTimeout: `check all`, 600 s: solo riserva, il motore dà già 60 s a ogni
-    ///     check (DEVBAR_CHECK_TIMEOUT) e mette "timeout" nella riga bloccata.
-    ///   - actionTimeout: azioni non interattive (30 s).
+    ///   - allTimeout: `check all`: solo riserva (`defaultAllTimeout`), il motore dà già a ogni
+    ///     check il suo timeout e mette "timeout" nella riga bloccata.
+    ///   - actionTimeout: azioni brevi e piani (30 s).
+    ///   - longActionTimeout: azioni lunghe in background (`ActionTimeout.isLong`, 600 s).
     public init(runner: any CLIRunning = CLIRunner(),
                 now: @escaping @Sendable () -> Date = { Date() },
                 configStore: ConfigStore = ConfigStore(),
-                allTimeout: TimeInterval = 600,
-                actionTimeout: TimeInterval = 30) {
+                allTimeout: TimeInterval = StatusStore.defaultAllTimeout,
+                actionTimeout: TimeInterval = 30,
+                longActionTimeout: TimeInterval = StatusStore.defaultLongActionTimeout) {
         self.runner = runner
         self.now = now
         self.configStore = configStore
         self.allTimeout = allTimeout
         self.actionTimeout = actionTimeout
+        self.longActionTimeout = longActionTimeout
     }
 
     // MARK: - Badge
@@ -58,8 +74,14 @@ public final class StatusStore {
     /// critical/high>0); action se almeno un check è action; altrimenti ok.
     public var badge: (level: CheckState, count: Int) {
         let counted = results.filter { !Self.informative.contains($0.key) && $0.value.state == .action }
-        let count = counted.values.reduce(0) { $0 + $1.count }
         let all = AllChecks(rows: results, raw: raw)
+        // brew-vulns conta le formule colpite, non le CVE.
+        let count = counted.reduce(0) { sum, kv in
+            if kv.key == "brew-vulns", let bv = all.typed(BrewVulns.self, "brew-vulns"), !bv.items.isEmpty {
+                return sum + Set(bv.items.map(\.formula)).count
+            }
+            return sum + kv.value.count
+        }
         let severeVulns = (all.typed(BrewVulns.self, "brew-vulns")?.severe ?? 0) > 0
         let severeAudit = ["npm-audit", "composer-audit"].contains { name in
             all.typed(AuditResult.self, name)?.items.contains { $0.critical > 0 || $0.high > 0 } ?? false
@@ -109,9 +131,9 @@ public final class StatusStore {
         await refresh(force: false)
     }
 
-    /// Azione non interattiva (`run …`, `detect`, `repos`), timeout 30 s.
+    /// Azione non interattiva (`run …`, `detect`, `repos`): 30 s, 600 s per quelle lunghe.
     public func run(action args: [String]) async -> (rc: Int32, stdout: Data) {
-        let r = await runner.run(args, timeout: actionTimeout)
+        let r = await runner.run(args, timeout: ActionTimeout.isLong(args) ? longActionTimeout : actionTimeout)
         return (r.rc, r.stdout)
     }
 
@@ -200,5 +222,30 @@ private final class PathTracker: @unchecked Sendable {
     func becameSatisfied(_ now: Bool) -> Bool {
         defer { satisfied = now }
         return now && satisfied == false
+    }
+}
+
+/// Azioni lunghe che restano in background (le installazioni brew/cask/tool si aprono nel
+/// terminale dal motore e tornano subito). I piani (senza `--yes`) sono sempre brevi.
+public enum ActionTimeout {
+    public static func isLong(_ args: [String]) -> Bool {
+        guard args.first == "run", args.count > 1 else { return false }
+        switch args[1] {
+        case "colima-start", "colima-stop": return true
+        case "ai-install", "project-apply": return args.contains("--yes")
+        default: return false
+        }
+    }
+}
+
+/// Sezione del pannello di un'azione: mentre gira, i pulsanti di quella sezione sono disattivati.
+public enum ActionSection {
+    public static func of(_ args: [String]) -> String? {
+        guard args.first == "run", args.count > 1 else { return nil }
+        let verb = args[1]
+        if verb.hasPrefix("colima-") || verb.hasPrefix("container-") { return "colima" }
+        if verb.hasPrefix("brew-") || verb.hasPrefix("cork-") { return "brew" }
+        if verb == "tool-install" { return "tokens" }
+        return nil
     }
 }

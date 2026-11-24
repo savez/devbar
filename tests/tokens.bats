@@ -123,11 +123,20 @@ absent() { # absent <tool> <check>
   run --separate-stderr "$DEVBAR" check claude-usage
   [ "$status" -eq 1 ]
   [ "$(jq -r .usage.c_pct <<<"$output")" = 42 ]
-  [ "$(jq -r .usage.w_pct <<<"$output")" = 17 ]
+  [ "$(jq -r .usage.w_pct <<<"$output")" = 67 ]
+  [ "$(jq -r .usage.c_reset <<<"$output")" = "3h 12m" ]
   [ "$(jq -r .usage.stale <<<"$output")" = false ]
-  [ "$(jq -r .usage.auth <<<"$output")" = true ]
+  [ "$(jq -r .usage.auth <<<"$output")" = valid ]
   [ "$(jq -r .usage.error <<<"$output")" = null ]
   grep -qx -- "--status" "$BATS_TEST_TMPDIR/claude-usage.calls"
+}
+
+@test "claude-usage: auth missing inoltrato com'è (stringa), con error" {
+  export STUB_CLAUDE_USAGE_FIXTURE=status-missing.json
+  run --separate-stderr "$DEVBAR" check claude-usage
+  [ "$status" -eq 1 ]
+  [ "$(jq -r .usage.auth <<<"$output")" = missing ]
+  [ "$(jq -r .usage.error <<<"$output")" = "no credentials found" ]
 }
 
 @test "claude-usage: --force -> --force-poll" {

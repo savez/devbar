@@ -120,7 +120,8 @@ struct StatusStoreTests {
         ])))])
         let store = makeStore(runner)
         await store.refresh(force: false)
-        #expect(store.badge.count == 8)
+        // harnesses è informativo: solo brew-outdated (6) conta
+        #expect(store.badge.count == 6)
         #expect(store.badge.level == .action)
     }
 
@@ -321,9 +322,10 @@ struct CLIRunnerTests {
     }
 
     @Test func testChildPath() {
-        #expect(CLIRunner.childPath(inherited: "/usr/bin:/bin")
-            == "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin")
-        #expect(CLIRunner.childPath(inherited: nil) == "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin")
+        #expect(CLIRunner.childPath(inherited: "/usr/bin:/bin", home: "/h")
+            == "/opt/homebrew/bin:/usr/local/bin:/h/.local/bin:/usr/bin:/bin")
+        #expect(CLIRunner.childPath(inherited: nil, home: "/h")
+            == "/opt/homebrew/bin:/usr/local/bin:/h/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin")
     }
 
     func script(_ body: String) throws -> (URL, String) {
@@ -338,10 +340,10 @@ struct CLIRunnerTests {
     @Test func testRealProcessOutputAndRc() async throws {
         let (dir, bin) = try script(#"echo "{\"a\":\"$1\"}"; echo "$PATH" >&2; exit 3"#)
         defer { try? FileManager.default.removeItem(at: dir) }
-        let r = await CLIRunner(environment: ["DEVBAR_BIN": bin, "PATH": "/usr/bin:/bin"]).run(["x"], timeout: 10)
+        let r = await CLIRunner(environment: ["DEVBAR_BIN": bin, "PATH": "/usr/bin:/bin"], home: "/h").run(["x"], timeout: 10)
         #expect(r.rc == 3)
         #expect(String(decoding: r.stdout, as: UTF8.self) == "{\"a\":\"x\"}\n")
-        #expect(r.stderr.hasPrefix("/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"))
+        #expect(r.stderr.hasPrefix("/opt/homebrew/bin:/usr/local/bin:/h/.local/bin:/usr/bin:/bin"))
     }
 
     @Test func testLargeOutputNoDeadlock() async throws {

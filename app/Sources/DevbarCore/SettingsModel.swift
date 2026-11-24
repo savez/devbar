@@ -24,6 +24,8 @@ public final class SettingsModel {
     @ObservationIgnored private let login: any LoginItemManaging
     @ObservationIgnored private let executablePath: String
     @ObservationIgnored private var overwriteConfirmed = false
+    /// La config rotta è già stata sostituita da quella mostrata (dopo la conferma).
+    @ObservationIgnored private var replacedBroken = false
     @ObservationIgnored private var dirty = false
     @ObservationIgnored private var deferredHarnessPlan: String?
     @ObservationIgnored private var deferredLogin: Bool?
@@ -48,7 +50,7 @@ public final class SettingsModel {
     public func load() async {
         let (c, err) = configStore.load()
         config = c; committed = c; configError = err
-        overwriteConfirmed = false; overwritePromptShown = false
+        overwriteConfirmed = false; overwritePromptShown = false; replacedBroken = false
         saveError = nil; loginError = nil
         let r = await runner.run(action: ["detect"])
         detect = try? JSONDecoder().decode(DetectResult.self, from: r.stdout)
@@ -66,14 +68,23 @@ public final class SettingsModel {
     // MARK: - Salvataggio
 
     /// true se scritto su disco. Con config rotta e senza conferma non scrive e chiede.
+    /// `change` si applica alla config mostrata e, al salvataggio, all'ultima versione del
+    /// file (ConfigStore.update): le scritture del motore fatte dopo `load()` restano.
     @discardableResult
-    private func persist() -> Bool {
+    private func persist(_ change: (inout DevbarConfig) -> Void) -> Bool {
+        change(&config)
         if configError != nil && !overwriteConfirmed {
             overwritePromptShown = true
             return false
         }
         do {
-            try configStore.save(config)
+            if overwriteConfirmed && configError == nil && !replacedBroken {
+                // config rotta sostituita: si scrive tutta la config mostrata, una volta
+                try configStore.save(config)
+                replacedBroken = true
+            } else {
+                config = try configStore.update(change)
+            }
             saveError = nil; dirty = true; committed = config
             onSaved()
             return true
@@ -88,7 +99,7 @@ public final class SettingsModel {
         overwriteConfirmed = true
         overwritePromptShown = false
         configError = nil
-        let saved = persist()
+        let saved = persist { _ in }
         if saved, let on = deferredLogin { deferredLogin = nil; applyLogin(on) }
         deferredLogin = nil
         if let id = deferredHarnessPlan { deferredHarnessPlan = nil; await planInstalls(forNew: id, otherManaged: []) }
@@ -105,21 +116,19 @@ public final class SettingsModel {
     // MARK: - Modifiche
 
     public func addRoots(_ paths: [String]) {
-        var changed = false
-        for p in paths where !p.isEmpty && !config.repoRoots.contains(p) { config.repoRoots.append(p); changed = true }
-        if changed { persist() }
+        let new = paths.filter { !$0.isEmpty }
+        guard new.contains(where: { !config.repoRoots.contains($0) }) else { return }
+        persist { c in for p in new where !c.repoRoots.contains(p) { c.repoRoots.append(p) } }
     }
 
     public func removeRoot(_ path: String) {
-        config.repoRoots.removeAll { $0 == path }
-        persist()
+        persist { $0.repoRoots.removeAll { $0 == path } }
     }
 
     public func setDepth(_ d: Int) {
         let v = min(Self.depthRange.upperBound, max(Self.depthRange.lowerBound, d))
         guard v != config.scanDepth else { return }
-        config.scanDepth = v
-        persist()
+        persist { $0.scanDepth = v }
     }
 
     /// Orario "HH:mm"; valori fuori scala vengono scartati.
@@ -127,8 +136,7 @@ public final class SettingsModel {
         guard (0..<24).contains(hour), (0..<60).contains(minute) else { return }
         let t = String(format: "%02d:%02d", hour, minute)
         guard t != config.dailyCheckTime else { return }
-        config.dailyCheckTime = t
-        persist()
+        persist { $0.dailyCheckTime = t }
     }
 
     public var dailyTimeParts: (hour: Int, minute: Int) {
@@ -139,35 +147,34 @@ public final class SettingsModel {
 
     public func setTerminal(_ t: String) {
         guard Self.terminals.contains(t), t != config.terminal else { return }
-        config.terminal = t
-        persist()
+        persist { $0.terminal = t }
     }
 
     public func addExclude() {
         let p = newExclude.trimmingCharacters(in: .whitespacesAndNewlines)
         newExclude = ""
         guard !p.isEmpty, !config.brewExclude.contains(p) else { return }
-        config.brewExclude.append(p)
-        persist()
+        persist { c in if !c.brewExclude.contains(p) { c.brewExclude.append(p) } }
     }
 
     public func removeExclude(_ p: String) {
-        config.brewExclude.removeAll { $0 == p }
-        persist()
+        persist { $0.brewExclude.removeAll { $0 == p } }
     }
 
     /// Spunta o toglie un harness. Spuntarne uno nuovo prepara (non esegue) l'ai-install per
     /// gli strumenti già installati su un altro harness gestito: la conferma è nella vista.
     public func setHarness(_ id: String, on: Bool) async {
-        let before = config.harnesses
+        // stato più recente: ai-install può aver aggiunto harness dopo `load()`
+        let latest = configStore.load()
+        let before = latest.error == nil ? latest.0.harnesses : config.harnesses
         if on {
-            guard !before.contains(id) else { return }
-            config.harnesses.append(id)
+            guard !before.contains(id) else { config.harnesses = before; return }
         } else {
-            guard before.contains(id) else { return }
-            config.harnesses.removeAll { $0 == id }
+            guard before.contains(id) else { config.harnesses = before; return }
         }
-        persist()
+        persist { c in
+            if on { if !c.harnesses.contains(id) { c.harnesses.append(id) } } else { c.harnesses.removeAll { $0 == id } }
+        }
         guard on else { return }
         if overwritePromptShown { deferredHarnessPlan = id; return }
         await planInstalls(forNew: id, otherManaged: before)
@@ -196,8 +203,7 @@ public final class SettingsModel {
     public func setLaunchAtLogin(_ on: Bool) {
         loginError = nil
         guard on != config.launchAtLogin else { return }
-        config.launchAtLogin = on
-        if persist() { applyLogin(on) } else if overwritePromptShown { deferredLogin = on }
+        if persist({ $0.launchAtLogin = on }) { applyLogin(on) } else if overwritePromptShown { deferredLogin = on }
     }
 
     private func applyLogin(_ on: Bool) {
@@ -205,8 +211,7 @@ public final class SettingsModel {
             if on { try login.enable(executablePath: executablePath) } else { try login.disable() }
         } catch {
             loginError = "avvio al login: \(error.localizedDescription)"
-            config.launchAtLogin = !on
-            persist()
+            persist { $0.launchAtLogin = !on }
         }
     }
 

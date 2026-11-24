@@ -95,15 +95,17 @@ struct PanelModelTests {
     @Test func claudeUsageConfigured() throws {
         let a = try mutate("claude-usage") { o in
             o["status"] = .string("ok"); o["rc"] = .number(1)
-            o["usage"] = .object(["c_pct": .number(42), "w_pct": .number(18),
-                                  "c_reset": .string("2026-11-24T14:30:00Z"), "stale": .bool(false)])
+            // forma reale del binario claude-usage (reset relativi, auth stringa)
+            o["usage"] = .object(["c_pct": .number(42), "w_pct": .number(18), "c_reset": .string("3h 12m"),
+                                  "w_reset": .string("?"), "stale": .bool(false), "auth": .string("valid")])
         }
         let m = PanelModel(all: a, detect: detect())
         #expect(m.usageState == .shown)
         #expect(m.usageFiveHour == 42)
         #expect(m.usageWeek == 18)
-        #expect(m.usageFiveHourReset != nil)
+        #expect(m.usageFiveHourReset == "3h 12m")
         #expect(m.usageWeekReset == nil)
+        #expect(m.usageNote == nil)
     }
 
     @Test func planParsing() {

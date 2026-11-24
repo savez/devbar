@@ -27,7 +27,7 @@ public enum Fmt {
     /// Valore non interpretabile: restituito com'è; vuoto o nil: nil.
     public static func reset(_ s: String?, now: Date = Date(), calendar: Calendar = .current,
                              locale: Locale = Locale(identifier: "it_IT")) -> String? {
-        guard let s, !s.isEmpty else { return nil }
+        guard let s, !s.isEmpty, s != "?" else { return nil }
         let f1 = ISO8601DateFormatter()
         let f2 = ISO8601DateFormatter(); f2.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         guard let d = f1.date(from: s) ?? f2.date(from: s) else { return s }
@@ -218,22 +218,37 @@ public struct PanelModel: Equatable, Sendable {
             usageFiveHour = u.cPct; usageWeek = u.wPct
             usageFiveHourReset = Fmt.reset(u.cReset, now: now)
             usageWeekReset = Fmt.reset(u.wReset, now: now)
-            usageNote = u.error ?? (u.auth == false ? "non autenticato" : (u.stale ? "dati non aggiornati" : nil))
+            usageNote = Self.usageNote(u)
         } else {
             usageNote = nil
         }
 
         // AI setup
-        let claudeInstalled = detect?.harnesses.first(where: { $0.id == "claude" })?.installed ?? false
-        var tools = ["RTK", "caveman", "tokensave"]
-        if claudeInstalled { tools.append("statusline") }
-        aiTools = tools
+        let display = ["RTK", "caveman", "tokensave", "statusline"]
+        if let ai = detect?.aiTools {
+            // Visibili solo con almeno un harness installato e supportato (calcolato dal motore).
+            aiTools = display.filter { ai[AISetup.cliName($0)] == true }
+        } else {
+            let claudeInstalled = detect?.harnesses.first(where: { $0.id == "claude" })?.installed ?? false
+            aiTools = claudeInstalled ? display : Array(display.prefix(3))
+        }
         showsAISetup = detect != nil
         if let h = all.rows["harnesses"], h.state == .action {
             unmanagedHarnesses = h.items.compactMap { if case .string(let s) = $0 { return s } else { return nil } }
         } else {
             unmanagedHarnesses = []
         }
+    }
+
+    /// auth prima di error: con credenziali assenti il binario mette anche un `error` in inglese.
+    static func usageNote(_ u: ClaudeUsageValues) -> String? {
+        switch u.auth {
+        case "missing": return "Accesso richiesto"
+        case "expired": return "Credenziali scadute"
+        default: break
+        }
+        if let e = u.error, !e.isEmpty { return e }
+        return u.stale ? "dati non aggiornati" : nil
     }
 
     private static func kind(_ s: CheckState?, hasRow: Bool = true) -> SectionKind {

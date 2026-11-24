@@ -56,6 +56,23 @@ public final class ConfigStore {
         }
     }
 
+    public struct InvalidConfig: Error, LocalizedError, Sendable {
+        public var message: String
+        public var errorDescription: String? { message }
+    }
+
+    /// Rilegge il file, applica `mutate` all'ultima versione e salva: le scritture del motore
+    /// (brew-exclude, ai-install) fatte nel frattempo restano. File rotto: errore, niente scritto.
+    @discardableResult
+    public func update(_ mutate: (inout DevbarConfig) -> Void) throws -> DevbarConfig {
+        let (latest, err) = load()
+        if let err { throw InvalidConfig(message: err) }
+        var c = latest
+        mutate(&c)
+        try save(c)
+        return c
+    }
+
     /// Scrittura atomica; le chiavi sconosciute già nel file restano.
     public func save(_ config: DevbarConfig) throws {
         var dict: [String: Any] = [:]

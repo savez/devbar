@@ -97,6 +97,13 @@ public final class LaunchAgentManager: LoginItemManaging {
 public enum LoginReconciler {
     public enum Outcome: Equatable, Sendable { case unchanged, wrote, removed }
 
+    /// Solo il bundle installato (`~/Applications/devbar.app`) allinea il plist: una copia
+    /// avviata da `app/.build` non deve puntare il LaunchAgent a sé.
+    public static func shouldReconcile(bundlePath: String, home: String) -> Bool {
+        let installed = URL(fileURLWithPath: home).appendingPathComponent("Applications/devbar.app").standardizedFileURL.path
+        return URL(fileURLWithPath: bundlePath).standardizedFileURL.path == installed
+    }
+
     @discardableResult
     public static func reconcile(launchAtLogin: Bool, plistURL: URL, executablePath: String) throws -> Outcome {
         let fm = FileManager.default

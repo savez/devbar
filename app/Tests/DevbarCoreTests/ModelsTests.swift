@@ -103,10 +103,11 @@ struct ModelsTests {
     }
 
     @Test func testClaudeUsageValues() throws {
-        let d = Data(#"{"status":"ok","rc":1,"usage":{"c_pct":42,"c_reset":"2026-11-24T18:00:00Z","w_pct":17,"w_reset":null,"stale":false,"auth":true,"error":null}}"#.utf8)
+        let d = Data(#"{"status":"ok","rc":1,"usage":{"c_pct":42,"c_reset":"2026-11-24T18:00:00Z","w_pct":17,"w_reset":null,"stale":false,"auth":"valid","error":null}}"#.utf8)
         let u = try JSONDecoder().decode(ClaudeUsage.self, from: d)
         #expect(u.usage?.cPct == 42)
         #expect(u.usage?.wReset == nil)
+        #expect(u.usage?.auth == "valid")
     }
 
     // MARK: altri comandi
