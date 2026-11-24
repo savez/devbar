@@ -30,3 +30,10 @@ write_config() { printf '%s\n' "$1" >"$DEVBAR_CONFIG"; }
 
 # Esegue codice bash con lib/common.sh già caricato.
 in_common() { bash -c "set -euo pipefail; source '$DEVBAR_REPO/lib/common.sh'; $1"; }
+
+# schema_ok <schema> <json>: l'output è valido per schemas/<schema>.schema.json (check-jsonschema).
+schema_ok() {
+  local f="$BATS_TEST_TMPDIR/out.json"
+  printf '%s\n' "$2" >"$f"
+  check-jsonschema --schemafile "$DEVBAR_REPO/schemas/$1.schema.json" "$f"
+}

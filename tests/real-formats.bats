@@ -30,15 +30,10 @@ latest() {
   printf '../real/%s' "$(basename "$f")"
 }
 
-schema_ok() { # schema_ok <schema> <json>
-  local f="$BATS_TEST_TMPDIR/out.json"
-  printf '%s\n' "$2" >"$f"
-  check-jsonschema --schemafile "$DEVBAR_REPO/schemas/$1.schema.json" "$f"
-}
-
-# unrecognized <rc atteso> <json> <strumento>: errore di formato con la versione.
+# unrecognized <strumento> <schema>: errore di formato con la versione, valido per lo schema del check.
 unrecognized() {
   [ "$status" -eq 2 ]
+  schema_ok "$2" "$output"
   [ "$(jq -r .status <<<"$output")" = error ]
   [[ "$(jq -r .summary <<<"$output")" =~ ^formato\ di\ "$1"\ non\ riconosciuto\ \(versione\ [0-9.]+\)$ ]] ||
     { echo "summary: $(jq -r .summary <<<"$output")" >&2; return 1; }
@@ -117,61 +112,61 @@ unrecognized() {
 @test "brew-outdated: JSON di altra forma -> formato non riconosciuto" {
   export STUB_BREW_OUTDATED_FIXTURE=../wrong/object.json
   run --separate-stderr "$DEVBAR" check brew-outdated
-  unrecognized brew
+  unrecognized brew brew-outdated
 }
 
 @test "brew-outdated: testo non JSON -> formato non riconosciuto" {
   export STUB_BREW_OUTDATED_FIXTURE=outdated-broken.txt
   run --separate-stderr "$DEVBAR" check brew-outdated
-  unrecognized brew
+  unrecognized brew brew-outdated
 }
 
 @test "brew-vulns: JSON di altra forma -> formato non riconosciuto" {
   export STUB_BREW_VULNS_FIXTURE=../wrong/object.json
   run --separate-stderr "$DEVBAR" check brew-vulns --force
-  unrecognized brew
+  unrecognized brew brew-vulns
 }
 
 @test "brew-vulns: findings senza formula -> formato non riconosciuto" {
   export STUB_BREW_VULNS_FIXTURE=vulns-badshape.json
   run --separate-stderr "$DEVBAR" check brew-vulns --force
-  unrecognized brew
+  unrecognized brew brew-vulns
 }
 
 @test "rtk: summary vuoto -> formato non riconosciuto" {
   export STUB_RTK_FIXTURE=../wrong/summary-empty.json
   run --separate-stderr "$DEVBAR" check rtk
-  unrecognized rtk
+  unrecognized rtk rtk
 }
 
 @test "rtk: testo non JSON -> formato non riconosciuto" {
   export STUB_RTK_FIXTURE=gain-broken.txt
   run --separate-stderr "$DEVBAR" check rtk
-  unrecognized rtk
+  unrecognized rtk rtk
 }
 
 @test "tokensave: gain di altra forma -> formato non riconosciuto" {
   export STUB_TOKENSAVE_GAIN_FIXTURE=../wrong/object.json STUB_TOKENSAVE_DISCOVER_FIXTURE=discover-empty.json
   run --separate-stderr "$DEVBAR" check tokensave
-  unrecognized tokensave
+  unrecognized tokensave tokensave
 }
 
 @test "tokensave: discover di altra forma -> formato non riconosciuto" {
   export STUB_TOKENSAVE_GAIN_FIXTURE=gain.json STUB_TOKENSAVE_DISCOVER_FIXTURE=../wrong/object.json
   run --separate-stderr "$DEVBAR" check tokensave
-  unrecognized tokensave
+  unrecognized tokensave tokensave
 }
 
 @test "colima: righe JSON senza nome -> formato non riconosciuto" {
   export STUB_COLIMA_LIST_FIXTURE=../wrong/array-of-objects.json
   run --separate-stderr "$DEVBAR" check colima
-  unrecognized colima
+  unrecognized colima colima
 }
 
 @test "colima: testo non JSON -> formato non riconosciuto" {
   export STUB_COLIMA_LIST_FIXTURE=../rtk/gain-broken.txt
   run --separate-stderr "$DEVBAR" check colima
-  unrecognized colima
+  unrecognized colima colima
 }
 
 @test "colima: nessun output = nessun profilo (non è un errore)" {
@@ -195,6 +190,7 @@ _audit_repo() {
   run --separate-stderr "$DEVBAR" check npm-audit --force
   [ "$status" -eq 2 ]
   [[ "$(jq -r .summary <<<"$output")" == *"formato di npm non riconosciuto (versione 11.20.0)"* ]]
+  schema_ok npm-audit "$output"
 }
 
 @test "composer-audit: advisories di altra forma -> formato non riconosciuto" {
@@ -203,6 +199,7 @@ _audit_repo() {
   run --separate-stderr "$DEVBAR" check composer-audit --force
   [ "$status" -eq 2 ]
   [[ "$(jq -r .summary <<<"$output")" == *"formato di composer non riconosciuto (versione 2.8.4)"* ]]
+  schema_ok composer-audit "$output"
 }
 
 @test "npm-audit: errore dichiarato da npm -> non riuscito con il messaggio, non formato" {
@@ -211,6 +208,7 @@ _audit_repo() {
   run --separate-stderr "$DEVBAR" check npm-audit --force
   [ "$status" -eq 2 ]
   [ "$(jq -r .summary <<<"$output")" = "npm audit non riuscito: request to https://registry.npmjs.org failed" ]
+  schema_ok npm-audit "$output"
 }
 
 @test "npm-audit: \"error\":null con conteggi -> risultato normale" {
@@ -229,6 +227,7 @@ _audit_repo() {
   [ "$status" -eq 2 ]
   [[ "$(jq -r .summary <<<"$output")" == *"formato di npm non riconosciuto"* ]]
   [[ "$(jq -r .summary <<<"$output")" != *"null"* ]]
+  schema_ok npm-audit "$output"
 }
 
 @test "composer-audit: errore dichiarato -> non riuscito con il messaggio" {
@@ -237,12 +236,13 @@ _audit_repo() {
   run --separate-stderr "$DEVBAR" check composer-audit --force
   [ "$status" -eq 2 ]
   [ "$(jq -r .summary <<<"$output")" = "composer audit non riuscito: Could not reach packagist" ]
+  schema_ok composer-audit "$output"
 }
 
 @test "claude-usage: JSON di altra forma -> formato non riconosciuto" {
   export STUB_CLAUDE_USAGE_FIXTURE=../wrong/object.json
   run --separate-stderr "$DEVBAR" check claude-usage
-  unrecognized claude-usage
+  unrecognized claude-usage claude-usage
 }
 
 @test "la versione compare nel messaggio (brew 7.0.16)" {
@@ -256,6 +256,7 @@ _audit_repo() {
   run --separate-stderr "$DEVBAR" check brew-outdated
   [ "$status" -eq 2 ]
   [ "$(jq -r .summary <<<"$output")" = "formato di brew non riconosciuto (versione sconosciuta)" ]
+  schema_ok brew-outdated "$output"
 }
 
 # --- record-fixtures --------------------------------------------------------------------

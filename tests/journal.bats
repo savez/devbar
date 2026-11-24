@@ -137,6 +137,8 @@ fake_caveman_repo() {
   run --separate-stderr "$DEVBAR" journal --limit 2
   [ "$status" -eq 0 ]
   [ "$(jq -r '[.entries[].id] | join(",")' <<<"$output")" = "v3,v2" ]
+  # kind none (non raggiungibile dalla CLI: settle mette il tipo nuovo o toglie il record)
+  schema_ok journal "$output"
   run --separate-stderr "$DEVBAR" journal --limit x
   [ "$status" -eq 2 ]
 }
@@ -177,8 +179,12 @@ fake_caveman_repo() {
   "$DEVBAR" run caveman-mode megacave --yes >/dev/null 2>&1
   [ -f "$CFG" ]
   [ "$("$DEVBAR" journal | jq -r '.entries[0].files[0].existed')" = false ]
+  run --separate-stderr "$DEVBAR" undo
+  [ "$(jq -r '.files[0].action' <<<"$output")" = remove ]
+  schema_ok undo "$output"
   run --separate-stderr "$DEVBAR" undo --yes
   [ "$status" -eq 0 ]
+  schema_ok undo "$output"
   [ ! -e "$CFG" ]
 }
 
@@ -238,8 +244,11 @@ fake_caveman_repo() {
   run --separate-stderr "$DEVBAR" undo
   [ "$(jq -r .needsForce <<<"$output")" = true ]
   [[ "$(jq -r '.commands | join("\n")' <<<"$output")" == *"/kept/"* ]]
+  schema_ok undo "$output"
   run --separate-stderr "$DEVBAR" undo --force --yes
   [ "$status" -eq 0 ]
+  [ "$(jq -r '.kept | length' <<<"$output")" -ge 1 ]
+  schema_ok undo "$output"
   [ "$(cat "$HOME/.agents/skills/caveman/SKILL.md")" = vecchia ]
   # una sola skill in skills/: la versione dell'altro programma è nella voce
   [ "$(find "$HOME/.agents/skills" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')" -eq 1 ]
@@ -339,6 +348,11 @@ fake_caveman_repo() {
   [ "$status" -eq 0 ]
   [ -L "$HOME/.claude/skills/caveman" ]
   [ "$(cat "$HOME/.agents/skills/caveman/SKILL.md")" = skill ]
+  run --separate-stderr "$DEVBAR" journal
+  [ "$(jq -r '[.entries[0].files[].kind] | (index("dir") != null) and (index("link") != null)' <<<"$output")" = true ]
+  schema_ok journal "$output"
+  run --separate-stderr "$DEVBAR" undo
+  schema_ok undo "$output"
   run --separate-stderr "$DEVBAR" undo --yes
   [ "$status" -eq 0 ]
   [ "$(cat "$HOME/.agents/skills/caveman/SKILL.md")" = vecchia ]
