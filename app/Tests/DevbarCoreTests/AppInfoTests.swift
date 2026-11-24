@@ -19,6 +19,8 @@ struct AppInfoTests {
 
     @Test func links() {
         #expect(AppInfo.repositoryURL.absoluteString == "https://github.com/savez/devbar")
+        #expect(AppInfo.issuesURL.absoluteString == "https://github.com/savez/devbar/issues")
+        #expect(AppInfo.licenseURL.lastPathComponent == "LICENSE")
         #expect(AppInfo.supportURL.host == "buymeacoffee.com")
         #expect(AppInfo.supportURL.scheme == "https")
     }

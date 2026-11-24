@@ -51,6 +51,16 @@ enum Snapshots {
                 }
             }
         }
+        renderAbout(to: out)
+    }
+
+    /// La scheda "Informazioni" delle impostazioni.
+    private static func renderAbout(to out: URL) {
+        for dark in [false, true] {
+            render(Form { AboutSection() }.formStyle(.grouped).background(Color(nsColor: .windowBackgroundColor)),
+                   width: 480, height: nil, dark: dark,
+                   to: out.appendingPathComponent("settings-about-\(dark ? "dark" : "light").png"))
+        }
     }
 
     private static func wait(_ body: @escaping @MainActor () async -> Void) {
