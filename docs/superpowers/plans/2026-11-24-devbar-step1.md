@@ -64,6 +64,17 @@ Makefile  README.md
 
 ---
 
+### Task 0: Repo GitHub privato
+
+**Files:**
+- Create: `.gitignore` (`.build/`, `app/.build/`, `.DS_Store`, `*.swp`)
+
+- [ ] **Step 1:** verifica `gh auth status` → account `savez` attivo; `gh repo view savez/devbar` → non esiste.
+- [ ] **Step 2:** crea `.gitignore` e committalo (`chore: gitignore`). Non includere `IDEE.md` se ha modifiche non committate: chiedi all'utente.
+- [ ] **Step 3:** `gh repo create savez/devbar --private --source=. --remote=origin --push`.
+- [ ] **Step 4:** verifica `gh repo view savez/devbar --json visibility -q .visibility` → `PRIVATE`; `git status -sb` → `main...origin/main`.
+- [ ] Dopo ogni task successivo: `git push`.
+
 ### Task 1: Scheletro del motore
 
 **Files:**
