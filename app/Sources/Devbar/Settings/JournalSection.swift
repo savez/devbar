@@ -16,10 +16,6 @@ struct JournalSection: View {
                         Text(e.title).lineLimit(1).truncationMode(.middle)
                         Text("\(JournalEntry.timeText(e.time)) · \(e.filesText)")
                             .font(.caption).foregroundStyle(.secondary)
-                        if e.hasChanges && e.canUndo {
-                            Text("Un file è stato cambiato da un altro programma dopo devbar.")
-                                .font(.caption).foregroundStyle(.orange)
-                        }
                     }
                     Spacer()
                     if e.undone {

@@ -6,8 +6,6 @@ public struct JournalFile: Decodable, Equatable, Sendable {
     public var path: String
     public var kind: String
     public var existed: Bool
-    /// Cambiato da un altro programma dopo devbar: annullare ne perde le modifiche.
-    public var changed: Bool
 }
 
 /// Voce del registro: tutti i file scritti da una `devbar run …`.
@@ -26,7 +24,6 @@ public struct JournalEntry: Decodable, Equatable, Sendable, Identifiable {
             .joined(separator: " ")
     }
     public var filesText: String { "\(files.count) file" }
-    public var hasChanges: Bool { files.contains(where: \.changed) }
     public var canUndo: Bool { !undone }
 
     /// "dd/MM HH:mm" nell'ora locale (o nel fuso dato); il testo grezzo se non è una data.
@@ -43,8 +40,8 @@ public struct JournalEntry: Decodable, Equatable, Sendable, Identifiable {
 struct JournalList: Decodable { var entries: [JournalEntry] }
 
 /// "Ultime modifiche" nelle Impostazioni: le ultime voci del registro e "Annulla", con la
-/// conferma comune (piano di `devbar undo <id>` mostrato, poi `--yes`). Se un file è
-/// cambiato nel frattempo la conferma lo dice e l'azione porta `--force`.
+/// conferma comune (piano di `devbar undo <id>` mostrato, poi `--yes`). L'elenco non calcola
+/// hash: se un file è cambiato nel frattempo lo dice il piano, e l'azione porta `--force`.
 @Observable @MainActor
 public final class JournalModel {
     public static let shown = 10
@@ -73,11 +70,16 @@ public final class JournalModel {
         }
     }
 
+    /// Il piano di `undo <id>` dice (stato attuale) se un file è cambiato da un altro programma
+    /// (`needsForce`): in quel caso la conferma lo avvisa e l'azione porta `--force`.
     public func requestUndo(_ e: JournalEntry) async {
-        guard e.canUndo else { return }
-        let force = e.hasChanges
+        guard e.canUndo, !confirmation.busy else { return }
+        let probe = await runner.run(action: ["undo", e.id])
+        var force = false
+        if probe.rc < 2, case .object(let o)? = try? JSONDecoder().decode(JSONValue.self, from: probe.stdout),
+           case .bool(let b)? = o["needsForce"] { force = b }
         let title = force
-            ? "Annullare \(e.title)? Alcuni file sono cambiati nel frattempo: le loro modifiche andranno perse."
+            ? "Annullare \(e.title)? Alcuni file sono cambiati nel frattempo: la loro versione resta accanto (.devbar-undo-<data>)."
             : "Annullare \(e.title)?"
         await confirmation.request(title: title,
                                    actions: [ConfirmableAction(title: "Annulla \(e.title)",

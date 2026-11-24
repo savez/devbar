@@ -69,7 +69,7 @@ fake_caveman_repo() {
   [ "$(jq -r '.entries[0].files[0].existed' <<<"$output")" = true ]
   [ "$(jq -r '.entries[0].files[0].sha256Before' <<<"$output")" = "$before" ]
   [ "$(jq -r '.entries[0].files[0].sha256After' <<<"$output")" = "$(shasum -a 256 "$CFG" | cut -d' ' -f1)" ]
-  [ "$(jq -r '.entries[0].files[0].changed' <<<"$output")" = false ]
+  [ "$(jq -r '.entries[0].files[0] | has("changed")' <<<"$output")" = false ]
   [ "$(jq -r '.entries[0].undone' <<<"$output")" = false ]
   # meta.json e copia del file com'era
   d="$(find "$J" -mindepth 1 -maxdepth 1 -type d)"
@@ -199,8 +199,6 @@ fake_caveman_repo() {
   "$DEVBAR" run project-apply "$REPO" --yes >/dev/null 2>&1
   printf 'altro programma\n' >>"$REPO/AGENTS.md"
   cp "$REPO/AGENTS.md" "$BATS_TEST_TMPDIR/agents.now"
-  run --separate-stderr "$DEVBAR" journal
-  [ "$(jq -r --arg p "$REPO/AGENTS.md" '.entries[0].files[] | select(.path == $p) | .changed' <<<"$output")" = true ]
   run --separate-stderr "$DEVBAR" undo
   [ "$status" -eq 0 ]
   [ "$(jq -r .needsForce <<<"$output")" = true ]
@@ -214,11 +212,15 @@ fake_caveman_repo() {
   cmp "$REPO/AGENTS.md" "$BATS_TEST_TMPDIR/agents.now"
   [ -f "$REPO/.cursor/rules/caveman.mdc" ]
   [ "$("$DEVBAR" journal | jq -r '.entries[0].undone')" = false ]
-  # con --force si ripristina
+  # con --force si ripristina; la versione dell'altro programma resta accanto, non cancellata
   run --separate-stderr "$DEVBAR" undo --force --yes
   [ "$status" -eq 0 ]
   [ "$(cat "$REPO/AGENTS.md")" = utente ]
   [ ! -e "$REPO/.cursor/rules/caveman.mdc" ]
+  kept="$(jq -r '.kept[0]' <<<"$output")"
+  [[ "$kept" == "$REPO/AGENTS.md.devbar-undo-"* ]]
+  cmp "$kept" "$BATS_TEST_TMPDIR/agents.now"
+  [[ "$(jq -r '.commands | join("\n")' <<<"$output")" == *"resta in"* ]]
 }
 
 @test "undo: ripristino fallito -> backup intatto, voce non annullata; poi riprova" {
@@ -316,7 +318,8 @@ fake_caveman_repo() {
   [ "$(cat "$HOME/.agents/skills/caveman/SKILL.md")" = vecchia ]
   [ ! -L "$HOME/.claude/skills/caveman" ]
   [ "$(cat "$HOME/.claude/skills/caveman/NOTE.md")" = mia ]
-  [ ! -e "$HOME/.copilot/skills/caveman" ] && [ ! -L "$HOME/.copilot/skills/caveman" ]
+  [ ! -e "$HOME/.copilot/skills/caveman" ]
+  [ ! -L "$HOME/.copilot/skills/caveman" ]
   [ ! -e "$HOME/.copilot/copilot-instructions.md" ]
   [ -z "$(find "$HOME/.agents/skills" "$HOME/.claude/skills" -name '*.devbar-*')" ]
 }
@@ -341,4 +344,124 @@ fake_caveman_repo() {
   [ "$status" -eq 0 ]
   [ ! -e "$HOME/.local/bin/rtk-run" ]
   [ ! -e "$HOME/.copilot/copilot-instructions.md" ]
+}
+
+@test "journal: rtk scrive attraverso un symlink (dotfiles) -> undo ripristina il target, il link resta" {
+  rm -f "$BATS_TEST_TMPDIR/stubs/rtk"
+  cat >"$BATS_TEST_TMPDIR/stubs/rtk" <<'STUB'
+#!/usr/bin/env bash
+case "$*" in
+  "init -g --auto-patch") printf '{"hooks":"rtk"}\n' >"$HOME/.claude/settings.json" ;;
+esac
+STUB
+  chmod +x "$BATS_TEST_TMPDIR/stubs/rtk"
+  mkdir -p "$HOME/dotfiles" "$HOME/.claude"
+  printf '{"mine":true}' >"$HOME/dotfiles/settings.json"
+  ln -s "$HOME/dotfiles/settings.json" "$HOME/.claude/settings.json"
+  run --separate-stderr "$DEVBAR" run ai-install rtk claude --yes
+  [ "$status" -eq 0 ]
+  [ "$(jq -r .hooks "$HOME/dotfiles/settings.json")" = rtk ]
+  [ "$("$DEVBAR" journal | jq -r --arg p "$HOME/dotfiles/settings.json" '[.entries[0].files[].path] | index($p) != null')" = true ]
+  run --separate-stderr "$DEVBAR" undo --yes
+  [ "$status" -eq 0 ]
+  [ -L "$HOME/.claude/settings.json" ]
+  [ "$(readlink "$HOME/.claude/settings.json")" = "$HOME/dotfiles/settings.json" ]
+  [ "$(cat "$HOME/dotfiles/settings.json")" = '{"mine":true}' ]
+}
+
+@test "journal: tokensave install registra i file noti dell'agente; il piano lo dice" {
+  run --separate-stderr "$DEVBAR" run ai-install tokensave claude
+  [ "$status" -eq 0 ]
+  [[ "$(jq -r '.commands | join("\n")' <<<"$output")" == *"annullabile"*"~/.claude.json"* ]]
+  rm -f "$BATS_TEST_TMPDIR/stubs/tokensave"
+  cat >"$BATS_TEST_TMPDIR/stubs/tokensave" <<'STUB'
+#!/usr/bin/env bash
+case "$1" in
+  install) printf '{"mcpServers":{"tokensave":{}}}\n' >"$HOME/.claude.json"
+    mkdir -p "$HOME/.claude/rules"; echo regole >"$HOME/.claude/rules/tokensave.md" ;;
+esac
+STUB
+  chmod +x "$BATS_TEST_TMPDIR/stubs/tokensave"
+  printf '{"numStartups":3}' >"$HOME/.claude.json"
+  run --separate-stderr "$DEVBAR" run ai-install tokensave claude --yes
+  [ "$status" -eq 0 ]
+  run --separate-stderr "$DEVBAR" undo --yes
+  [ "$status" -eq 0 ]
+  [ "$(cat "$HOME/.claude.json")" = '{"numStartups":3}' ]
+  [ ! -e "$HOME/.claude/rules/tokensave.md" ]
+}
+
+# mv che registra le chiamate; con MV_FAIL fallisce quando la sorgente contiene quel testo.
+logging_mv() {
+  cat >"$BATS_TEST_TMPDIR/stubs/mv" <<'STUB'
+#!/usr/bin/env bash
+echo "$*" >>"$BATS_TEST_TMPDIR/mv.calls"
+if [ -n "${MV_FAIL:-}" ]; then
+  case "$1" in *"$MV_FAIL"*) exit 1 ;; esac
+fi
+exec /bin/mv "$@"
+STUB
+  chmod +x "$BATS_TEST_TMPDIR/stubs/mv"
+}
+
+@test "undo: prima i ripristini, poi le rimozioni (il backup .devbar-<data> sparisce per ultimo)" {
+  make_stub git node
+  fake_caveman_repo
+  mkdir -p "$HOME/.agents/skills/caveman"
+  echo vecchia >"$HOME/.agents/skills/caveman/SKILL.md"
+  "$DEVBAR" run ai-install caveman copilot --yes >/dev/null 2>&1
+  logging_mv
+  run --separate-stderr "$DEVBAR" undo --yes
+  [ "$status" -eq 0 ]
+  # riga del ripristino della skill (tmp -> skill) prima dello spostamento del backup .devbar-
+  restore="$(grep -n "/.devbar-undo\.[^ ]*/caveman $HOME/.agents/skills/caveman\$" "$BATS_TEST_TMPDIR/mv.calls" | cut -d: -f1)"
+  remove="$(grep -n "^$HOME/.agents/skills/caveman\.devbar-" "$BATS_TEST_TMPDIR/mv.calls" | cut -d: -f1)"
+  [ -n "$restore" ]
+  [ -n "$remove" ]
+  [ "$restore" -lt "$remove" ]
+  [ "$(cat "$HOME/.agents/skills/caveman/SKILL.md")" = vecchia ]
+}
+
+@test "undo: spostato da parte, passo finale fallito -> torna com'era, voce non annullata" {
+  mkdir -p "$(dirname "$CFG")"
+  printf '{"a":1}' >"$CFG"
+  "$DEVBAR" run caveman-mode megacave --yes >/dev/null 2>&1
+  cp "$CFG" "$BATS_TEST_TMPDIR/after"
+  logging_mv
+  MV_FAIL=/.devbar-undo. run --separate-stderr "$DEVBAR" undo --yes
+  [ "$status" -eq 2 ]
+  # lo spostamento da parte c'è stato, ed è stato annullato
+  grep -q "^$CFG .*/.devbar-undo-old\." "$BATS_TEST_TMPDIR/mv.calls"
+  cmp "$CFG" "$BATS_TEST_TMPDIR/after"
+  [ -z "$(find "$(dirname "$CFG")" -name '.devbar-undo*')" ]
+  [ "$("$DEVBAR" journal | jq -r '.entries[0].undone')" = false ]
+  rm -f "$BATS_TEST_TMPDIR/stubs/mv"
+  run --separate-stderr "$DEVBAR" undo --yes
+  [ "$status" -eq 0 ]
+  [ "$(cat "$CFG")" = '{"a":1}' ]
+}
+
+@test "undo: file illeggibile -> trattato come cambiato (serve --force), mai come assente" {
+  "$DEVBAR" run caveman-mode megacave --yes >/dev/null 2>&1
+  chmod 000 "$CFG"
+  run --separate-stderr "$DEVBAR" undo
+  chmod 600 "$CFG"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r .needsForce <<<"$output")" = true ]
+  [ "$(jq -r '.files[0].action' <<<"$output")" = remove ]
+  chmod 000 "$CFG"
+  run --separate-stderr "$DEVBAR" undo --yes
+  chmod 600 "$CFG"
+  [ "$status" -eq 2 ]
+  [ -f "$CFG" ]
+}
+
+@test "journal: target illeggibile -> nessuna scrittura (backup impossibile)" {
+  mkdir -p "$HOME/.copilot"
+  printf 'mio' >"$HOME/.copilot/copilot-instructions.md"
+  chmod 000 "$HOME/.copilot/copilot-instructions.md"
+  run --separate-stderr "$DEVBAR" run ai-install rtk copilot --yes
+  chmod 600 "$HOME/.copilot/copilot-instructions.md"
+  [ "$status" -eq 2 ]
+  [ "$(cat "$HOME/.copilot/copilot-instructions.md")" = mio ]
 }

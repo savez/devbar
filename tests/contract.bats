@@ -112,7 +112,7 @@ neg() {
   neg journal 'del(.entries)'
   neg journal 'del(.entries[0].id)'
   neg journal 'del(.entries[0].undone)'
-  neg journal '.entries[0].files[0].changed = "no"'
+  neg journal '.entries[0].files[0].existed = "no"'
   neg journal 'del(.entries[0].files[0].sha256After)'
 }
 @test "negativo: undo" {
@@ -121,5 +121,6 @@ neg() {
   neg undo.plan '.files[0].action = "delete"'
   neg undo.plan 'del(.id)'
   neg undo 'del(.applied)'
+  neg undo 'del(.kept)'
   neg undo.error 'del(.error)'
 }

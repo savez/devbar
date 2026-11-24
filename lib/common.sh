@@ -118,18 +118,26 @@ devbar_hash() { printf '%s' "$1" | shasum -a 256 | cut -c1-16; }
 # (i tool possono stampare testo, es. '==> ...', prima del JSON).
 extract_json() { awk '/^\{/ {p=1} p'; }
 
-# devbar_write_file <target>: scrive stdin su <target> (Ruling E).
-# File temporaneo nella cartella del target + mv; mantiene il modo del target
-# se esisteva; se il target è un symlink scrive sul file risolto (il link resta);
-# nessun temporaneo residuo in caso di errore.
-devbar_write_file() {
-  local target="$1" next dir tmp mode n=0
+# devbar_resolve_link <percorso>: segue i symlink (bash 3.2: niente readlink -f) e stampa il
+# percorso finale (che può non esistere). Più di 20 link: rc 1.
+devbar_resolve_link() {
+  local target="$1" next n=0
   while [ -L "$target" ]; do
     next="$(readlink "$target")"
     case "$next" in /*) target="$next" ;; *) target="$(dirname "$target")/$next" ;; esac
     n=$((n + 1))
     [ "$n" -le 20 ] || { echo "devbar: troppi symlink: $1" >&2; return 1; }
   done
+  printf '%s' "$target"
+}
+
+# devbar_write_file <target>: scrive stdin su <target> (Ruling E).
+# File temporaneo nella cartella del target + mv; mantiene il modo del target
+# se esisteva; se il target è un symlink scrive sul file risolto (il link resta);
+# nessun temporaneo residuo in caso di errore.
+devbar_write_file() {
+  local target dir tmp mode
+  target="$(devbar_resolve_link "$1")" || return 1
   dir="$(dirname "$target")"
   # registro delle modifiche (lib/journal.sh): stato di prima, backup; se fallisce non si scrive
   if declare -F journal_before >/dev/null; then journal_before "$target" </dev/null || return 1; fi

@@ -1,6 +1,7 @@
 {
   "applied": true,
   "id": "contract",
+  "kept": [],
   "commands": [
     "rimuove ~/.config/caveman/config.json (creato da devbar)"
   ]

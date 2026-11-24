@@ -62,19 +62,29 @@ if command -v sha256sum >/dev/null 2>&1; then _JOURNAL_SHA=(sha256sum); else _JO
 _journal_sha() { "${_JOURNAL_SHA[@]}" | cut -c1-64; }
 
 # _journal_hash <percorso>: sha256 del contenuto; cartelle: dell'elenco (tipo, nome, hash);
-# link: del target. Vuoto se il percorso non esiste.
+# link: del target. Vuoto se il percorso non esiste. Percorso illeggibile (file, sottocartella,
+# errore di find): rc 1 e niente in uscita, mai "assente".
 _journal_hash() {
-  local p="$1"
+  local p="$1" list t
   case "$(_journal_kind "$p")" in
-    link) printf 'link:%s' "$(readlink "$p")" | _journal_sha ;;
-    file) _journal_sha <"$p" ;;
+    link)
+      t="$(readlink "$p")" || return 1
+      printf 'link:%s' "$t" | _journal_sha
+      ;;
+    file)
+      [ -r "$p" ] || return 1
+      _journal_sha <"$p" || return 1
+      ;;
     dir)
       # cartelle e link per nome, file con il loro hash (un solo processo di hash per tutti)
-      (cd "$p" && {
-        find . -type d | sed 's/^/D /'
-        find . -type l | while IFS= read -r f; do printf 'L %s %s\n' "$f" "$(readlink "$f")"; done
-        find . -type f -exec "${_JOURNAL_SHA[@]}" {} + | awk '{ h=$1; sub(/^[0-9a-f]+  /, ""); print "F " $0 " " h }'
-      } | LC_ALL=C sort) | _journal_sha
+      list="$(
+        set -o pipefail
+        cd "$p" || exit 1
+        find . -type d | sed 's/^/D /' || exit 1
+        find . -type l -exec sh -c 'for f; do printf "L %s %s\n" "$f" "$(readlink "$f")"; done' _ {} + || exit 1
+        find . -type f -exec "${_JOURNAL_SHA[@]}" {} + | awk '{ h=$1; sub(/^[0-9a-f]+  /, ""); print "F " $0 " " h }' || exit 1
+      )" || return 1
+      printf '%s\n' "$list" | LC_ALL=C sort | _journal_sha
       ;;
     none) printf '' ;;
   esac
@@ -140,13 +150,19 @@ journal_before() {
         ;;
       link) target="$(readlink "$p")" ;;
     esac
-    sha="$(_journal_hash "$p")" || return 1
+    sha="$(_journal_hash "$p")" || { echo "devbar: impossibile leggere $p: non scritto" >&2; return 1; }
     [ -z "$backup" ] || backup="files/$(basename "$backup")"
     rec="$(jq -nc --arg p "$p" --arg k "$kind" --arg s "$sha" --arg b "$backup" --arg t "$target" \
       '{path:$p, kind:$k, existed:($k != "none"), sha256Before:(if $s == "" then null else $s end),
         sha256After:(if $s == "" then null else $s end), backup:(if $b == "" then null else $b end),
         linkTarget:(if $k == "link" then $t else null end)}')"
     _journal_meta_set "$meta" '.files += [$r]' --argjson r "$rec" || return 1
+    # Un link (es. settings.json gestito da dotfiles): chi scrive attraverso il link cambia il
+    # file a cui punta, che va registrato anche lui.
+    if [ "$kind" = link ]; then
+      target="$(devbar_resolve_link "$p")" || return 1
+      [ "$target" = "$p" ] || journal_before "$target" || return 1
+    fi
   done
 }
 
@@ -162,8 +178,10 @@ journal_settle() {
   while [ "$i" -ge 0 ]; do
     p="$(jq -r --argjson i "$i" '.files[$i].path' "$meta")"
     before="$(jq -r --argjson i "$i" '.files[$i].sha256Before // ""' "$meta")"
-    sha="$(_journal_hash "$p")"
-    if [ "$sha" = "$before" ]; then
+    if ! sha="$(_journal_hash "$p")"; then
+      # stato finale illeggibile: si tiene, e undo chiederà --force
+      _journal_meta_set "$meta" '.files[$i].afterUnknown = true' --argjson i "$i" || return 1
+    elif [ "$sha" = "$before" ]; then
       b="$(jq -r --argjson i "$i" '.files[$i].backup // ""' "$meta")"
       _journal_meta_set "$meta" 'del(.files[$i])' --argjson i "$i" || return 1
       [ -z "$b" ] || rm -f "${e:?}/$b"
@@ -185,12 +203,13 @@ _journal_files_state() {
   local meta="$1" p hashes=()
   # un hash per file (ordine di .files); jq una volta per leggere e una per combinare
   while IFS= read -r p; do
-    hashes+=("$(_journal_hash "$p")")
+    # illeggibile: valore che non coincide con nessun hash, quindi "cambiato"
+    hashes+=("$(_journal_hash "$p" || printf '!illeggibile')")
   done < <(jq -r '.files[].path' "$meta")
   jq -c '[.files as $f | range(0; $f | length) as $i | $ARGS.positional[$i] as $cur | $f[$i]
     | (.sha256Before // "") as $b | (.sha256After // "") as $a
     | . + (if $cur == $b then {action:"none", changed:false}
-           else {action:(if .existed then "restore" else "remove" end), changed:($cur != $a)} end)]' \
+           else {action:(if .existed then "restore" else "remove" end), changed:($cur != $a or .afterUnknown == true)} end)]' \
     "$meta" --args ${hashes[@]+"${hashes[@]}"}
 }
 
@@ -203,10 +222,11 @@ _journal_entries() {
 }
 
 # cmd_journal [--limit N]: {entries:[{id,time,command,undone,files:[{path,kind,existed,
-# sha256Before,sha256After,changed}]}]}, dalla più recente; con --limit solo le prime N
-# (l'hash attuale si calcola solo per quelle). Voci illeggibili saltate.
+# sha256Before,sha256After}]}]}, dalla più recente; con --limit solo le prime N. Solo
+# lettura di meta.json, nessun hash: se un file è cambiato lo dice il piano di undo.
+# Voci illeggibili saltate.
 cmd_journal() {
-  local d files limit="" n=0
+  local d limit="" n=0
   if [ "${1:-}" = --limit ]; then
     case "${2:-}" in '' | *[!0-9]*) _journal_error "uso: devbar journal [--limit N]"; return 2 ;; esac
     limit="$2"
@@ -215,9 +235,8 @@ cmd_journal() {
     [ -n "$d" ] || continue
     [ -z "$limit" ] || [ "$n" -lt "$limit" ] || break
     jq -e 'type == "object" and (.files | type) == "array"' "$d/meta.json" >/dev/null 2>&1 || continue
-    files="$(_journal_files_state "$d/meta.json")"
-    jq -c --argjson f "$files" '{id, time, command, undone:(.undoneAt != null),
-      files:[$f[] | {path, kind, existed, sha256Before, sha256After, changed}]}' "$d/meta.json"
+    jq -c '{id, time, command, undone:(.undoneAt != null),
+      files:[.files[] | {path, kind, existed, sha256Before, sha256After}]}' "$d/meta.json"
     n=$((n + 1))
   done < <(_journal_entries) | jq -s '{entries:.}'
 }
@@ -240,13 +259,16 @@ _journal_find() {
 # _journal_restore <voce> <record-json>: rimette il percorso com'era (o lo toglie se creato).
 # Il contenuto nuovo si prepara accanto al target; quello attuale si sposta da parte e torna
 # al suo posto se il passo finale fallisce. Il backup nella voce non viene toccato.
+# Record `changed` (versione di un altro programma, solo con --force): quella versione non si
+# cancella, resta in <percorso>.devbar-undo-<data>, stampato su stdout.
 _journal_restore() {
-  local e="$1" r="$2" p kind existed backup target parent base tmp="" aside="" new=""
+  local e="$1" r="$2" p kind keep kept n=1 existed backup target parent base tmp="" aside="" new=""
   p="$(jq -r .path <<<"$r")"
   kind="$(jq -r .kind <<<"$r")"
   existed="$(jq -r .existed <<<"$r")"
   backup="$(jq -r '.backup // ""' <<<"$r")"
   target="$(jq -r '.linkTarget // ""' <<<"$r")"
+  keep="$(jq -r '.changed' <<<"$r")"
   case "$p" in / | "$HOME" | "$HOME/") echo "devbar: percorso rifiutato: $p" >&2; return 1 ;; esac
   parent="$(dirname "$p")"
   base="$(basename "$p")"
@@ -279,12 +301,20 @@ _journal_restore() {
     fi
     [ "$kind" != dir ] || rmdir "$tmp" 2>/dev/null || true
   fi
-  [ -z "$aside" ] || rm -rf "${aside:?}"
+  [ -n "$aside" ] || return 0
+  if [ "$keep" = true ]; then
+    kept="$p.devbar-undo-$(date +%Y%m%d-%H%M%S)"
+    while [ -e "$kept" ] || [ -L "$kept" ]; do kept="$p.devbar-undo-$(date +%Y%m%d-%H%M%S)-$n"; n=$((n + 1)); done
+    mv "$aside" "$kept" || { echo "devbar: versione precedente rimasta in $aside" >&2; printf '%s\n' "$aside"; return 0; }
+    printf '%s\n' "$kept"
+  else
+    rm -rf "${aside:?}"
+  fi
 }
 
 # cmd_undo [<id>] [--yes] [--force]
 cmd_undo() {
-  local id="" yes=false force=false a d meta files lines needs n i r act failed=""
+  local id="" yes=false force=false a d meta files lines needs n i r act failed="" out kept=()
   unset DEVBAR_JOURNAL_ID DEVBAR_JOURNAL_ENTRY
   for a in "$@"; do
     case "$a" in
@@ -310,7 +340,7 @@ cmd_undo() {
     | (if .action == "restore" then "ripristina " + $t
        elif .action == "remove" then "rimuove " + $t + " (creato da devbar)"
        else "già com'"'"'era: " + $t end)
-      + (if .changed then " — ATTENZIONE: cambiato da un altro programma dopo devbar, quelle modifiche andrebbero perse (serve --force)" else "" end)]' <<<"$files")"
+      + (if .changed then " — ATTENZIONE: cambiato da un altro programma dopo devbar (serve --force; la sua versione resta in " + $t + ".devbar-undo-<data>)" else "" end)]' <<<"$files")"
   if [ "$yes" = false ]; then
     jq -n --arg id "$id" --argjson c "$lines" --argjson n "$needs" --argjson f "$files" \
       --arg t "$(jq -r .time "$meta")" --arg cmd "$(jq -r .command "$meta")" \
@@ -319,7 +349,7 @@ cmd_undo() {
     return 0
   fi
   if [ "$needs" = true ] && [ "$force" = false ]; then
-    _journal_error "file cambiati da un altro programma dopo devbar: $(jq -r '[.[] | select(.changed) | .path] | join(", ")' <<<"$files") (nessun file toccato; usa --force per sovrascriverli)"
+    _journal_error "file cambiati da un altro programma dopo devbar: $(jq -r '[.[] | select(.changed) | .path] | join(", ")' <<<"$files") (nessun file toccato; con --force si ripristina e la loro versione resta in <file>.devbar-undo-<data>)"
     return 2
   fi
   # Ogni backup necessario deve esistere prima di toccare qualsiasi file.
@@ -334,15 +364,22 @@ cmd_undo() {
     fi
     i=$((i + 1))
   done
-  i=$((n - 1))
-  while [ "$i" -ge 0 ]; do
-    r="$(jq -c --argjson i "$i" '.[$i]' <<<"$files")"
-    act="$(jq -r .action <<<"$r")"
-    if [ "$act" != none ] && ! _journal_restore "$d" "$r" </dev/null; then
-      failed="$(jq -r .path <<<"$r")"
-      break
-    fi
-    i=$((i - 1))
+  # Due passate: prima i ripristini, poi le rimozioni. Così un backup visibile creato da
+  # devbar (es. <skill>.devbar-<data>) sparisce solo dopo che l'originale è tornato.
+  for act in restore remove; do
+    [ -z "$failed" ] || break
+    i=$((n - 1))
+    while [ "$i" -ge 0 ]; do
+      r="$(jq -c --argjson i "$i" '.[$i]' <<<"$files")"
+      if [ "$(jq -r .action <<<"$r")" = "$act" ]; then
+        if ! out="$(_journal_restore "$d" "$r" </dev/null)"; then
+          failed="$(jq -r .path <<<"$r")"
+          break
+        fi
+        [ -z "$out" ] || kept+=("$out")
+      fi
+      i=$((i - 1))
+    done
   done
   if [ -n "$failed" ]; then
     _journal_error "ripristino fallito: $failed (backup conservati in $d; riprova dopo aver risolto)"
@@ -352,7 +389,11 @@ cmd_undo() {
     _journal_error "file ripristinati, ma registro non aggiornato: $meta"
     return 2
   }
-  jq -n --arg id "$id" --argjson c "$lines" '{applied:true, id:$id, commands:$c}'
+  jq -n --arg id "$id" --argjson c "$lines" --arg h "$HOME" \
+    '($ARGS.positional | map(if startswith($h + "/") then "~" + .[($h | length):] else . end)) as $k
+    | {applied:true, id:$id, kept:$ARGS.positional,
+       commands:($c + [$k[] | "la versione dell'"'"'altro programma resta in " + .])}' \
+    --args ${kept[@]+"${kept[@]}"}
 }
 
 _journal_error() { jq -nc --arg e "$1" '{status:"error",error:$e}'; }

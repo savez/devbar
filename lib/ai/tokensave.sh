@@ -28,15 +28,43 @@ ai_tokensave_state() {
   fi
 }
 
+# _tokensave_install_paths <agente>: file che `tokensave install --agent` scrive, dai percorsi
+# che `tokensave doctor --agent <agente>` controlla (uno per riga). rc 1 se non noti.
+_tokensave_install_paths() {
+  case "$1" in
+    claude) printf '%s\n' "$HOME/.claude.json" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json" \
+      "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/rules/tokensave.md" ;;
+    opencode) printf '%s\n' "$HOME/.config/opencode/opencode.json" "$HOME/.config/opencode/AGENTS.md" ;;
+    codex) printf '%s\n' "$HOME/.codex/config.toml" "$HOME/.codex/AGENTS.md" ;;
+    gemini) printf '%s\n' "$HOME/.gemini/settings.json" "$HOME/.gemini/GEMINI.md" ;;
+    copilot) printf '%s\n' "$HOME/Library/Application Support/Code/User/mcp.json" \
+      "$HOME/.copilot/mcp-config.json" "$HOME/.copilot/copilot-instructions.md" ;;
+    cursor) printf '%s\n' "$HOME/.cursor/mcp.json" "$HOME/.cursor/hooks.json" ;;
+    *) return 1 ;;
+  esac
+}
+
 ai_tokensave_install_cmds() {
-  local h args=""
+  local h args="" p
   for h in "$@"; do args="$args --agent $h"; done
   echo "tokensave install$args"
+  for h in "$@"; do
+    if p="$(_tokensave_install_paths "$h")"; then
+      echo "$h: annullabile da Impostazioni (Ultime modifiche) per $(tr '\n' ',' <<<"$p" | sed "s#$HOME#~#g; s/,$//; s/,/, /g")"
+    else
+      echo "$h: questa modifica non si può annullare da devbar (file scritti da tokensave non noti)"
+    fi
+  done
 }
 
 ai_tokensave_install() {
-  local h args=()
-  for h in "$@"; do args+=(--agent "$h"); done
+  local h args=() paths=() p
+  for h in "$@"; do
+    args+=(--agent "$h")
+    while IFS= read -r p; do paths+=("$p"); done < <(_tokensave_install_paths "$h" || true)
+  done
+  # tokensave scrive da sé: si registra prima lo stato dei file noti (lib/journal.sh)
+  journal_before ${paths[@]+"${paths[@]}"} </dev/null || return 1
   tokensave install "${args[@]}" </dev/null
 }
 

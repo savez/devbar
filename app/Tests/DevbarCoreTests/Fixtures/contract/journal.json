@@ -11,8 +11,7 @@
           "kind": "file",
           "existed": false,
           "sha256Before": null,
-          "sha256After": "a25532b13e513b2f8f810ebae48200d1fb88f232f74cf80ba270f44d5e58ffaa",
-          "changed": false
+          "sha256After": "a25532b13e513b2f8f810ebae48200d1fb88f232f74cf80ba270f44d5e58ffaa"
         }
       ]
     }

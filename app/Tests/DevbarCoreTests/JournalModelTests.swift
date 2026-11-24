@@ -36,7 +36,6 @@ struct JournalModelTests {
         let e: JournalEntry = decode(Self.entry("a", files: 3))
         #expect(e.title == "ai-install rtk copilot")
         #expect(e.filesText == "3 file")
-        #expect(!e.hasChanges)
         #expect(e.canUndo)
         let u: JournalEntry = decode(Self.entry("b", undone: true))
         #expect(!u.canUndo)
@@ -64,15 +63,29 @@ struct JournalModelTests {
 
     @Test func changedFileAsksWithForceAndWarning() async {
         let a = FakeActions()
-        a.responses["journal --limit 10"] = (0, Self.list([Self.entry("abc", changed: true)]))
+        a.responses["journal --limit 10"] = (0, Self.list([Self.entry("abc")]))
+        // needsForce viene dal piano (stato attuale), non dall'elenco
+        a.responses["undo abc"] = (0, "{\"plan\":true,\"commands\":[\"ripristina ~/f0\"],\"needsForce\":true}")
         a.responses["undo abc --force"] = (0, "{\"plan\":true,\"commands\":[\"ripristina ~/f0 — ATTENZIONE\"],\"needsForce\":true}")
         let m = JournalModel(runner: a)
         await m.load()
-        #expect(m.entries[0].hasChanges)
         await m.requestUndo(m.entries[0])
         #expect(m.confirmation.title.contains("cambiat"))
+        #expect(m.confirmation.text.contains("ATTENZIONE"))
         await m.confirmUndo()
         #expect(a.confirmed == [["undo", "abc", "--force", "--yes"]])
+    }
+
+    @Test func planUnavailableShowsErrorAndRunsNothing() async {
+        let a = FakeActions()
+        a.responses["journal --limit 10"] = (0, Self.list([Self.entry("abc")]))
+        a.responses["undo abc"] = (2, "{\"status\":\"error\",\"error\":\"x\"}")
+        let m = JournalModel(runner: a)
+        await m.load()
+        await m.requestUndo(m.entries[0])
+        #expect(!m.confirmation.dialogShown)
+        #expect(m.confirmation.error != nil)
+        #expect(a.confirmed.isEmpty)
     }
 
     @Test func cancelRunsNothing() async {
