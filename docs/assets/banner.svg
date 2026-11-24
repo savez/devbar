@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 360" width="1280" height="360" role="img" aria-labelledby="t d">
+  <title id="t">devbar</title>
+  <desc id="d">Menu bar per macOS che tiene d'occhio Homebrew, vulnerabilità, colima, risparmio di token e strumenti AI.</desc>
+  <defs>
+    <clipPath id="strip"><rect x="64" y="44" width="1152" height="12" rx="6"/></clipPath>
+  </defs>
+  <rect width="1280" height="360" rx="20" fill="#12171b"/>
+
+  <!-- striscia di salute: lo stesso elemento che apre il pannello dell'app -->
+  <g clip-path="url(#strip)">
+    <rect x="64"   y="44" width="226" height="12" fill="#3fa34d"/>
+    <rect x="294"  y="44" width="226" height="12" fill="#e0a526"/>
+    <rect x="524"  y="44" width="226" height="12" fill="#d6453d"/>
+    <rect x="754"  y="44" width="226" height="12" fill="#8a8f98"/>
+    <rect x="984"  y="44" width="232" height="12" fill="#3fa34d"/>
+  </g>
+
+  <!-- nome e promessa -->
+  <g font-family="ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', -apple-system, 'Helvetica Neue', Arial, sans-serif">
+    <text x="64" y="196" font-size="110" font-weight="700" letter-spacing="-3" fill="#eef2ef">devbar<tspan fill="#3fa34d">.</tspan></text>
+    <text x="68" y="250" font-size="29" font-weight="500" fill="#a3aea8">Il Mac di sviluppo sotto controllo,</text>
+    <text x="68" y="288" font-size="29" font-weight="500" fill="#a3aea8">dalla barra dei menu.</text>
+
+    <!-- letture, come nel pannello -->
+    <g text-anchor="end" font-size="58" font-weight="700">
+      <text x="930" y="150" fill="#e0a526">6</text>
+      <text x="930" y="230" fill="#d6453d">3</text>
+      <text x="930" y="310" fill="#8a8f98">194K</text>
+    </g>
+    <g font-size="24" font-weight="500" fill="#a3aea8">
+      <text x="956" y="148">da aggiornare</text>
+      <text x="956" y="228">vulnerabilità alte</text>
+      <text x="956" y="308">token risparmiati</text>
+    </g>
+  </g>
+</svg>

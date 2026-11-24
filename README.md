@@ -1,11 +1,75 @@
-# devbar
+<p align="center">
+  <img src="docs/assets/banner.svg" alt="devbar: il Mac di sviluppo sotto controllo, dalla barra dei menu" width="100%">
+</p>
 
-Menu bar personale per macOS: un'icona colorata che dice se c'è qualcosa da sistemare sul Mac di sviluppo (pacchetti Homebrew vecchi o vulnerabili, vulnerabilità npm/composer nei repo, colima, strumenti AI come RTK, tokensave, caveman, consumo di Claude).
+<p align="center">
+  <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111111?logo=apple&logoColor=white">
+  <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white">
+  <img alt="Licenza GPLv3" src="https://img.shields.io/badge/licenza-GPLv3-2f6f8f">
+</p>
+
+**devbar** è una menu bar per macOS che tiene d'occhio il Mac di sviluppo e ti dice quando
+c'è qualcosa da sistemare. Un'icona nella barra cambia colore; un clic apre il pannello con
+tutto quello che serve, senza aprire il terminale.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/panel-dark.png">
+    <img src="docs/assets/panel-light.png" alt="Il pannello di devbar: Homebrew, vulnerabilità, colima, token risparmiati, caveman e AI setup" width="380">
+  </picture>
+</p>
+
+## Cosa fa
+
+- **Homebrew**: quanti pacchetti sono da aggiornare e un pulsante per aggiornarli. Con Cork a portata di mano.
+- **Vulnerabilità**: `brew vulns` e `npm audit` / `composer audit` sui repo che scegli tu, una volta al giorno.
+- **colima**: stato, CPU, RAM e container, con avvia e ferma.
+- **Token risparmiati**: RTK, tokensave e l'uso di Claude Code in un colpo d'occhio.
+- **Strumenti AI**: installa e aggiorna RTK, caveman, tokensave e la statusline su tutti gli harness che trovi (Claude Code, OpenCode, Copilot…), e configura un progetto in un clic.
+- **Statusline per Claude Code** con i minuti che restano alla prompt cache.
+- **Dettagli veri**: tabelle ordinabili in una finestra, non liste che si espandono nel menu.
+
+<p align="center">
+  <img src="docs/assets/details-light.png" alt="La finestra Dettagli con la tabella delle vulnerabilità" width="720">
+</p>
+
+## Sicurezza prima di tutto
+
+devbar scrive in file che non sono suoi, quindi lo fa con delle regole:
+
+- **Niente senza conferma**: ogni azione che scrive o installa mostra il piano e chiede il via.
+- **Tutto annullabile**: ogni modifica ai file di altri programmi è registrata con un backup. `devbar undo` la riporta com'era, senza sovrascrivere ciò che nel frattempo ha cambiato un altro programma.
+- **Nessun server, nessuna telemetria**: i controlli sono comandi locali.
+
+## Installazione rapida
+
+Scarica l'ultima release dagli [asset su GitHub](https://github.com/savez/devbar/releases/latest) (`devbar-x.y.z.zip`), poi:
+
+```bash
+unzip devbar-*.zip -d devbar && cd devbar
+./install.sh
+```
+
+Per aggiornare ripeti gli stessi passi con lo zip nuovo. Dettagli, installazione da sorgente e disinstallazione [più sotto](#installare-e-aggiornare). L'app è firmata ad-hoc: `install.sh` si occupa della quarantena di macOS.
+
+## Come funziona
 
 Due parti:
 
-- **Motore** (`bin/devbar` + `lib/`): bash, stampa JSON su stdout. Tutta la logica dei check sta qui.
-- **App** (`app/`, SwiftUI): lancia la CLI e disegna il risultato. Nessuna logica di check in Swift.
+- **Motore** (`bin/devbar` + `lib/`): bash, stampa JSON su stdout. Tutta la logica dei controlli sta qui.
+- **App** (`app/`, SwiftUI): lancia la CLI e disegna il risultato. Nessuna logica di controllo in Swift.
+
+Il motore si usa anche da terminale (`devbar check all`), ed è questo che rende ogni pezzo testabile da solo.
+
+## Contribuire
+
+Issue e pull request sono benvenute: leggi [CONTRIBUTING.md](CONTRIBUTING.md). Per segnalare una vulnerabilità vedi [SECURITY.md](SECURITY.md).
+
+## Licenza
+
+GPLv3, vedi [LICENSE](LICENSE). devbar include codice derivato da [Sparkdock](https://github.com/sparkfabrik/sparkdock) (vedi [Origine](#origine)).
+
+---
 
 ## Requisiti
 
@@ -22,7 +86,7 @@ L'app porta con sé il motore (`Contents/Resources/engine/`: `bin/`, `lib/`, `st
 
 ### Da release (consigliato)
 
-1. Scaricare `devbar-x.y.z.zip` dagli asset dell'ultima release su GitHub. Il repo è privato: serve l'accesso. Con `gh`:
+1. Scaricare `devbar-x.y.z.zip` dagli asset dell'ultima release su GitHub. Con `gh` (se il repo è privato serve l'accesso):
    ```
    gh release download --repo savez/devbar --pattern 'devbar-*.zip'
    ```
@@ -158,5 +222,3 @@ Cosa non si può annullare da devbar:
 
 - La statusline (`statusline/devbar-claude-statusline`) e il setup di caveman e RTK (`lib/ai/`) sono portati da [Sparkdock](https://github.com/sparkfabrik/sparkdock) (SparkFabrik, GPLv3). I file portati hanno l'intestazione con l'origine. Nessuna dipendenza dal clone Sparkdock a runtime. La statusline non è più una copia identica (devbar aggiunge, tra l'altro, i minuti alla scadenza della prompt cache) ed è controllata da `just lint` come il resto.
 - La regola `lib/project/caveman-rule.md` (caveman-init) viene dal plugin [caveman](https://github.com/JuliusBrussee/caveman) (Apache-2.0).
-
-Nota licenza: devbar include codice derivato da Sparkdock (GPLv3). Se devbar diventa pubblico deve essere distribuito con una licenza compatibile con GPLv3.
