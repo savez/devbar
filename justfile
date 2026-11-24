@@ -15,3 +15,15 @@ app-test:
 
 app-build:
     cd app && swift build
+
+# Assembla app/.build/devbar.app (release, firma ad-hoc).
+build:
+    cd app && swift build -c release
+    app/bundle.sh
+
+# Installa app, symlink ~/.local/bin/devbar e LaunchAgent. Il repo deve restare dov'è.
+install: build
+    scripts/install.sh install
+
+uninstall:
+    scripts/install.sh uninstall

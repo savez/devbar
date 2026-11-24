@@ -91,3 +91,34 @@ public final class LaunchAgentManager: LoginItemManaging {
         }
     }
 }
+
+/// Allinea il plist del LaunchAgent alla config all'avvio dell'app. Non fa bootstrap/bootout:
+/// l'istanza in esecuzione c'è già; il plist serve solo al prossimo login.
+public enum LoginReconciler {
+    public enum Outcome: Equatable, Sendable { case unchanged, wrote, removed }
+
+    @discardableResult
+    public static func reconcile(launchAtLogin: Bool, plistURL: URL, executablePath: String) throws -> Outcome {
+        let fm = FileManager.default
+        let exists = fm.fileExists(atPath: plistURL.path)
+        switch (launchAtLogin, exists) {
+        case (true, false):
+            let data = try LaunchAgent.plist(executablePath: executablePath)
+            try fm.createDirectory(at: plistURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try data.write(to: plistURL, options: .atomic)
+            return .wrote
+        case (false, true):
+            try fm.removeItem(at: plistURL)
+            return .removed
+        default:
+            return .unchanged
+        }
+    }
+}
+
+/// Guardia di istanza unica: si esce se un altro processo con lo stesso bundle id è già in esecuzione.
+public enum SingleInstance {
+    public static func shouldExit(ownPID: Int32, otherPIDs: [Int32]) -> Bool {
+        otherPIDs.contains { $0 != ownPID }
+    }
+}

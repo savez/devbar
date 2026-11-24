@@ -116,3 +116,43 @@ struct LaunchAgentTests {
         #expect(throws: LoginItemError.self) { try m.enable(executablePath: "/x") }
     }
 }
+
+struct LoginReconcilerTests {
+    func tmpPlist() -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("devbar-\(UUID().uuidString)/LaunchAgents/it.savez.devbar.plist")
+    }
+
+    @Test func writesMissingPlistWhenEnabled() throws {
+        let url = tmpPlist()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent().deletingLastPathComponent()) }
+        let o = try LoginReconciler.reconcile(launchAtLogin: true, plistURL: url, executablePath: "/A/devbar")
+        #expect(o == .wrote)
+        let d = try PropertyListSerialization.propertyList(from: Data(contentsOf: url), format: nil) as? [String: Any]
+        #expect((d?["ProgramArguments"] as? [String]) == ["/A/devbar"])
+    }
+
+    @Test func removesPlistWhenDisabled() throws {
+        let url = tmpPlist()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent().deletingLastPathComponent()) }
+        try LoginReconciler.reconcile(launchAtLogin: true, plistURL: url, executablePath: "/A/devbar")
+        #expect(try LoginReconciler.reconcile(launchAtLogin: false, plistURL: url, executablePath: "/A/devbar") == .removed)
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+    }
+
+    @Test func noChangeWhenAlreadyInSync() throws {
+        let url = tmpPlist()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent().deletingLastPathComponent()) }
+        #expect(try LoginReconciler.reconcile(launchAtLogin: false, plistURL: url, executablePath: "/A") == .unchanged)
+        try LoginReconciler.reconcile(launchAtLogin: true, plistURL: url, executablePath: "/A")
+        let before = try Data(contentsOf: url)
+        #expect(try LoginReconciler.reconcile(launchAtLogin: true, plistURL: url, executablePath: "/B") == .unchanged)
+        #expect(try Data(contentsOf: url) == before)
+    }
+
+    @Test func singleInstanceGuard() {
+        #expect(!SingleInstance.shouldExit(ownPID: 10, otherPIDs: []))
+        #expect(!SingleInstance.shouldExit(ownPID: 10, otherPIDs: [10]))
+        #expect(SingleInstance.shouldExit(ownPID: 10, otherPIDs: [10, 22]))
+    }
+}
