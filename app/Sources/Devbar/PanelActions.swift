@@ -16,12 +16,27 @@ final class PanelActions {
     var brewExpanded = false
     var expandedVulns: Set<String> = []
     private(set) var lastError: String?
-    /// Task 14 collega qui i flussi AI setup (strumento) e Init progetto.
-    var onAISetup: (String) -> Void = { _ in }
-    var onInitProject: () -> Void = {}
-    var onAdoptHarness: (String) -> Void = { _ in }
+    /// Finestre AI setup, Init progetto e impostazioni: ognuna con la sua conferma
+    /// (stesso schema request/confirm del pannello, in `PlanConfirmation`).
+    let aiSetup: AISetupModel
+    let projectInit: ProjectInitModel
+    let settings: SettingsModel
 
-    init(store: StatusStore) { self.store = store }
+    init(store: StatusStore, configStore: ConfigStore = ConfigStore()) {
+        self.store = store
+        aiSetup = AISetupModel(runner: store)
+        projectInit = ProjectInitModel(runner: store)
+        settings = SettingsModel(configStore: configStore, runner: store, login: LaunchAgentManager())
+        aiSetup.onApplied = { [weak self] in await self?.refreshAfterChange(force: true) }
+        settings.onSaved = { [store] in store.reloadConfig() }
+        settings.onApplied = { [weak self] in await self?.refreshAfterChange(force: false) }
+    }
+
+    private func refreshAfterChange(force: Bool) async {
+        store.reloadConfig()
+        await store.refresh(force: force)
+        await loadDetect()
+    }
 
     func loadDetect() async {
         let r = await store.run(action: ["detect"])

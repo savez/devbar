@@ -26,8 +26,12 @@ struct DevbarApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        // Il contenuto arriva con il Task 14.
-        Settings { EmptyView() }
+        Settings { SettingsView(model: actions.settings) }
+
+        Window("AI setup", id: WindowID.aiSetup) { HarnessPicker(model: actions.aiSetup) }
+            .windowResizability(.contentSize)
+        Window("Init progetto", id: WindowID.initProject) { ProjectInitView(model: actions.projectInit) }
+            .windowResizability(.contentSize)
     }
 }
 
