@@ -186,3 +186,21 @@ setup() {
   run --separate-stderr "$DEVBAR" run tool-install caveman --yes
   [ "$status" -eq 2 ]
 }
+
+@test "ai-install rtk copilot: rtk-run symlink -> scritto sul file risolto, il link resta" {
+  mkdir -p "$HOME/.local/bin" "$HOME/dotfiles"
+  echo vecchio >"$HOME/dotfiles/rtk-run"
+  ln -s "$HOME/dotfiles/rtk-run" "$HOME/.local/bin/rtk-run"
+  "$DEVBAR" run ai-install rtk copilot --yes >/dev/null 2>&1
+  [ -L "$HOME/.local/bin/rtk-run" ]
+  cmp "$DEVBAR_REPO/lib/ai/rtk-run" "$HOME/dotfiles/rtk-run"
+  [ -x "$HOME/dotfiles/rtk-run" ]
+}
+
+@test "ai-install rtk copilot: blocco orfano in ~/.github rimosso, resto intatto, nessun temp" {
+  mkdir -p "$HOME/.github"
+  printf 'mio\n<!-- BEGIN RTK MANAGED BLOCK -->\nx\n<!-- END RTK MANAGED BLOCK -->\n' >"$HOME/.github/copilot-instructions.md"
+  "$DEVBAR" run ai-install rtk copilot --yes >/dev/null 2>&1
+  [ "$(cat "$HOME/.github/copilot-instructions.md")" = mio ]
+  [ -z "$(find "$HOME" -name '.devbar-write.*')" ]
+}

@@ -116,3 +116,57 @@ setup() { setup_env; }
   [ "$(jq -c .profiles <<<"$output")" = "[1]" ]
   [ "$(jq -r .status <<<"$output")" = ok ]
 }
+
+@test "config_update: applica il filtro, preserva le altre chiavi" {
+  write_config '{"terminal":"iTerm","brewExclude":["a"]}'
+  run in_common "config_update '.brewExclude += [\$p]' --arg p b"
+  [ "$status" -eq 0 ]
+  [ "$(jq -c .brewExclude "$DEVBAR_CONFIG")" = '["a","b"]' ]
+  [ "$(jq -r .terminal "$DEVBAR_CONFIG")" = iTerm ]
+}
+
+@test "config_update: config assente -> creato da {}" {
+  run in_common "config_update '.x = 1'"
+  [ "$status" -eq 0 ]
+  [ "$(jq -c . "$DEVBAR_CONFIG")" = '{"x":1}' ]
+}
+
+@test "config_update: config rotto -> rc 2, file intatto" {
+  printf 'non json' >"$DEVBAR_CONFIG"
+  run in_common "config_update '.x = 1'"
+  [ "$status" -eq 2 ]
+  [ "$(cat "$DEVBAR_CONFIG")" = 'non json' ]
+}
+
+@test "config_update: scrive attraverso il symlink (il link resta)" {
+  echo '{}' >"$BATS_TEST_TMPDIR/real.json"
+  ln -s "$BATS_TEST_TMPDIR/real.json" "$DEVBAR_CONFIG"
+  run in_common "config_update '.x = 1'"
+  [ "$status" -eq 0 ]
+  [ -L "$DEVBAR_CONFIG" ]
+  [ "$(jq -r .x "$BATS_TEST_TMPDIR/real.json")" = 1 ]
+}
+
+@test "inject_block: aggiunge, sostituisce, preserva il resto, nessuna riga vuota accumulata" {
+  f="$BATS_TEST_TMPDIR/d/i.md"
+  run in_common "inject_block '$f' '<!-- B -->' '<!-- E -->' 'uno'"
+  [ "$status" -eq 0 ]
+  printf 'mio testo\n' >"$f"
+  in_common "inject_block '$f' '<!-- B -->' '<!-- E -->' 'uno'"
+  first="$(cat "$f")"
+  in_common "inject_block '$f' '<!-- B -->' '<!-- E -->' 'uno'"
+  [ "$(cat "$f")" = "$first" ]
+  in_common "inject_block '$f' '<!-- B -->' '<!-- E -->' 'due'"
+  grep -q 'mio testo' "$f"
+  grep -q 'due' "$f"
+  run grep -q 'uno' "$f"
+  [ "$status" -ne 0 ]
+  [ "$(grep -c '<!-- B -->' "$f")" = 1 ]
+}
+
+@test "inject_block: file nuovo -> creato col solo blocco" {
+  f="$BATS_TEST_TMPDIR/n/i.md"
+  in_common "inject_block '$f' '<!-- B -->' '<!-- E -->' 'x'"
+  [ "$(sed -n 2p "$f")" = '<!-- B -->' ]
+  [ "$(sed -n 3p "$f")" = 'x' ]
+}

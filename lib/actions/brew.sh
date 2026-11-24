@@ -10,28 +10,12 @@ action_brew_upgrade() {
   fi
 }
 
-# action_brew_exclude <pkg>: aggiunge a brewExclude (scrittura atomica, idempotente).
+# action_brew_exclude <pkg>: aggiunge a brewExclude (config_update, idempotente).
 action_brew_exclude() {
-  local pkg="${1:-}" file dir tmp base
+  local pkg="${1:-}"
   [ -n "$pkg" ] || { echo "uso: devbar run brew-exclude <pacchetto>" >&2; return 2; }
-  file="$(devbar_config_path)"
-  dir="$(dirname "$file")"
-  mkdir -p "$dir"
-  if [ -f "$file" ]; then
-    base="$(cat "$file")"
-    if ! jq -e 'type == "object"' <<<"$base" >/dev/null 2>&1; then
-      echo "devbar: config non valida: $file (non modificata)" >&2
-      return 2
-    fi
-  else
-    base='{}'
-  fi
-  tmp="$(mktemp "$dir/.config.XXXXXX")"
-  if ! jq --arg p "$pkg" '.brewExclude = (((.brewExclude // []) + [$p]) | unique_by(.) )' <<<"$base" >"$tmp"; then
-    rm -f "$tmp"
-    return 2
-  fi
-  mv "$tmp" "$file"
+  # shellcheck disable=SC2016 # filtro jq, non espansione di shell
+  config_update '.brewExclude = (((.brewExclude // []) + [$p]) | unique_by(.))' --arg p "$pkg" || return 2
 }
 
 # action_cork_open: apre Cork.

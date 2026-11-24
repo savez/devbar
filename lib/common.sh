@@ -122,3 +122,35 @@ devbar_write_file() {
   if [ -n "${mode:-}" ] && ! chmod "$mode" "$tmp"; then rm -f "$tmp"; return 1; fi
   mv "$tmp" "$target" || { rm -f "$tmp"; return 1; }
 }
+
+# config_update <jq-filter> [jq-args...]: applica il filtro al config e lo riscrive
+# con devbar_write_file (altre chiavi preservate). Config assente: si parte da {}.
+# Config rotta (non un oggetto JSON): avviso, nessuna scrittura, rc 2.
+config_update() {
+  local filter="$1" file base out
+  shift
+  file="$(devbar_config_path)"
+  if [ -e "$file" ]; then
+    if ! base="$(jq -c 'if type == "object" then . else error("non oggetto") end' "$file" 2>/dev/null)"; then
+      echo "devbar: config non valida: $file (non modificata)" >&2
+      return 2
+    fi
+  else
+    base='{}'
+  fi
+  out="$(jq "$filter" "$@" <<<"$base")" || return 1
+  printf '%s\n' "$out" | devbar_write_file "$file"
+}
+
+# inject_block <file> <begin> <end> <contenuto>: sostituisce (o aggiunge in coda) il blocco
+# delimitato dai marcatori; il resto del file resta. Scrittura via devbar_write_file.
+inject_block() {
+  local file="$1" b="$2" e="$3" content="$4" base=""
+  if [ -f "$file" ]; then
+    base="$(awk -v b="$b" -v e="$e" '$0 ~ b { skip=1; next } $0 ~ e { skip=0; next } !skip' "$file")" || return 1
+  fi
+  {
+    [ -z "$base" ] || printf '%s\n' "$base"
+    printf '\n%s\n%s\n%s\n' "$b" "$content" "$e"
+  } | devbar_write_file "$file"
+}

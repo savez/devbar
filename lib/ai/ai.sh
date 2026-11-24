@@ -40,28 +40,19 @@ _ai_harness_valid() {
   return 1
 }
 
-# _ai_config_add_harnesses <id>...: aggiunge a .harnesses (atomico, dedupe,
-# ordine e altre chiavi preservati). Config rotta: avviso e nessuna scrittura.
+# _ai_config_add_harnesses <id>...: aggiunge a .harnesses (config_update, dedupe,
+# ordine e altre chiavi preservati). Config rotta: avviso e nessuna scrittura (rc 0).
 _ai_config_add_harnesses() {
-  local file dir cur tmp
-  file="$(devbar_config_path)"
-  dir="$(dirname "$file")"
-  if [ -f "$file" ]; then
-    if ! jq -e 'type == "object"' "$file" >/dev/null 2>&1; then
-      echo "devbar: config non valida: $file (harnesses non aggiornati)" >&2
-      return 0
-    fi
-    cur="$(cat "$file")"
-  else
-    cur='{}'
-  fi
-  mkdir -p "$dir"
-  tmp="$(mktemp "$dir/.config.XXXXXX")"
-  jq '.harnesses = (reduce $ARGS.positional[] as $h
+  local rc=0
+  # shellcheck disable=SC2016 # filtro jq, non espansione di shell
+  config_update '.harnesses = (reduce $ARGS.positional[] as $h
         ((if (.harnesses | type) == "array" then .harnesses else [] end);
-         if index($h) then . else . + [$h] end))' \
-    --args "$@" <<<"$cur" >"$tmp" || { rm -f "$tmp"; return 1; }
-  mv "$tmp" "$file"
+         if index($h) then . else . + [$h] end))' --args "$@" || rc=$?
+  case "$rc" in
+    0) return 0 ;;
+    2) echo "devbar: harnesses non aggiornati" >&2; return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 # action_ai_status <tool>

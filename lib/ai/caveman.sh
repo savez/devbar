@@ -210,15 +210,7 @@ _caveman_setup_opencode() {
 # --- Copilot ---
 
 # _caveman_inject <file> <contenuto>: sostituisce/aggiunge il blocco gestito.
-_caveman_inject() {
-  local file="$1" content="$2" base=""
-  [ ! -f "$file" ] || base="$(awk -v b="$_CAVEMAN_MARKER_BEGIN" -v e="$_CAVEMAN_MARKER_END" '
-    $0 ~ b { skip=1; next } $0 ~ e { skip=0; next } !skip' "$file")"
-  {
-    [ -z "$base" ] || printf '%s\n' "$base"
-    printf '\n%s\n%s\n%s\n' "$_CAVEMAN_MARKER_BEGIN" "$content" "$_CAVEMAN_MARKER_END"
-  } | devbar_write_file "$file"
-}
+_caveman_inject() { inject_block "$1" "$_CAVEMAN_MARKER_BEGIN" "$_CAVEMAN_MARKER_END" "$2"; }
 
 # _caveman_strip_block <file> <begin> <end>: toglie un blocco (no-op se assente o symlink).
 _caveman_strip_block() {
