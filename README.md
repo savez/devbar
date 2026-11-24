@@ -66,6 +66,16 @@ Il motore si usa anche da terminale (`devbar check all`), ed è questo che rende
 
 devbar è gratuito. Se ti è utile, puoi [offrirmi una birra](https://buymeacoffee.com/goeokwihgz); lo trovi anche nelle impostazioni dell'app.
 
+## Se l'icona non si vede
+
+L'icona parte alla destra della barra dei menu, vicino alle icone di sistema, così app come Hidden Bar non la nascondono. Se l'hai spostata e non la trovi più, riporta la posizione di partenza e riavvia devbar:
+
+```bash
+defaults delete it.savez.devbar "NSStatusItem Preferred Position Item-0"
+```
+
+Se la sposti a mano (⌘ e trascina), macOS ricorda la tua scelta.
+
 ## Contribuire
 
 Issue e pull request sono benvenute: leggi [CONTRIBUTING.md](CONTRIBUTING.md). Per segnalare una vulnerabilità vedi [SECURITY.md](SECURITY.md).
