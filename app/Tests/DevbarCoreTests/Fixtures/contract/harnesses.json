@@ -1,0 +1,9 @@
+{
+  "status": "action",
+  "count": 1,
+  "summary": "1 harness non gestiti",
+  "items": [
+    "claude"
+  ],
+  "checkedAt": "2026-01-01T00:00:00Z"
+}

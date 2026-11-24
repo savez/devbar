@@ -1,0 +1,1 @@
+{"advisories":{"vendor/pkg":[{"advisoryId":"A1","severity":"high"},{"advisoryId":"A2","severity":"medium"}],"vendor/other":[{"advisoryId":"A3","severity":"critical"},{"advisoryId":"A4","severity":"low"}]},"abandoned":[]}

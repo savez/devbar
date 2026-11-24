@@ -1,0 +1,9 @@
+[
+  {
+    "path": "/tmp/devbar-fixture/roots/b",
+    "name": "b",
+    "npm": true,
+    "composer": false,
+    "tokensave": false
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "tool": "rtk",
+  "plan": true,
+  "commands": [
+    "rtk init -g --auto-patch"
+  ]
+}

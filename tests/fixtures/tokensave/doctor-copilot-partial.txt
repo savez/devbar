@@ -1,0 +1,4 @@
+GitHub Copilot integration
+  ✔ MCP server registered in /home/u/Library/Application Support/Code/User/mcp.json
+  ! /home/u/.copilot/mcp-config.json not found — run `tokensave install --agent copilot` if you use Copilot CLI
+  ✘ tokensave rules block missing from /home/u/.copilot/copilot-instructions.md — run `tokensave install --agent copilot`

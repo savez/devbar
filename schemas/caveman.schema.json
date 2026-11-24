@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "check caveman",
+  "description": "Stato del plugin caveman (lib/checks/tokens.sh). mode e lastMode sono canonici (legacy già mappati); rawMode è il valore grezzo del config del plugin e può essere vuoto. Con ok o action tutti i campi ci sono; unconfigured = plugin non installato.",
+  "allOf": [
+    { "$ref": "defs.schema.json#/$defs/checkEnvelope" },
+    {
+      "if": { "required": ["status"], "properties": { "status": { "enum": ["ok", "action"] } } },
+      "then": { "required": ["pluginEnabled", "mode", "rawMode", "version", "lastMode", "active"] }
+    }
+  ],
+  "properties": {
+    "pluginEnabled": { "type": "boolean" },
+    "mode": { "$ref": "defs.schema.json#/$defs/cavemanMode" },
+    "rawMode": { "type": "string", "description": "Come scritto nel config del plugin; stringa vuota se assente." },
+    "version": { "type": "string", "description": "Versione del plugin; stringa vuota se non rilevata." },
+    "lastMode": { "enum": ["manual", "caveman", "ultracave", "megacave"], "description": "Ultima modalità non spenta: mai off." },
+    "active": { "type": "boolean" }
+  },
+  "unevaluatedProperties": false
+}

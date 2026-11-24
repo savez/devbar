@@ -1,0 +1,16 @@
+Claude Code integration
+  ✔ Global MCP config: /home/u/.claude.json
+  ✔ MCP server registered in ~/.claude.json
+  ✔ MCP binary exists: /opt/homebrew/bin/tokensave
+  ✔ MCP binary matches current executable
+  ✔ MCP server args include "serve"
+  ✔ Settings: /home/u/.claude/settings.json
+  ✔ PreToolUse hook installed
+  ✔ Hook binary exists: /opt/homebrew/bin/tokensave
+  ✔ UserPromptSubmit hook installed
+  ✔ Hook binary exists: /opt/homebrew/bin/tokensave
+  ✔ Stop hook installed
+  ✔ Hook binary exists: /opt/homebrew/bin/tokensave
+  ✔ All 90 tool permissions granted
+  ✔ rules up to date in /home/u/.claude/rules/tokensave.md (version 57d696543f2ae0e2)
+

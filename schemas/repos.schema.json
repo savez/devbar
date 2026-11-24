@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "repos",
+  "description": "Repo trovati sotto repoRoots (lib/checks/audit.sh list_repos): array, anche vuoto.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["path", "name", "npm", "composer", "tokensave"],
+    "properties": {
+      "path": { "type": "string", "minLength": 1 },
+      "name": { "type": "string", "minLength": 1 },
+      "npm": { "type": "boolean", "description": "Ha package-lock.json." },
+      "composer": { "type": "boolean", "description": "Ha composer.lock." },
+      "tokensave": { "type": "boolean", "description": "Ha la cartella .tokensave." }
+    },
+    "additionalProperties": false
+  }
+}

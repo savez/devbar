@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "check colima",
+  "description": "Profili colima e container (lib/checks/colima.sh). count = profili attivi; items è sempre vuoto. Non c'è una chiave running: l'app la deriva da profiles[].status == Running. Con ok o action profiles e containers ci sono sempre.",
+  "allOf": [
+    { "$ref": "defs.schema.json#/$defs/checkEnvelope" },
+    {
+      "if": { "required": ["status"], "properties": { "status": { "enum": ["ok", "action"] } } },
+      "then": { "required": ["profiles", "containers"] }
+    }
+  ],
+  "properties": {
+    "items": { "type": "array", "maxItems": 0 },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status", "cpus", "memoryBytes", "diskBytes"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "description": "Running, Stopped o Unknown." },
+          "cpus": { "type": "integer", "minimum": 0 },
+          "memoryBytes": { "type": "integer", "minimum": 0 },
+          "diskBytes": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "containers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "cpu", "mem"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "cpu": { "type": "string", "description": "Testo di docker stats, es. 0.15%." },
+          "mem": { "type": "string", "description": "Testo di docker stats, es. 50.2MiB." }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

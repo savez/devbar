@@ -1,0 +1,9 @@
+rtk Configuration:
+
+[--] Hook: not found
+[--] RTK.md: not found
+[--] Global (~/.claude/CLAUDE.md): not found
+[--] Local (./CLAUDE.md): not found
+[--] settings.json: RTK hooks not configured
+[--] OpenCode: plugin not found
+[--] Cursor hook: not found

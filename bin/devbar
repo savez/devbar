@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# devbar: motore CLI. Sottocomandi: check | run | detect | repos | version.
+set -euo pipefail
+
+DEVBAR_VERSION="0.1.0"
+
+# Risolve DEVBAR_ROOT seguendo i symlink (bash 3.2: niente readlink -f).
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+  dir="$(cd "$(dirname "$src")" && pwd)"
+  src="$(readlink "$src")"
+  case "$src" in /*) ;; *) src="$dir/$src" ;; esac
+done
+DEVBAR_ROOT="$(cd "$(dirname "$src")/.." && pwd)"
+export DEVBAR_ROOT
+
+# shellcheck source=../lib/common.sh
+source "$DEVBAR_ROOT/lib/common.sh"
+for f in "$DEVBAR_ROOT"/lib/*.sh "$DEVBAR_ROOT"/lib/*/*.sh; do
+  [ -f "$f" ] || continue
+  [ "$f" = "$DEVBAR_ROOT/lib/common.sh" ] && continue
+  # shellcheck source=/dev/null
+  source "$f"
+done
+
+usage() {
+  echo "uso: devbar check <nome> [--force] | run <azione> [args...] | detect | repos | check-timeouts | journal | undo [<id>] [--yes] [--force] | version" >&2
+}
+
+cmd="${1:-}"
+if [ $# -gt 0 ]; then shift; fi
+
+case "$cmd" in
+  check)
+    name="${1:-}"
+    [ -n "$name" ] || { usage; exit 2; }
+    shift
+    fn="check_${name//-/_}"
+    if [ "$(type -t "$fn")" != "function" ]; then
+      echo "devbar: check sconosciuto: $name" >&2
+      exit 2
+    fi
+    "$fn" "$@"
+    ;;
+  run)
+    name="${1:-}"
+    [ -n "$name" ] || { usage; exit 2; }
+    shift
+    fn="action_${name//-/_}"
+    if [ "$(type -t "$fn")" != "function" ]; then
+      echo "devbar: azione sconosciuta: $name" >&2
+      exit 2
+    fi
+    # Registro: una voce per invocazione (lib/journal.sh), sistemata quando l'azione torna.
+    # La trap EXIT è solo il ripiego per un'azione che esce da sé (emit, set -e): with_lock
+    # o audit_repos la sostituiscono con la loro. Mai `"$fn" || …`: spegnerebbe set -e nell'azione.
+    journal_begin run "$name" "$@"
+    trap 'journal_settle </dev/null || echo "devbar: registro delle modifiche non aggiornato" >&2' EXIT
+    "$fn" "$@"
+    journal_settle </dev/null || echo "devbar: registro delle modifiche non aggiornato" >&2
+    # la trap resta (può essere quella dell'azione): la nostra, se c'è ancora, non rifà nulla
+    export DEVBAR_JOURNAL_ENTRY=""
+    ;;
+  detect | repos | check-timeouts | journal | undo)
+    fn="cmd_${cmd//-/_}"
+    if [ "$(type -t "$fn")" != "function" ]; then
+      echo "devbar: $cmd non ancora implementato" >&2
+      exit 2
+    fi
+    "$fn" "$@"
+    ;;
+  version) echo "devbar $DEVBAR_VERSION" ;;
+  *) usage; exit 2 ;;
+esac

@@ -1,0 +1,30 @@
+{
+  "status": "ok",
+  "count": 1,
+  "summary": "1 profilo colima attivo, 2 container",
+  "items": [],
+  "checkedAt": "2026-01-01T00:00:00Z",
+  "profiles": [
+    {
+      "name": "default",
+      "status": "Running",
+      "cpus": 4,
+      "memoryBytes": 8589934592,
+      "diskBytes": 64424509440
+    }
+  ],
+  "containers": [
+    {
+      "id": "abc123def456",
+      "name": "web",
+      "cpu": "0.15%",
+      "mem": "50.2MiB"
+    },
+    {
+      "id": "fff000aaa111",
+      "name": "db_1",
+      "cpu": "1.20%",
+      "mem": "160MiB"
+    }
+  ]
+}

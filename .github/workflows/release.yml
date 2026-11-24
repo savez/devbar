@@ -1,0 +1,63 @@
+# Al merge su main gira solo release-please (Linux). L'app si compila solo quando nasce una release
+# (i minuti macOS costano su un repo privato). Le action sono fissate a una versione maggiore:
+# aggiornarle a mano (vedi README).
+name: release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.rp.outputs.release_created }}
+      tag_name: ${{ steps.rp.outputs.tag_name }}
+      version: ${{ steps.rp.outputs.version }}
+    steps:
+      - id: rp
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  build-mac:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+          fetch-depth: 0   # CFBundleVersion = numero di commit
+
+      - name: Xcode più recente e controllo Swift
+        run: |
+          latest="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -n 1)"
+          if [ -n "$latest" ]; then sudo xcode-select -s "$latest/Contents/Developer"; fi
+          xcode-select -p
+          swift --version
+          required="$(sed -n 's|^// swift-tools-version: *||p' app/Package.swift | head -n 1)"
+          actual="$(swift --version 2>&1 | sed -n 's/.*Swift version \([0-9][0-9.]*\).*/\1/p' | head -n 1)"
+          if [ -z "$required" ] || [ -z "$actual" ]; then
+            echo "::error::impossibile leggere la versione di Swift (richiesta='$required', runner='$actual')"; exit 1
+          fi
+          lowest="$(printf '%s\n%s\n' "$required" "$actual" | sort -V | head -n 1)"
+          if [ "$lowest" != "$required" ]; then
+            echo "::error::il pacchetto richiede Swift $required, il runner ha $actual: aggiornare il runner o abbassare swift-tools-version"; exit 1
+          fi
+
+      - name: Installa just
+        run: brew install just
+
+      - name: Pacchetto
+        run: just package VERSION=${{ needs.release-please.outputs.version }}
+
+      - name: Allega lo zip alla release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ needs.release-please.outputs.tag_name }}" dist/devbar-*.zip

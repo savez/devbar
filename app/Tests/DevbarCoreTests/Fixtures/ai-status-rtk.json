@@ -1,0 +1,1 @@
+{"tool":"rtk","installed":true,"harnesses":[{"id":"claude","state":"installed"},{"id":"opencode","state":"outdated"},{"id":"copilot","state":"installed"},{"id":"codex","state":"unsupported"},{"id":"cursor","state":"missing"},{"id":"gemini","state":"unsupported"}]}

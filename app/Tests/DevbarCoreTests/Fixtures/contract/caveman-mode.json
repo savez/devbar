@@ -1,0 +1,8 @@
+{
+  "applied": true,
+  "value": "megacave",
+  "commands": [
+    "Scrive defaultMode = \"megacave\" in ~/.config/caveman/config.json",
+    "vale per le nuove sessioni"
+  ]
+}

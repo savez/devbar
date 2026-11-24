@@ -1,0 +1,36 @@
+{
+  "path": "/Users/example/repos/proj",
+  "checks": [
+    {
+      "tool": "rtk",
+      "ok": false,
+      "detail": "hook globale RTK non installato (usa Impostazioni, AI setup)",
+      "willWrite": []
+    },
+    {
+      "tool": "caveman",
+      "ok": false,
+      "detail": "regola caveman da scrivere in 6 file",
+      "willWrite": [
+        ".cursor/rules/caveman.mdc",
+        ".windsurf/rules/caveman.md",
+        ".clinerules/caveman.md",
+        ".github/copilot-instructions.md",
+        ".opencode/AGENTS.md",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "tool": "tokensave",
+      "ok": false,
+      "detail": "indice assente; gli hook git post-checkout, post-commit e post-merge vengono scritti: hook esistenti non tokensave (husky, core.hooksPath) possono esserne toccati",
+      "willWrite": [
+        "/Users/example/repos/proj/.tokensave/",
+        "/Users/example/repos/proj/.git/info/exclude",
+        "/Users/example/repos/proj/.git/hooks/post-checkout",
+        "/Users/example/repos/proj/.git/hooks/post-commit",
+        "/Users/example/repos/proj/.git/hooks/post-merge"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "piano senza --yes",
+  "description": "Forma comune del piano che le azioni stampano senza --yes: {plan:true,commands:[...]}, più `tool` per ai-install (lib/ai/ai.sh action_ai_install). Le righe sono solo testo da mostrare.",
+  "$ref": "defs.schema.json#/$defs/planBase",
+  "unevaluatedProperties": false
+}

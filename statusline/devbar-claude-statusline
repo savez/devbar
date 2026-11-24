@@ -1,0 +1,426 @@
+#!/usr/bin/env bash
+# Portato da github.com/sparkfabrik/sparkdock (config/bin/sparkfabrik-claude-statusline), GPLv3
+# Copia locale per devbar: nessuna dipendenza dal clone Sparkdock a runtime.
+# Richiede bash >= 4.2 (printf %(..)T, ${var,,}) e jq.
+# SparkFabrik managed statusline for Claude Code.
+#
+# Opt-in. Enable/disable via the shared recipe (single source, cross-platform):
+#   sjust claude-statusline-enable     # macOS
+#   ajust claude-statusline-enable     # Arch (imports the same shared recipe)
+# or wire it manually in ~/.claude/settings.json:
+#   "statusLine": { "type": "command",
+#     "command": "bash /opt/sparkdock/config/bin/sparkfabrik-claude-statusline" }
+#
+# Claude Code pipes a JSON blob on stdin each render and shows whatever this
+# prints on stdout. Requires jq (shipped by sparkdock); degrades to a minimal
+# bar if jq is absent.
+#
+# Layout, left to right — every segment is conditional and appears only when
+# the payload carries it:
+#
+#    dir |  branch*↑1↓2 ⑂wt | Opus 5 ⚡high FAST | @agent | vim:NORMAL |
+#   ✎ style | CAVEMAN | ▰▰▱▱▱ 42% 1M | ❄ |
+#   5h 24% ↻2h30m · 7d 41% ↻2d · $ 137% ↻10d
+#
+# Perf: one jq pass, one git status, and a 5s cache per session_id + directory.
+# Bash handles the rest without forks.
+# Security: payload values and the branch are stripped of control bytes.
+# The git cache is read only from a user-owned directory.
+set -uo pipefail
+export LC_NUMERIC=C   # printf '%.0f' must read "23.5" regardless of locale
+
+CFG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+
+# One clock per tick, shared by the git cache TTL and every reset deadline.
+printf -v NOW '%(%s)T' -1
+# Test hook: a fixed clock, honoured only when set.
+[ -n "${DEVBAR_STATUSLINE_NOW:-}" ] && NOW="$DEVBAR_STATUSLINE_NOW"
+case "$NOW" in ''|*[!0-9]*) printf -v NOW '%(%s)T' -1 ;; esac
+
+# ── Icons ────────────────────────────────────────────────────────────────────
+# Explicit UTF-8 bytes: a literal glyph is lost by any tool in the chain that
+# cannot encode it, and a \u escape depends on the locale.
+I_GIT=$'\xee\x82\xa0'      # branch (nf-pl-branch U+E0A0)
+I_WT=$'\xe2\x91\x82'       # ⑂ linked worktree (U+2442)
+I_AHEAD=$'\xe2\x86\x91'    # ↑ commits ahead of upstream (U+2191)
+I_BEHIND=$'\xe2\x86\x93'   # ↓ commits behind upstream (U+2193)
+I_ELLIPSIS=$'\xe2\x80\xa6' # … truncated worktree name (U+2026)
+I_EFF=$'\xe2\x9a\xa1'      # ⚡ reasoning effort (U+26A1)
+I_STYLE=$'\xe2\x9c\x8e'    # ✎ output style (U+270E)
+I_COLD=$'\xe2\x9d\x84'     # ❄ cold prompt cache (U+2744)
+I_WARM=$'\xe2\x97\xb7'    # ◷ warm prompt cache, minutes to expiry (U+25F7)
+I_RESET=$'\xe2\x86\xbb'    # ↻ rate-limit reset (U+21BB)
+I_BAR_ON=$'\xe2\x96\xb0'   # ▰ filled context cell (U+25B0)
+I_BAR_OFF=$'\xe2\x96\xb1'  # ▱ empty context cell (U+25B1)
+I_WARN=$'\xe2\x9a\xa0'     # ⚠ legacy 200k overflow flag (U+26A0)
+
+# ── Palette (256 colors) ─────────────────────────────────────────────────────
+RST=$'\033[0m'
+DIM=$'\033[38;5;240m'
+C_DIR=$'\033[36m'
+C_GIT=$'\033[35m'
+C_MODEL=$'\033[33m'
+C_EFF=$'\033[38;5;86m'      # aquamarine — the model's own default effort
+C_EFF_MAX=$'\033[38;5;201m' # magenta — boosted effort (max/xhigh)
+C_FAST=$'\033[1;38;5;220m'  # bold yellow — fast mode
+C_AGENT=$'\033[38;5;111m'
+C_STYLE=$'\033[38;5;140m'
+C_CAVE=$'\033[38;5;172m'
+C_COLD=$'\033[38;5;117m'
+C_CACHE_OK=$'\033[38;5;114m'   # green — cache warm, time to spare
+C_CACHE_LOW=$'\033[38;5;178m'  # amber — last 20% of the cache lifetime
+C_OK=$'\033[38;5;114m'      # green — ahead, low usage
+C_WARN=$'\033[38;5;178m'    # amber
+C_BAD=$'\033[38;5;196m'     # red — dirty, behind, saturated usage
+C_OVER=$'\033[1m'$'\033[38;5;196m'  # bold red — a window past 100%
+C_WT=$'\033[38;5;109m'
+SEP=" ${DIM}|${RST} "
+
+out=""
+append() {
+  [ -n "$1" ] || return 0
+  if [ -n "$out" ]; then out="${out}${SEP}$1"; else out="$1"; fi
+}
+
+# printf accepts "" and "inf"; keep only plain digits.
+PCT=""
+round_pct() {
+  PCT=""
+  [ -n "$1" ] || return 0
+  printf -v PCT '%.0f' "$1" 2>/dev/null || PCT=""
+  case "$PCT" in ''|*[!0-9]*) PCT="" ;; esac
+}
+
+# One usage scale for every percentage: green < 70, amber 70–89, red ≥ 90.
+PCOLOR=""
+pct_color() {
+  if   [ "$1" -ge 90 ]; then PCOLOR="$C_BAD"
+  elif [ "$1" -ge 70 ]; then PCOLOR="$C_WARN"
+  else                       PCOLOR="$C_OK"
+  fi
+}
+
+# Relative countdown to a reset deadline: 45m, 2h30m, 2d19h for 7d.
+ETA=""
+fmt_eta() {
+  local rem hours minutes days
+  ETA=""
+  case "$1" in ''|*[!0-9]*) return 0 ;; esac
+  rem=$(( $1 - NOW ))
+  if   [ "$rem" -le 0 ];     then return 0
+  elif [ "$rem" -lt 3600 ];  then printf -v ETA '%dm' $(( rem / 60 ))
+  elif [ "$rem" -lt 86400 ]; then
+    hours=$(( rem / 3600 ))
+    minutes=$(( rem % 3600 / 60 ))
+    if [ "$2" = "7d" ] && [ "$minutes" -eq 0 ]; then printf -v ETA '%dh' "$hours"
+    else                                               printf -v ETA '%dh%dm' "$hours" "$minutes"
+    fi
+  elif [ "$2" = "7d" ]; then
+    hours=$(( (rem + 1800) / 3600 ))
+    days=$(( hours / 24 ))
+    hours=$(( hours % 24 ))
+    if [ "$hours" -eq 0 ]; then printf -v ETA '%dd' "$days"
+    else                        printf -v ETA '%dd%dh' "$days" "$hours"
+    fi
+  else                            printf -v ETA '%dd' $(( (rem + 43200) / 86400 ))
+  fi
+}
+
+# ── Parse Claude Code's JSON ─────────────────────────────────────────────────
+# Fields use \x1f so empty values survive `read` without shifting later fields.
+# `c` strips control bytes at the source.
+EFFORT_EXPR='(.effort.level? // .effortLevel.level? // (.effort? | strings) // (.effortLevel? | strings) // "")'
+
+cur_dir=""; model=""; effort=""; fast_mode=""; agent=""; vim_mode=""; style=""
+ctx_pct=""; ctx_size=""; over200=""; cache_warm=""; cache_seen=""
+five_pct=""; five_reset=""; seven_pct=""; seven_reset=""
+spend_pct=""; spend_reset=""; worktree=""; session_id=""; transcript_path=""
+
+HAVE_JQ=""
+command -v jq >/dev/null 2>&1 && HAVE_JQ=1
+
+if [ -n "$HAVE_JQ" ]; then
+  IFS=$'\x1f' read -r cur_dir model effort fast_mode agent vim_mode style \
+    ctx_pct ctx_size over200 cache_warm cache_seen \
+    five_pct five_reset seven_pct seven_reset spend_pct spend_reset \
+    worktree session_id transcript_path < <(jq -r 2>/dev/null '
+      def c: tostring | gsub("[[:cntrl:]]"; "");
+      [ (.workspace.current_dir // .cwd // "" | c),
+        (.model.display_name // "" | c),
+        ('"$EFFORT_EXPR"' | c),
+        (.fast_mode // false | tostring),
+        (.agent.name // "" | c),
+        (.vim.mode // "" | ascii_upcase | c),
+        (.output_style.name // "" | c),
+        (.context_window.used_percentage // "" | c),
+        (.context_window.context_window_size // "" | c),
+        (.exceeds_200k_tokens // false | tostring),
+        (.prompt_cache.warm | tostring),
+        (.prompt_cache.caching_observed | tostring),
+        (.rate_limits.five_hour.used_percentage    // "" | c),
+        (.rate_limits.five_hour.resets_at          // "" | c),
+        (.rate_limits.seven_day.used_percentage    // "" | c),
+        (.rate_limits.seven_day.resets_at          // "" | c),
+        (.rate_limits.spend_limit.used_percentage  // "" | c),
+        (.rate_limits.spend_limit.resets_at        // "" | c),
+        (.workspace.git_worktree // .worktree.name // "" | c),
+        (.session_id // "" | c),
+        (.transcript_path // "" | c)
+      ] | join("\u001f")')
+fi
+cur_dir="${cur_dir:-$PWD}"
+
+# Fall back to the persisted default when stdin omits the effort level: Claude
+# Code's stdin uses `.effort`, settings.json stores `.effortLevel`. Tolerates a
+# corrupt file, and costs nothing on the builds that do send the level.
+if [ -z "$effort" ] && [ -n "$HAVE_JQ" ] && [ -f "${CFG}/settings.json" ]; then
+  effort=$(jq -r '('"$EFFORT_EXPR"' | tostring | gsub("[[:cntrl:]]"; ""))' "${CFG}/settings.json" 2>/dev/null)
+fi
+
+# ── Directory ────────────────────────────────────────────────────────────────
+dir_name="${cur_dir%/}"
+append "${C_DIR}${dir_name##*/}${RST}"
+
+# ── Git: branch, dirty *, ahead ↑ / behind ↓, ⑂ worktree ─────────────────────
+# One porcelain status provides branch, dirty state, and upstream divergence.
+build_git_seg() {
+  local hdr first branch extra rest ahead behind wt
+  hdr=""; first=""
+  { IFS= read -r hdr; IFS= read -r first; } \
+    < <(git -C "$cur_dir" --no-optional-locks status --porcelain -b 2>/dev/null)
+  [ -n "$hdr" ] || return 0
+  hdr=${hdr#'## '}
+  case "$hdr" in
+    'HEAD (no branch)'*)
+      branch=$(git -C "$cur_dir" --no-optional-locks rev-parse --short HEAD 2>/dev/null)
+      ;;
+    'No commits yet on '*)
+      branch=${hdr#'No commits yet on '}
+      branch=${branch%% *}
+      ;;
+    *)
+      branch=${hdr%% *}        # drop the " [ahead 1, behind 2]" suffix
+      branch=${branch%%...*}   # drop the upstream half
+      ;;
+  esac
+  branch=${branch//[[:cntrl:]]/}
+  [ -n "$branch" ] || return 0
+
+  extra=""
+  [ -n "$first" ] && extra="${extra}${C_BAD}*"
+  case "$hdr" in
+    *'[ahead '*)  rest=${hdr#*'[ahead '};  ahead=${rest%%[,\]]*};  extra="${extra}${C_OK}${I_AHEAD}${ahead}" ;;
+  esac
+  case "$hdr" in
+    *'[behind '*) rest=${hdr#*'[behind '}; behind=${rest%%[,\]]*}; extra="${extra}${C_BAD}${I_BEHIND}${behind}" ;;
+  esac
+  # The worktree name comes from the payload (`workspace.git_worktree`), and is
+  # truncated because it is free-form and would otherwise stretch the line.
+  wt="$worktree"
+  if [ -n "$wt" ]; then
+    [ "${#wt}" -gt 16 ] && wt="${wt:0:16}${I_ELLIPSIS}"
+    extra="${extra} ${C_WT}${I_WT} ${wt}"
+  fi
+  printf '%s' "${C_GIT}${I_GIT} ${branch}${extra}${RST}"
+}
+
+# 5s cache keyed by session_id and directory.
+# Skip the cache when its directory is not user-owned.
+cache_file=""
+if [ -n "$session_id" ]; then
+  cache_dir="${TMPDIR:-/tmp}/sparkfabrik-claude-statusline-${UID}"
+  [ -d "$cache_dir" ] || { mkdir -p "$cache_dir" 2>/dev/null && chmod 700 "$cache_dir" 2>/dev/null; }
+  if [ -d "$cache_dir" ] && [ -O "$cache_dir" ]; then
+    dir_key="${cur_dir//[^A-Za-z0-9_-]/_}"
+    cache_file="${cache_dir}/git-${session_id//[^A-Za-z0-9_-]/_}-${#cur_dir}${dir_key: -48}"
+  fi
+fi
+
+git_seg=""
+cached_at=""
+cache_hit=""
+if [ -n "$cache_file" ] && [ -f "$cache_file" ]; then
+  # The stamp is stored in the file, not read from its mtime: `stat -c` is
+  # GNU-only and `stat -f` is BSD-only, so neither is portable here.
+  { IFS= read -r cached_at; IFS= read -r git_seg; } < "$cache_file" 2>/dev/null
+  case "$cached_at" in
+    ''|*[!0-9]*) git_seg="" ;;
+    *) if [ $(( NOW - cached_at )) -lt 5 ]; then cache_hit=1; else git_seg=""; fi ;;
+  esac
+fi
+if [ -z "$cache_hit" ]; then
+  git_seg=$(build_git_seg)
+  if [ -n "$cache_file" ]; then
+    # Atomic publish: a concurrent render never reads a half-written segment.
+    { printf '%s\n%s\n' "$NOW" "$git_seg" > "${cache_file}.$$" && mv -f "${cache_file}.$$" "$cache_file"; } 2>/dev/null
+  fi
+fi
+append "$git_seg"
+
+# ── Model + reasoning effort + fast mode ─────────────────────────────────────
+# High/default effort is aquamarine, boosted effort magenta, low/medium amber.
+# Drop the model's context suffix because the context segment already shows it.
+if [ -n "$model" ]; then
+  model_seg="${C_MODEL}${model%% (*}${RST}"
+  if [ -n "$effort" ]; then
+    case "$effort" in
+      max|xhigh)  ecolor="$C_EFF_MAX" ;;
+      low|medium) ecolor="$C_WARN" ;;
+      *)          ecolor="$C_EFF" ;;
+    esac
+    model_seg="${model_seg} ${ecolor}${I_EFF}${effort}${RST}"
+  fi
+  [ "$fast_mode" = "true" ] && model_seg="${model_seg} ${C_FAST}FAST${RST}"
+  append "$model_seg"
+fi
+
+# ── Custom agent (--agent / agent settings) ──────────────────────────────────
+[ -n "$agent" ] && append "${C_AGENT}@${agent}${RST}"
+
+# ── Vim mode (only while vim mode is on) ─────────────────────────────────────
+[ -n "$vim_mode" ] && append "${DIM}vim:${vim_mode}${RST}"
+
+# ── Output style (only when non-default) ─────────────────────────────────────
+if [ -n "$style" ] && [ "$style" != "default" ]; then
+  append "${C_STYLE}${I_STYLE} ${style}${RST}"
+fi
+
+# ── Caveman mode (flag file written by the caveman plugin) ───────────────────
+# Read with builtins and reduce the value to [a-z0-9-] before rendering it.
+cave_flag="${CFG}/.caveman-active"
+if [ ! -L "$cave_flag" ] && [ -f "$cave_flag" ]; then
+  cave_mode=""
+  IFS= read -r -n 64 cave_mode < "$cave_flag" 2>/dev/null
+  cave_mode="${cave_mode,,}"
+  cave_mode="${cave_mode//[^a-z0-9-]/}"
+  # caveman 4.x writes the active skill id instead of the mode name:
+  # "caveman" (lite/full), "ultracave" (ultra), "megacave" (wenyan modes).
+  case "$cave_mode" in
+    ''|off)       ;;
+    full|caveman) append "${C_CAVE}CAVEMAN${RST}" ;;
+    ultracave)    append "${C_CAVE}CAVEMAN:ULTRA${RST}" ;;
+    megacave)     append "${C_CAVE}CAVEMAN:WENYAN${RST}" ;;
+    *)            append "${C_CAVE}CAVEMAN:${cave_mode^^}${RST}" ;;
+  esac
+fi
+
+# ── Context window: bar + percentage ─────────────────────────────────────────
+# Show non-default window size; retain the legacy 200k overflow fallback.
+round_pct "$ctx_pct"
+ctx_int="$PCT"
+if [ -n "$ctx_int" ]; then
+  [ "$ctx_int" -gt 100 ] && ctx_int=100
+  fill=$(( (ctx_int + 10) / 20 ))
+  bar=""
+  for cell in 1 2 3 4 5; do
+    if [ "$cell" -le "$fill" ]; then bar="${bar}${I_BAR_ON}"; else bar="${bar}${I_BAR_OFF}"; fi
+  done
+  win=""
+  case "$ctx_size" in
+    ''|*[!0-9]*|200000) : ;;
+    *) if [ "$ctx_size" -ge 1000000 ]; then win=" ${DIM}$(( ctx_size / 1000000 ))M"
+       else                                 win=" ${DIM}$(( ctx_size / 1000 ))k"
+       fi ;;
+  esac
+  pct_color "$ctx_int"
+  append "${PCOLOR}${bar} ${ctx_int}%${win}${RST}"
+elif [ "$over200" = "true" ]; then
+  append "${C_BAD}${I_WARN} 200k+${RST}"
+fi
+
+# ── Prompt cache: ◷ minutes to expiry when warm, ❄ when gone cold ────────────
+# Gate on caching_observed so false means cold, not never cached.
+# Use tostring without `// ""`; jq's alternative operator drops false.
+# Expiry = last assistant reply with usage + its TTL (1h if it wrote 1h cache,
+# 5m if it wrote 5m cache, else the TTL of the latest reply that wrote any,
+# else 300s). Only the transcript tail is read, at most once per 5s per session.
+cache_expiry() {   # prints "<last epoch> <ttl>" or nothing
+  [ -r "$transcript_path" ] || return 0
+  tail -c 65536 "$transcript_path" 2>/dev/null | jq -nRr '
+    [inputs | fromjson? | select(.type? == "assistant" and (.message.usage? | type) == "object" and (.timestamp? | type) == "string")
+     | { t: (.timestamp | sub("\\.[0-9]+"; "") | fromdateiso8601? // null),
+         ttl: (.message.usage.cache_creation as $c
+               | if (($c.ephemeral_1h_input_tokens? // 0) > 0) then 3600
+                 elif (($c.ephemeral_5m_input_tokens? // 0) > 0) then 300
+                 else null end) }
+     | select(.t != null)] as $r
+    | if ($r | length) == 0 then "none"
+      else "\($r[-1].t) \(([$r[] | select(.ttl != null) | .ttl] | last) // 300)" end' 2>/dev/null
+}
+if [ "$cache_seen" = "true" ] && [ "$cache_warm" = "false" ]; then
+  append "${C_COLD}${I_COLD}${RST}"
+elif [ "$cache_seen" = "true" ] && [ "$cache_warm" = "true" ] && [ -n "$transcript_path" ] && [ -r "$transcript_path" ]; then
+  cx_stamp=""; cx=""; cx_file=""
+  if [ -n "$cache_dir" ] && [ -n "$cache_file" ]; then
+    cx_file="${cache_dir}/pcache-${session_id//[^A-Za-z0-9_-]/_}"
+    if [ -f "$cx_file" ]; then
+      { IFS= read -r cx_stamp; IFS= read -r cx; } < "$cx_file" 2>/dev/null
+      case "$cx_stamp" in ''|*[!0-9]*) cx=""; cx_stamp="" ;; esac
+      if [ -n "$cx_stamp" ] && [ $(( NOW - cx_stamp )) -ge 5 ]; then cx=""; cx_stamp=""; fi
+    fi
+  fi
+  if [ -z "$cx_stamp" ]; then
+    cx=$(cache_expiry)
+    if [ -n "$cx_file" ]; then
+      { printf '%s\n%s\n' "$NOW" "$cx" > "${cx_file}.$$" && mv -f "${cx_file}.$$" "$cx_file"; } 2>/dev/null
+    fi
+  fi
+  cx_last=""; cx_ttl=""
+  read -r cx_last cx_ttl <<< "$cx"
+  cx_rem=""
+  case "$cx_last$cx_ttl" in
+    ''|*[!0-9]*) ;;
+    *) cx_rem=$(( cx_last + cx_ttl - NOW )) ;;
+  esac
+  if [ -z "$cx_rem" ] || [ "$cx_rem" -le 0 ]; then
+    append "${C_CACHE_OK}${I_WARM}${RST}"
+  else
+    if [ "$cx_rem" -lt 60 ]; then cx_txt='<1m'; else cx_txt="$(( cx_rem / 60 ))m"; fi
+    if [ $(( cx_rem * 5 )) -le "$cx_ttl" ]; then cx_col="$C_CACHE_LOW"; else cx_col="$C_CACHE_OK"; fi
+    append "${cx_col}${I_WARM} ${cx_txt}${RST}"
+  fi
+fi
+
+# ── Rate limits (absent for API-key users — hidden when null) ────────────────
+# Mirrors `/usage`: five_hour = current session, seven_day = current week,
+# spend_limit = the gateway spend window when one applies.
+rl_out=""
+rl_add() {   # rl_add <label> <used %> <reset epoch>
+  local pct color txt
+  round_pct "$2"
+  pct="$PCT"
+  [ -n "$pct" ] || return 0
+  # Clamp spend color past 100%, but keep the reported percentage.
+  if [ "$pct" -gt 100 ]; then
+    color="$C_OVER"
+  else
+    pct_color "$pct"
+    color="$PCOLOR"
+  fi
+  txt="${color}${1} ${pct}%"
+  fmt_eta "$3" "$1"
+  [ -n "$ETA" ] && txt="${txt} ${I_RESET}${ETA}"
+  if [ -n "$rl_out" ]; then rl_out="${rl_out} ${DIM}· ${txt}"; else rl_out="$txt"; fi
+}
+rl_add 5h  "$five_pct"  "$five_reset"
+rl_add 7d  "$seven_pct" "$seven_reset"
+rl_add '$' "$spend_pct" "$spend_reset"
+[ -n "$rl_out" ] && append "${rl_out}${RST}"
+
+# Share the session and weekly windows with local readers (SparkPulse), written atomically.
+# Only plain numbers are written, so the JSON needs no escaping.
+is_num() { [[ "$1" =~ ^[0-9]+(\.[0-9]+)?$ ]]; }
+if is_num "$five_pct" && is_num "$five_reset" && is_num "$seven_pct" && is_num "$seven_reset"; then
+  rl_dir="${XDG_CACHE_HOME:-$HOME/.cache}"
+  rl_file="${rl_dir}/claude-rate-limits.json"
+  if [ -d "$rl_dir" ] || mkdir -p "$rl_dir" 2>/dev/null; then
+    { printf '{"updated_at":%s,"five_hour":{"used_percentage":%s,"resets_at":%s},"seven_day":{"used_percentage":%s,"resets_at":%s}}\n' \
+        "$NOW" "$five_pct" "$five_reset" "$seven_pct" "$seven_reset" > "${rl_file}.$$" \
+        && mv -f "${rl_file}.$$" "$rl_file"; } 2>/dev/null || rm -f "${rl_file}.$$" 2>/dev/null
+  fi
+fi
+
+printf '%s' "$out"
+
+# Always exit 0 because Claude Code discards a failing statusline.
+exit 0

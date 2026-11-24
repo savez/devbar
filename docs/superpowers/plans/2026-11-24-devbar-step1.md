@@ -57,7 +57,7 @@ app/Sources/DevbarCore/         modelli, CLIRunner, ConfigStore, StatusStore
 app/Sources/Devbar/             App, viste
 app/Tests/DevbarCoreTests/
 app/bundle.sh app/Info.plist app/it.savez.devbar.plist
-Makefile  README.md
+justfile  README.md
 ```
 
 **Stub per i test bash:** `tests/stubs/<tool>` è uno script che stampa `tests/fixtures/<tool>/${STUB_<TOOL>_FIXTURE}` ed esce con `${STUB_<TOOL>_RC:-0}`, e registra gli argomenti in `$BATS_TEST_TMPDIR/<tool>.calls`. `tests/helpers.bash` mette `tests/stubs` in testa al `PATH`, imposta `DEVBAR_CONFIG`, `DEVBAR_CACHE_DIR`, `HOME` in `$BATS_TEST_TMPDIR`.
@@ -78,7 +78,7 @@ Makefile  README.md
 ### Task 1: Scheletro del motore
 
 **Files:**
-- Create: `bin/devbar`, `lib/common.sh`, `tests/helpers.bash`, `tests/common.bats`, `Makefile`
+- Create: `bin/devbar`, `lib/common.sh`, `tests/helpers.bash`, `tests/common.bats`, `justfile`
 
 **Interfaces:**
 - Produces (in `lib/common.sh`):
@@ -99,8 +99,8 @@ Makefile  README.md
   - `cache_write x` poi `cache_fresh x 1440` → rc 0; file con mtime -1441 min → rc 1
   - due `with_lock sleep 1` in parallelo → uno esce 2 con `.error=="busy"`
 - [ ] **Step 3:** `bats tests/common.bats` → FAIL.
-- [ ] **Step 4:** implementa `bin/devbar` (risolve `DEVBAR_ROOT` dal symlink, `source` di `lib/*.sh`, `set -euo pipefail`) e `lib/common.sh`. `Makefile` con target `test` (`bats tests`), `lint` (`shellcheck bin/devbar lib/**/*.sh`).
-- [ ] **Step 5:** `make test lint` → PASS, nessun warning.
+- [ ] **Step 4:** implementa `bin/devbar` (risolve `DEVBAR_ROOT` dal symlink, `source` di `lib/*.sh`, `set -euo pipefail`) e `lib/common.sh`. `justfile` con target `test` (`bats tests`), `lint` (`shellcheck bin/devbar lib/**/*.sh`).
+- [ ] **Step 5:** `just test lint` → PASS, nessun warning.
 - [ ] **Step 6:** commit `feat(engine): scheletro CLI devbar con config, cache e lock`.
 
 ### Task 2: Check e azioni Homebrew
@@ -116,7 +116,7 @@ Makefile  README.md
 - [ ] **Step 1: test che falliscono:** fixture con 2 formule + 1 cask, una in `brewExclude` → rc 0, `.count==2`; fixture vuota → rc 1; stdout di brew con `==> Downloading` prima del JSON → JSON letto lo stesso; brew assente → rc 3; `run brew-upgrade wget` → `osascript.calls` contiene `brew upgrade wget`; `run brew-exclude wget` → config contiene `"wget"` una volta sola anche se lanciato due volte; `run cork-install` senza `--yes` → stampa il comando, non chiama brew.
 - [ ] **Step 2:** `bats tests/brew.bats` → FAIL.
 - [ ] **Step 3:** implementa. `brew outdated --json=v2`; estrai il JSON partendo dalla prima riga che inizia con `{`.
-- [ ] **Step 4:** `make test lint` → PASS.
+- [ ] **Step 4:** `just test lint` → PASS.
 - [ ] **Step 5:** commit `feat(engine): check brew-outdated e azioni brew/cork`.
 
 ### Task 3: Vulnerabilità Homebrew
@@ -237,7 +237,7 @@ Makefile  README.md
 
 **Files:**
 - Create: `app/Package.swift`, `app/Sources/DevbarCore/Models.swift`, `app/Sources/DevbarCore/ConfigStore.swift`, `app/Tests/DevbarCoreTests/ModelsTests.swift`, `app/Tests/DevbarCoreTests/Fixtures/*.json`
-- Modify: `Makefile` (target `app-test`: `cd app && swift test`)
+- Modify: `justfile` (target `app-test`: `cd app && swift test`)
 
 **Interfaces:**
 - Produces: `enum CheckState { case action, ok, error, unconfigured }` da rc (`0,1,2,3`); `struct CheckResult: Decodable { state, count, summary, items, checkedAt }`; risultati tipizzati `BrewOutdated`, `BrewVulns`, `AuditResult`, `ColimaStatus`, `RtkGain`, `TokensaveGain`, `CavemanStatus`, `ClaudeUsage`, `DetectResult`, `AIStatus`, `ProjectStatus` — campi = JSON dei Task 2–10.
@@ -293,12 +293,12 @@ Makefile  README.md
 
 **Files:**
 - Create: `app/bundle.sh`, `app/Info.plist`, `app/it.savez.devbar.plist`, `README.md`
-- Modify: `Makefile` (target `build`, `install`, `uninstall`)
+- Modify: `justfile` (target `build`, `install`, `uninstall`)
 
 **Interfaces:**
-- `make build` → `swift build -c release` e `app/bundle.sh` assembla `app/.build/devbar.app` (`LSUIElement=true`, `CFBundleIdentifier=it.savez.devbar`), firma ad-hoc (`codesign --force --sign -`).
-- `make install` → copia in `~/Applications/devbar.app`, symlink `~/.local/bin/devbar` → `bin/devbar` del repo, LaunchAgent `~/Library/LaunchAgents/it.savez.devbar.plist` (`RunAtLoad`, `ProcessType Interactive`, `LimitLoadToSessionType Aqua`, come Sparkdock), `launchctl bootstrap gui/$(id -u)`. `make uninstall` fa l'inverso.
-- README: cosa fa, `make install`, codici di uscita, chiavi di config, elenco dei comandi `devbar`, sezione "Origine" che cita Sparkdock (statusline, setup caveman e RTK portati da `github.com/sparkfabrik/sparkdock`, GPLv3).
-- [ ] **Step 1:** implementa. Verifica: `make install` → `launchctl print gui/$(id -u)/it.savez.devbar` mostra `state = running`; icona visibile; `make uninstall` → plist e app rimossi, processo terminato.
-- [ ] **Step 2:** `make test lint app-test` → tutto PASS.
+- `just build` → `swift build -c release` e `app/bundle.sh` assembla `app/.build/devbar.app` (`LSUIElement=true`, `CFBundleIdentifier=it.savez.devbar`), firma ad-hoc (`codesign --force --sign -`).
+- `just install` → copia in `~/Applications/devbar.app`, symlink `~/.local/bin/devbar` → `bin/devbar` del repo, LaunchAgent `~/Library/LaunchAgents/it.savez.devbar.plist` (`RunAtLoad`, `ProcessType Interactive`, `LimitLoadToSessionType Aqua`, come Sparkdock), `launchctl bootstrap gui/$(id -u)`. `just uninstall` fa l'inverso.
+- README: cosa fa, `just install`, codici di uscita, chiavi di config, elenco dei comandi `devbar`, sezione "Origine" che cita Sparkdock (statusline, setup caveman e RTK portati da `github.com/sparkfabrik/sparkdock`, GPLv3).
+- [ ] **Step 1:** implementa. Verifica: `just install` → `launchctl print gui/$(id -u)/it.savez.devbar` mostra `state = running`; icona visibile; `just uninstall` → plist e app rimossi, processo terminato.
+- [ ] **Step 2:** `just test lint app-test` → tutto PASS.
 - [ ] **Step 3:** commit `feat: bundle, LaunchAgent e README`.

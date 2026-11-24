@@ -1,0 +1,15 @@
+{
+  "status": "action",
+  "count": 1,
+  "summary": "1 repo con vulnerabilità npm (0 con errori)",
+  "items": [
+    {
+      "repo": "/Users/example/repos/web",
+      "critical": 1,
+      "high": 3,
+      "moderate": 2,
+      "low": 1
+    }
+  ],
+  "checkedAt": "2026-01-01T00:00:00Z"
+}

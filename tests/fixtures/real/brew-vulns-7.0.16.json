@@ -1,0 +1,1447 @@
+{
+  "findings": [
+    {
+      "formula": "ffmpeg",
+      "version": "9.1",
+      "tag": "9.1",
+      "repo_url": "https://github.com/ffmpeg/ffmpeg",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2026-120243",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg 2.0 through 9.0.2 Information Disclosure via G2M Kempf Palette",
+          "aliases": [],
+          "fixed_versions": [
+            "edad2d0dafcf44fa315eab716fd0183ce808053b"
+          ]
+        },
+        {
+          "id": "CVE-2026-120244",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg 2.1 through 9.0.2 Uninitialized Memory Leak via PCX Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "ecd5dfc308a164757e7f25b1afefd8db21b43cf9"
+          ]
+        },
+        {
+          "id": "CVE-2026-120246",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg 4.4 through 9.0.2 Uninitialized Memory Disclosure via CDXL HAM Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "47313ad3f9f33b892384b976fb7c09b3c85fd74e"
+          ]
+        },
+        {
+          "id": "CVE-2026-120247",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg 2.3 through 9.0.2 Huffyuv Decoder Uninitialized Heap Memory Disclosure",
+          "aliases": [],
+          "fixed_versions": [
+            "7c73707355708c846f718cca90096bc1a33c8989"
+          ]
+        },
+        {
+          "id": "CVE-2026-125065",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 NULL Pointer Dereference via TGV Decoder eatgv.c",
+          "aliases": [],
+          "fixed_versions": [
+            "9691e4fde64e14de73c298562c4e475f9412b5ad"
+          ]
+        },
+        {
+          "id": "CVE-2026-125066",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 NULL Pointer Dereference in CLJR Video Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "d40c1b12811814fc6c2d0816527b003d8510ea06"
+          ]
+        },
+        {
+          "id": "CVE-2026-125067",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 VBLE Decoder NULL Pointer Dereference via vble_decode_frame()",
+          "aliases": [],
+          "fixed_versions": [
+            "1206df65e54b6e9c01459c7cd9a95f9bde2736d7"
+          ]
+        },
+        {
+          "id": "CVE-2026-125068",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 NULL Pointer Dereference in Bink Video Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "5195d6f9729ad00b93e4d0f0bea309416fb4713e"
+          ]
+        },
+        {
+          "id": "CVE-2026-125069",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 NULL Pointer Dereference via Motion Pixels Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "26b4c37526fe0ecf1095b45daac08050f25f7659"
+          ]
+        },
+        {
+          "id": "CVE-2026-125070",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 NULL Pointer Dereference in EA TQI Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "5d7b743bdfb724df21fd43a3d7f3258382eb578c"
+          ]
+        },
+        {
+          "id": "CVE-2026-125071",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 NULL Pointer Dereference in JV Video Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "839c93f261cd3e1719edfac4244a2d0055ce8841"
+          ]
+        },
+        {
+          "id": "CVE-2026-125072",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 NULL Pointer Dereference in MPEG Audio Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "0b007e0634de5b4424b9993c95a6c1c50de0115b"
+          ]
+        },
+        {
+          "id": "CVE-2026-125073",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Infinite Loop Denial of Service via IMC/IAC Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "9b26bb4c9a4457d480899a1bf64ec080eceb1acd"
+          ]
+        },
+        {
+          "id": "CVE-2026-125095",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 C93 Decoder Uninitialized Stack Memory Disclosure",
+          "aliases": [],
+          "fixed_versions": [
+            "ac0106851a4dac555c967421dfc96c0135183133"
+          ]
+        },
+        {
+          "id": "CVE-2026-125096",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Uninitialized Memory Disclosure via Tiertex SEQ Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "c896bbb24535685509a816af09665cb73bf2d0c7"
+          ]
+        },
+        {
+          "id": "CVE-2026-125097",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Uninitialized Heap Memory Disclosure via rawdec.c Raw Video Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "01a395b935b9da12dbeca588a7130c4db6a14689"
+          ]
+        },
+        {
+          "id": "CVE-2026-125098",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 WebP Decoder Information Disclosure via Short ALPH Chunk",
+          "aliases": [],
+          "fixed_versions": [
+            "92b318e0b33623720d9f128ad7bc5fa8277c34f7"
+          ]
+        },
+        {
+          "id": "CVE-2026-125099",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Uninitialized Memory Disclosure via GEM Raster Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "e578999fa3c5f7efac1ea70bb7c2a7682013c7c9"
+          ]
+        },
+        {
+          "id": "CVE-2026-125100",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Integer Overflow in OpenEXR Decoder Tile Count",
+          "aliases": [],
+          "fixed_versions": [
+            "c05d46ea2919da83233bf4216d3f58428bb54c59"
+          ]
+        },
+        {
+          "id": "CVE-2026-125101",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 VMnc Decoder Uninitialized Heap Memory Disclosure",
+          "aliases": [],
+          "fixed_versions": [
+            "50865f20b1f474e6b11735c88f668751bc9aa528"
+          ]
+        },
+        {
+          "id": "CVE-2026-125102",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 TAK Decoder Uninitialized Memory Disclosure via takdec.c",
+          "aliases": [],
+          "fixed_versions": [
+            "01e1bb126179879201429952cc2dcaea0d50d603"
+          ]
+        },
+        {
+          "id": "CVE-2026-125103",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Uninitialized Heap Disclosure via MLZ Decompressor in ALS Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "db98784a72600a94f7ebd5f016a37e01a505c27b"
+          ]
+        },
+        {
+          "id": "CVE-2026-125104",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Memory Exhaustion DoS via APE Decoder apedec.c",
+          "aliases": [],
+          "fixed_versions": [
+            "968e9e948ed8c9ba90dbc875e60b843c755cf4ba"
+          ]
+        },
+        {
+          "id": "CVE-2026-125170",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Uninitialized Memory Disclosure via targa_decode_rle()",
+          "aliases": [],
+          "fixed_versions": [
+            "f8f84348dfe1a80d38e7dbbcddcdd5d92a760dfd"
+          ]
+        },
+        {
+          "id": "CVE-2026-125171",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Out-of-Bounds Read in Musepack SV7 Decoder via mpc7.c",
+          "aliases": [],
+          "fixed_versions": [
+            "5d59b7c45d7142bddd13ddc8891e72c5c7dc991b"
+          ]
+        },
+        {
+          "id": "CVE-2026-125174",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg before 8.1.3 and 9.x before 9.0.2 NULL Pointer Dereference via ff_hap_set_chunk_count()",
+          "aliases": [],
+          "fixed_versions": [
+            "1041abdc962f4cc4f394aa8de9dc5236c0c3b9e7",
+            "946fcce07b6dcd0331c8cc609192aeff5e1924f8",
+            "f8c4c6400e835bf65e8b9cc12aba9e5c4d1c818c"
+          ]
+        },
+        {
+          "id": "CVE-2026-125175",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Information Disclosure via Flash Screen Video Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "50d206a75b5e60261d71b25657ae04891eb60290",
+            "cfb40c912927fdd2c1186b7b6aca468422da23db"
+          ]
+        },
+        {
+          "id": "CVE-2026-125176",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Uninitialized Memory Read in Flash Screen Video 2 Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "16d0f7f408ba47b4091a22109d4f22f5fd57820a"
+          ]
+        },
+        {
+          "id": "CVE-2026-125177",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Uninitialized Heap Memory Disclosure via MSCC/SRGC Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "263a85e2a2127396f8a2b0c329ec798e1ea015ad"
+          ]
+        },
+        {
+          "id": "CVE-2026-125178",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Out-of-Bounds Heap Read via TDSC Cursor Dimensions",
+          "aliases": [],
+          "fixed_versions": [
+            "12c589a37d093cc55618f8377b092dc21416806f"
+          ]
+        },
+        {
+          "id": "CVE-2026-125179",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Memory Disclosure via VQA Video Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "f9df3577ac40aaee06f82f05eab8249cbab3cd33"
+          ]
+        },
+        {
+          "id": "CVE-2026-125180",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg 8.1 through 9.0.2 EXIF Parser Memory Exhaustion via Overlapping Tags",
+          "aliases": [],
+          "fixed_versions": [
+            "30fff47764e59f02ac7868bb832ed51a88f949fd"
+          ]
+        },
+        {
+          "id": "CVE-2026-125181",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 FLIC Decoder Out-of-Bounds Write via FLI_BRUN Byte Swap",
+          "aliases": [],
+          "fixed_versions": [
+            "ee30fb98c0d4e97abbd5e371d2a3a926e92bec70",
+            "c0d308a9a616f4abcc4e0a4d86f7de92ecdef9f6",
+            "eb47d7bb6cf13042c6ab14e22fc0c0c3a6e51e12"
+          ]
+        },
+        {
+          "id": "CVE-2026-125182",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Out-of-Bounds Read via Cook Decoder js_subband_start",
+          "aliases": [],
+          "fixed_versions": [
+            "7145d13201c9f9c5253f40295714faa4f4ada1a0"
+          ]
+        },
+        {
+          "id": "CVE-2026-125183",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Denial of Service via HEVC PPS 3D Extension Parsing",
+          "aliases": [],
+          "fixed_versions": [
+            "f9f732b444a2fc27dcc4fe52084d3d435f827864"
+          ]
+        },
+        {
+          "id": "CVE-2026-125184",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg 6.1 through 9.0.2 Information Disclosure via CamStudio Decoder cscd.c",
+          "aliases": [],
+          "fixed_versions": [
+            "e58c4eb98f0f3c0523089fb9d037eedfcbd204d9"
+          ]
+        },
+        {
+          "id": "CVE-2026-125185",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Division by Zero via AFGS1 Film Grain Scaling Points",
+          "aliases": [],
+          "fixed_versions": [
+            "b8daf520dd03f6139aa053acb768f3c4594599d9"
+          ]
+        },
+        {
+          "id": "CVE-2026-125186",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 CPU Exhaustion via dts2pts Bitstream Filter",
+          "aliases": [],
+          "fixed_versions": [
+            "d8013c061725631261d7326c07d2af3a67fa4bc1"
+          ]
+        },
+        {
+          "id": "CVE-2026-125187",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 TTA Encoder Reachable Assertion via tta_encode_frame()",
+          "aliases": [],
+          "fixed_versions": [
+            "29a629e788c4343ff2e923095b8f38769fe2e470"
+          ]
+        },
+        {
+          "id": "CVE-2026-125188",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 ProRes prores_aw Heap Out-of-Bounds Read in Interlaced Encoding",
+          "aliases": [],
+          "fixed_versions": [
+            "d74f5e0559ba09d942c47687856349b03c1115dd",
+            "ad2287d6d2511af66222e8f7e40d546bc8d461ec"
+          ]
+        },
+        {
+          "id": "CVE-2026-125189",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg 8.1 through 9.0.2 Denial of Service via lcevc_metadata Bitstream Filter",
+          "aliases": [],
+          "fixed_versions": [
+            "0747459f0c6f228566f5cb11ceed56b977208582"
+          ]
+        },
+        {
+          "id": "CVE-2026-125190",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Uninitialized Stack Memory Disclosure via MVC2 Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "3a5eb948e76dc6390e4b3cff7becf84bc492b7af"
+          ]
+        },
+        {
+          "id": "CVE-2026-125191",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 V4L2 M2M Decoder Deadlock via Reference Count Leak",
+          "aliases": [],
+          "fixed_versions": [
+            "4d2d58efa9b9f3802893b1db0ea1edfbe1cc66ef"
+          ]
+        },
+        {
+          "id": "CVE-2026-125192",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Memory Disclosure via DXA Decoder Uninitialized Buffer",
+          "aliases": [],
+          "fixed_versions": [
+            "a6e5d5ff993a525933d8d8f29071eb6c74b0436a"
+          ]
+        },
+        {
+          "id": "CVE-2026-125193",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Out-of-Bounds Read via bitpacked_decode_uyvy422()",
+          "aliases": [],
+          "fixed_versions": [
+            "f1205ee01893a3b509d96b5fe3aeda755c517973"
+          ]
+        },
+        {
+          "id": "CVE-2026-125194",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Out-of-Bounds Read via PCM DVD Encoder",
+          "aliases": [],
+          "fixed_versions": [
+            "cfe6a6cd7de59341a70ebe6a2d477f3281aec834"
+          ]
+        },
+        {
+          "id": "CVE-2026-125195",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Uninitialized Memory Disclosure via ADPCM_MS Trellis Encoding",
+          "aliases": [],
+          "fixed_versions": [
+            "fb13409aaffc151f602ad357db46052e98ea46e8"
+          ]
+        },
+        {
+          "id": "CVE-2026-125197",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Out-of-Bounds Read via LCL/ZLIB Multithread Decoding",
+          "aliases": [],
+          "fixed_versions": [
+            "12e5d4ec98b7add7bcac9d8131d9a6dfb2549966"
+          ]
+        },
+        {
+          "id": "CVE-2026-125198",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Memory Leak via MediaCodec JNI setBuffer",
+          "aliases": [],
+          "fixed_versions": [
+            "e5d295b3cd467fc713300e208ba2dacc7ff603a0"
+          ]
+        },
+        {
+          "id": "CVE-2026-125199",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Memory Leak in VC-1 Decoder via vc1_decode_frame()",
+          "aliases": [],
+          "fixed_versions": [
+            "afdc555aace698b88c86d3f33a7773a6c8ba2897"
+          ]
+        },
+        {
+          "id": "CVE-2026-125200",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Memory Leak via libx265 Dolby Vision RPU Payloads",
+          "aliases": [],
+          "fixed_versions": [
+            "8dc4af2bbbd0d650e299a3d327bd48c775120e11"
+          ]
+        },
+        {
+          "id": "CVE-2026-125203",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg before 8.1.3 and 9.x before 9.0.2 Heap Buffer Overflow in Cook Multichannel Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "1041abdc962f4cc4f394aa8de9dc5236c0c3b9e7",
+            "946fcce07b6dcd0331c8cc609192aeff5e1924f8",
+            "3e09f5e24eb277a6d011745ff03e602f61c5c171"
+          ]
+        },
+        {
+          "id": "CVE-2026-125204",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Buffer Overflow in libwebp Encoder Conditional Replenishment",
+          "aliases": [],
+          "fixed_versions": [
+            "9b99973b2bbecee0b7e1e57035b95498b42f54a6"
+          ]
+        },
+        {
+          "id": "CVE-2026-125205",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Memory Exhaustion via av1_frame_merge Bitstream Filter",
+          "aliases": [],
+          "fixed_versions": [
+            "c90bbc2036bac67e95777638bdc86157a775858a"
+          ]
+        },
+        {
+          "id": "CVE-2026-125206",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Out-of-Bounds Read via prores_ks Interlaced Alpha Encoding",
+          "aliases": [],
+          "fixed_versions": [
+            "9edd06f8612c242b83bf9e3d14aa85180015a211"
+          ]
+        },
+        {
+          "id": "CVE-2026-125207",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Excessive Memory Allocation via Interplay ACM Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "6ecaddb9c1d59cf7f5de16017122fecb2fa0c67c"
+          ]
+        },
+        {
+          "id": "CVE-2026-125208",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 V4L2 M2M Encoder Out-of-Bounds Write in v4l2_buffers.c",
+          "aliases": [],
+          "fixed_versions": [
+            "b8f159858e2fd29dae4fa34d9e713bbf9bbf190e"
+          ]
+        },
+        {
+          "id": "CVE-2026-125209",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg before 8.1.3 and 9.x before 9.0.2 Heap Buffer Overflow via dvdsubenc.c",
+          "aliases": [],
+          "fixed_versions": [
+            "1041abdc962f4cc4f394aa8de9dc5236c0c3b9e7",
+            "946fcce07b6dcd0331c8cc609192aeff5e1924f8",
+            "8702f12c9daa199cc4d7c17164b13c3cdcdc2436"
+          ]
+        },
+        {
+          "id": "CVE-2026-125210",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Overflow in libaribcaption Text Subtitle Decoding",
+          "aliases": [],
+          "fixed_versions": [
+            "7c06aea6f0d26dd70c94ccba6127059cd0a0e352"
+          ]
+        },
+        {
+          "id": "CVE-2026-125211",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Corruption via libaribcaption ASS Error Cleanup",
+          "aliases": [],
+          "fixed_versions": [
+            "4ec127c82678b06658e963291f272881dc878735"
+          ]
+        },
+        {
+          "id": "CVE-2026-125212",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Buffer Overflow via VideoToolbox Encoder",
+          "aliases": [],
+          "fixed_versions": [
+            "9b99973b2bbecee0b7e1e57035b95498b42f54a6"
+          ]
+        },
+        {
+          "id": "CVE-2026-125213",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Buffer Overflow via PSD Decoder RLE Path",
+          "aliases": [],
+          "fixed_versions": [
+            "aa4b80b54ee8645b5a77fe835ab2bbae1c9c465c"
+          ]
+        },
+        {
+          "id": "CVE-2026-125214",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Buffer Overflow in Blu-ray PCM Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "a61b32df3fd67f76c1c8c7ea51be2a66efb0f945"
+          ]
+        },
+        {
+          "id": "CVE-2026-125215",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg 7.1 through 9.0.2 NULL Pointer Dereference via ff_dovi_rpu_generate()",
+          "aliases": [],
+          "fixed_versions": [
+            "971ea9d6a2a9ae4c770936f0569cf40720d4c304",
+            "11c4b420183cb2d6cd4afaa53de57d400a45e09e"
+          ]
+        },
+        {
+          "id": "CVE-2026-125216",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 DPX Encoder NULL Pointer Dereference via encode_gbrp12()",
+          "aliases": [],
+          "fixed_versions": [
+            "aa5fd7d287db4f469fdcbe444f7f9f38c8c289c7"
+          ]
+        },
+        {
+          "id": "CVE-2026-125217",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 RoQ DPCM Encoder Uninitialized Heap Memory Disclosure",
+          "aliases": [],
+          "fixed_versions": [
+            "f71410e0288f0c40ae2fb5e5a4d7428763d08a71"
+          ]
+        },
+        {
+          "id": "CVE-2026-125218",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 APNG Encoder Heap Buffer Overflow via encode_apng()",
+          "aliases": [],
+          "fixed_versions": [
+            "9b99973b2bbecee0b7e1e57035b95498b42f54a6"
+          ]
+        },
+        {
+          "id": "CVE-2026-125220",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Mimic Decoder Deadlock via Frame Threading Failure",
+          "aliases": [],
+          "fixed_versions": [
+            "db77b0b8318ddb38b5a3227724da088a325a4308"
+          ]
+        },
+        {
+          "id": "CVE-2026-125221",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Uncontrolled Recursion in FLAC Parser score_header()",
+          "aliases": [],
+          "fixed_versions": [
+            "972fe1ccd326538fe9a6b5d5094b7880b5443429"
+          ]
+        },
+        {
+          "id": "CVE-2026-125222",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Buffer Overflow via hap_parse_frame_header()",
+          "aliases": [],
+          "fixed_versions": [
+            "62c308e0416bb701447817fe6f0bff074d206215"
+          ]
+        },
+        {
+          "id": "CVE-2026-125224",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Vorbis Parser CPU Exhaustion via Invalid Extradata",
+          "aliases": [],
+          "fixed_versions": [
+            "90f5e61a1da2dcc0050169af8ca593530f26071b"
+          ]
+        },
+        {
+          "id": "CVE-2026-125225",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 NULL Pointer Dereference via aac_adtstoasc Bitstream Filter",
+          "aliases": [],
+          "fixed_versions": [
+            "3b1cbb5e0f66b85d15f1d3527436520b3f4711ec"
+          ]
+        },
+        {
+          "id": "CVE-2026-125226",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Excessive Memory Allocation via SBaGen Demuxer",
+          "aliases": [],
+          "fixed_versions": [
+            "1f4b2e22cfba19f94489ec4a17130f4f0d5d8a0c"
+          ]
+        },
+        {
+          "id": "CVE-2026-125227",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Buffer Overflow via cbs_jpeg_write_scan Integer Overflow",
+          "aliases": [],
+          "fixed_versions": [
+            "b89ce54d93bf644433dfa9fbc34f19c22237691a"
+          ]
+        },
+        {
+          "id": "CVE-2026-125228",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg before 8.1.3 and 9.x before 9.0.2 Out-of-Bounds Read in Vorbis Encoder",
+          "aliases": [],
+          "fixed_versions": [
+            "1041abdc962f4cc4f394aa8de9dc5236c0c3b9e7",
+            "946fcce07b6dcd0331c8cc609192aeff5e1924f8",
+            "e33548ad13fd3495466a651792e8206b1c6f7fd7"
+          ]
+        },
+        {
+          "id": "CVE-2026-125229",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Out-of-Bounds Memory Access in Huffyuv/FFVHUFF Median Predictor",
+          "aliases": [],
+          "fixed_versions": [
+            "45f98d0819efe2b7ce93e9034b7e6a4ed6700621"
+          ]
+        },
+        {
+          "id": "CVE-2026-125230",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Integer Overflow Division by Zero via pcm_rechunk Filter",
+          "aliases": [],
+          "fixed_versions": [
+            "11052ca4b01b021a135ec89ed7e86aa96dd3bf33"
+          ]
+        },
+        {
+          "id": "CVE-2026-125231",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg 4.4 through 9.0.2 NULL Pointer Dereference via adx_decode_header()",
+          "aliases": [],
+          "fixed_versions": [
+            "515dcad73d77711507083cae3913c9327c0977c6"
+          ]
+        },
+        {
+          "id": "CVE-2026-125232",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Division by Zero in B-frame Motion Estimation",
+          "aliases": [],
+          "fixed_versions": [
+            "bf0a2e4680df92d8de6514090d350152eb7845b8",
+            "16d19ccbce802634662a9bf18a5679cf27da2848"
+          ]
+        },
+        {
+          "id": "CVE-2026-125233",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Buffer Overflow via DVB Subtitle Encoder",
+          "aliases": [],
+          "fixed_versions": [
+            "7f80b2ad83f37a4998d9617495c92b28a7339a90"
+          ]
+        },
+        {
+          "id": "CVE-2026-125234",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 WavPack Encoder Integer Overflow Infinite Loop via wavpack_encode_init",
+          "aliases": [],
+          "fixed_versions": [
+            "e621da8ecdbef8edb8336cc899b962159dc2465c"
+          ]
+        },
+        {
+          "id": "CVE-2026-125235",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Overflow via QSV Encoder submit_frame()",
+          "aliases": [],
+          "fixed_versions": [
+            "9b99973b2bbecee0b7e1e57035b95498b42f54a6"
+          ]
+        },
+        {
+          "id": "CVE-2026-125236",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 VVC Decoder Memory Leak via alloc_frame()",
+          "aliases": [],
+          "fixed_versions": [
+            "a13e27336a61a3452e1ab8b4bb132c4174c67498"
+          ]
+        },
+        {
+          "id": "CVE-2026-125240",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Resource Leak in libsvtjpegxs JPEG XS Decoder Wrapper",
+          "aliases": [],
+          "fixed_versions": [
+            "3aa561b0dd2054182fbb9548b4526e8500d52a52"
+          ]
+        },
+        {
+          "id": "CVE-2026-125241",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Buffer Overflow via FLIC Decoder check_pixel_ptr",
+          "aliases": [],
+          "fixed_versions": [
+            "27f612b306eb04f81138173f705df9a9b055b01d"
+          ]
+        },
+        {
+          "id": "CVE-2026-125242",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Memory Leak via VDPAU Hwaccel Bitstream Buffer Table",
+          "aliases": [],
+          "fixed_versions": [
+            "2c6cd8098844f2367f8ba0a3a483e405c8f76449",
+            "eac2bedcf6245552b39eed32b334851bc6a1b8fa"
+          ]
+        },
+        {
+          "id": "CVE-2026-125243",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Uninitialized Memory Disclosure via JPEG-LS Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "60bc31fcf6543505e6d2fc1a9399cca95f54ba4d"
+          ]
+        },
+        {
+          "id": "CVE-2026-125245",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Memory Leak in MJPEG Hwaccel SOF Decoding",
+          "aliases": [],
+          "fixed_versions": [
+            "50e9ef29be1766404115b0a4908fa3fd6ed7fa3f"
+          ]
+        },
+        {
+          "id": "CVE-2026-125246",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Assertion Failure DoS via cbs_jpeg_assemble_fragment",
+          "aliases": [],
+          "fixed_versions": [
+            "ee457fdcdb3a069ef35910a2e1cacff10906b131"
+          ]
+        },
+        {
+          "id": "CVE-2026-125247",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Integer Overflow via dng_decode_tiles() in libavcodec/tiff.c",
+          "aliases": [],
+          "fixed_versions": [
+            "a9c070e52fecb7fb247db829130899db07953823"
+          ]
+        },
+        {
+          "id": "CVE-2026-125250",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 GIF Encoder Heap Buffer Overflow via shrunk_buf Remap",
+          "aliases": [],
+          "fixed_versions": [
+            "26c2980980295e5516f308c5a2792d2a72e43eae"
+          ]
+        },
+        {
+          "id": "CVE-2026-125251",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 VVC Decoder Heap Out-of-Bounds Write via refs.c",
+          "aliases": [],
+          "fixed_versions": [
+            "053660fdb0d2403b838690689c47ad7685c3b10b"
+          ]
+        },
+        {
+          "id": "CVE-2026-125252",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 VAAPI Memory Leak via Abandoned Picture Buffers",
+          "aliases": [],
+          "fixed_versions": [
+            "4221a63ce869ade862557ca64693bf77f5032971",
+            "838c660bb3cd66ba74981b453c14c79214f6ef92"
+          ]
+        },
+        {
+          "id": "CVE-2026-125253",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 VP9 CBS Superframe Integer Overflow Out-of-Bounds Read",
+          "aliases": [],
+          "fixed_versions": [
+            "6280907da48c4dd78f95ef5c713a29c7702153a3"
+          ]
+        },
+        {
+          "id": "CVE-2026-125254",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Division by Zero via VVC ff_vvc_slice_rpl()",
+          "aliases": [],
+          "fixed_versions": [
+            "8732d7585cd8ab9d1dd9baeb4db5e93466c0efa7"
+          ]
+        },
+        {
+          "id": "CVE-2026-125255",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Use-After-Free in MJPEG Hardware-Accelerated Decoding",
+          "aliases": [],
+          "fixed_versions": [
+            "f58a6776546567367baf5223df9ffbfd289299f8"
+          ]
+        },
+        {
+          "id": "CVE-2026-125257",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Overflow via Nellymoser Encoder Trellis Search",
+          "aliases": [],
+          "fixed_versions": [
+            "733bec3e19759520ccdbeb6c3c0cae280bbe6dc5"
+          ]
+        },
+        {
+          "id": "CVE-2026-125258",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Division by Zero via dovi_configure_ext() in dovi_rpuenc.c",
+          "aliases": [],
+          "fixed_versions": [
+            "ab28d57ba2ec07b41b4a60ed8806b13a39ec86fe"
+          ]
+        },
+        {
+          "id": "CVE-2026-125259",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Buffer Overflow via ProRes prores_ks Encoder",
+          "aliases": [],
+          "fixed_versions": [
+            "439b452f9fe916a9f7d8788ab6afee8fac846b0b"
+          ]
+        },
+        {
+          "id": "CVE-2026-125260",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Buffer Overflow in EXR Encoder RLE Path",
+          "aliases": [],
+          "fixed_versions": [
+            "9b99973b2bbecee0b7e1e57035b95498b42f54a6"
+          ]
+        },
+        {
+          "id": "CVE-2026-125261",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 SGI Encoder Out-of-Bounds Read via sgienc.c",
+          "aliases": [],
+          "fixed_versions": [
+            "c6e5b6105aa13f6b0df2a646da608078cfe52d79"
+          ]
+        },
+        {
+          "id": "CVE-2026-125262",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Buffer Overflow via LCEVC Enhancement Decoding",
+          "aliases": [],
+          "fixed_versions": [
+            "fd6dfa613a48665dcb8d14186b33dad90aa40ae0"
+          ]
+        },
+        {
+          "id": "CVE-2026-125264",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 CPU Exhaustion via JPEG XL Parser TOC Count",
+          "aliases": [],
+          "fixed_versions": [
+            "bc896c613ec0d4ad0108d62fbdda0196f69e7121"
+          ]
+        },
+        {
+          "id": "CVE-2026-125265",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Use-After-Free via NVDEC Stale Bitstream Pointer",
+          "aliases": [],
+          "fixed_versions": [
+            "03cd7851955c023f1ff4c8a495d47e996d01485a"
+          ]
+        },
+        {
+          "id": "CVE-2026-125267",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg before 8.1.3 and 9.x before 9.0.2 Heap Out-of-Bounds Write via APAC Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "1041abdc962f4cc4f394aa8de9dc5236c0c3b9e7",
+            "946fcce07b6dcd0331c8cc609192aeff5e1924f8",
+            "e15ddb7f9a2f9b3ab8ac305efb6f94ddc18463d0"
+          ]
+        },
+        {
+          "id": "CVE-2026-125268",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Uninitialized Heap Memory Disclosure in CFHD Decoder",
+          "aliases": [],
+          "fixed_versions": [
+            "0bfa350291b2118f6d590263dc1ee9cea766c0f1"
+          ]
+        },
+        {
+          "id": "CVE-2026-125269",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Double Free via cbs_sei_delete_message in cbs_sei.c",
+          "aliases": [],
+          "fixed_versions": [
+            "2c515eea07df719379e7f73deeeb7ccb8768433f"
+          ]
+        },
+        {
+          "id": "CVE-2026-125270",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.0.2 Heap Out-of-Bounds Read in V4L2 M2M Encoder",
+          "aliases": [],
+          "fixed_versions": [
+            "b8f159858e2fd29dae4fa34d9e713bbf9bbf190e"
+          ]
+        },
+        {
+          "id": "CVE-2026-135733",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg through 9.1 Insecure Default Binding in zmq and azmq Filters",
+          "aliases": [],
+          "fixed_versions": [
+            "d3f2940e0eac5288c040f5b04e264692b6c61cd4"
+          ]
+        },
+        {
+          "id": "CVE-2026-58049",
+          "severity": "UNKNOWN",
+          "summary": "FFmpeg - Out-of-Bounds Write in RASC Decoder decode_dlta()",
+          "aliases": [],
+          "fixed_versions": []
+        }
+      ],
+      "patched": []
+    },
+    {
+      "formula": "navi",
+      "version": "2.24.0",
+      "tag": "v2.24.0",
+      "repo_url": "https://github.com/denisidoro/navi",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2026-101032",
+          "severity": "UNKNOWN",
+          "summary": "navi through 2.24.0 OS Command Injection via Cheatsheet Variables",
+          "aliases": [],
+          "fixed_versions": []
+        }
+      ],
+      "patched": []
+    },
+    {
+      "formula": "yarn",
+      "version": "1.22.22",
+      "tag": "v1.22.22",
+      "repo_url": "https://github.com/yarnpkg/yarn",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2025-8262",
+          "severity": "UNKNOWN",
+          "summary": "yarnpkg Yarn hosted-git-resolver.js explodeHostedGitFragment redos",
+          "aliases": [],
+          "fixed_versions": []
+        },
+        {
+          "id": "CVE-2025-9308",
+          "severity": "UNKNOWN",
+          "summary": "yarnpkg Yarn request-manager.js setOptions redos",
+          "aliases": [],
+          "fixed_versions": []
+        }
+      ],
+      "patched": []
+    },
+    {
+      "formula": "openssl@3",
+      "version": "3.5.9",
+      "tag": "openssl-3.5.9",
+      "repo_url": "https://github.com/openssl/openssl",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2026-107494",
+          "severity": "HIGH",
+          "summary": "Unbounded QUIC RETIRE_CONNECTION_ID Frame Sending Queue",
+          "aliases": [],
+          "fixed_versions": [
+            "dec00b87a89e8f81cef0e50cbbecdfad4d377849",
+            "c94e74a0d6273109ac86ad98ce42354c60499d1d",
+            "734c6cd7444bdbf589bfec917e47598c1b21ddd3"
+          ]
+        },
+        {
+          "id": "CVE-2026-121482",
+          "severity": "HIGH",
+          "summary": "Relative CRL Distribution Point Names Rebuilt per CRL in X.509 Verification",
+          "aliases": [],
+          "fixed_versions": [
+            "14a9f9ad6e8a17437fb75545f33e4fc56e9d41f6",
+            "c37874e29c43e86f5ed94d02275f1c31cf68afb3",
+            "468c287cf451a834b370b69ab321b8ffdfac23aa"
+          ]
+        },
+        {
+          "id": "CVE-2026-124709",
+          "severity": "HIGH",
+          "summary": "Unbounded Memory Retention in QUIC Server for Rejected Streams",
+          "aliases": [],
+          "fixed_versions": [
+            "ead311df1037e7994a6d86c7e862d71ad59c52c7",
+            "22291a6af12f158fbb13bfbd572a33dbdbf290d2",
+            "f3acb0a3328046741479482c51cec815839e1b05"
+          ]
+        },
+        {
+          "id": "CVE-2026-35190",
+          "severity": "MEDIUM",
+          "summary": "Out-of-Bounds Read in TLS 1.3 Key-Share Processing with Suite B Certificate Flag",
+          "aliases": [],
+          "fixed_versions": [
+            "ade64619df04056b3e5fd1c1befe9425a7c80eb6",
+            "9a812981b927c5714b7c2e5d138618105cea2152",
+            "9491b0d9cc7950af1f3dc89499bd5433b9cd4f43"
+          ]
+        },
+        {
+          "id": "CVE-2026-84785",
+          "severity": "UNKNOWN",
+          "summary": "Unbounded Out-of-Order Fragment Reassembly in QUIC Streams",
+          "aliases": [],
+          "fixed_versions": [
+            "fead004f52d6e5efffa62019ea451218c0aa79e9",
+            "05bfccf68184665b989dc7001fc5f1f885f84194",
+            "7a14b6e410c881365881596231ea6f88e7d27c6e"
+          ]
+        },
+        {
+          "id": "CVE-2026-88822",
+          "severity": "MEDIUM",
+          "summary": "QUIC Uses Uninitialized Stack Bytes During Automated Peer Detection",
+          "aliases": [],
+          "fixed_versions": [
+            "7b4f5344aa0401e7b777640050b5257ed2a70e88",
+            "911eee8eb7550b95a206f1ad8cbdb986098982f3",
+            "1a73dc590cbad62d6f0329ea4779eadaa8d8fd75"
+          ]
+        },
+        {
+          "id": "CVE-2026-88823",
+          "severity": "HIGH",
+          "summary": "AES-GCM-SIV AAD Forgery After Zero-length Incremental AAD Update",
+          "aliases": [],
+          "fixed_versions": [
+            "6747b1a278816dd7db46438040a70b0b5e5e0a90",
+            "2f5fc833ff9b5bfe00b32f8b5c74f73c5773c682",
+            "159e1de0c448d7b9f09ad768c8e141def4aa1eb4"
+          ]
+        },
+        {
+          "id": "CVE-2026-95691",
+          "severity": "HIGH",
+          "summary": "Retransmitted QUIC CRYPTO Frames Can Cause DoS or One-byte Disclosure",
+          "aliases": [],
+          "fixed_versions": [
+            "dd90ceb99a3c2ddba336bb4a00be9ebabd84c2a1",
+            "ec9d4de9d03989b29db5a3d7efdb4c285deaf386",
+            "f6244675833e097c2429a40d1b206d95385bd42f"
+          ]
+        },
+        {
+          "id": "CVE-2026-95692",
+          "severity": "HIGH",
+          "summary": "Out-of-Bounds Read and Incorrect IV Length Handling in AES-GCM-SIV",
+          "aliases": [],
+          "fixed_versions": [
+            "70a47ac78b6f3be1b22fb1551bd0bfcff4f29613",
+            "510872388f5d145cf870868b3d288a23822cb776",
+            "257a3427aa0ef8d9dd2ef5b3e2d1c021a221b116"
+          ]
+        }
+      ],
+      "patched": []
+    },
+    {
+      "formula": "libssh2",
+      "version": "1.11.1",
+      "tag": "1.11.1",
+      "repo_url": "https://github.com/libssh2/libssh2",
+      "vulnerabilities": [
+        {
+          "id": "OSV-2025-433",
+          "severity": "UNKNOWN",
+          "summary": "Null-dereference READ in _libssh2_packet_add",
+          "aliases": [],
+          "fixed_versions": []
+        }
+      ],
+      "patched": [
+        {
+          "id": "CVE-2025-15661",
+          "severity": "UNKNOWN",
+          "summary": "libssh2 - Heap Buffer Over-read via sftp_symlink() in sftp.c",
+          "aliases": [],
+          "fixed_versions": [
+            "2dae3024897e1898d389835151f4e9606227721d"
+          ]
+        },
+        {
+          "id": "CVE-2026-55199",
+          "severity": "UNKNOWN",
+          "summary": "libssh2 - Pre-Authentication DoS via SSH_MSG_EXT_INFO Handler",
+          "aliases": [],
+          "fixed_versions": [
+            "17626857d20b3c9a1addfa45979dadcee1cd84a4"
+          ]
+        },
+        {
+          "id": "CVE-2026-55200",
+          "severity": "UNKNOWN",
+          "summary": "libssh2 - Out-of-Bounds Write via Unchecked packet_length in transport.c",
+          "aliases": [],
+          "fixed_versions": [
+            "97acf3dfda80c91c3a8c9f2372546301d4a1a7a8"
+          ]
+        },
+        {
+          "id": "CVE-2026-58050",
+          "severity": "UNKNOWN",
+          "summary": "libssh2 - Integer Overflow in publickey Subsystem Attribute Allocation",
+          "aliases": [],
+          "fixed_versions": []
+        },
+        {
+          "id": "CVE-2026-58051",
+          "severity": "UNKNOWN",
+          "summary": "libssh2 - Free of Uninitialized Pointer in publickey List Cleanup",
+          "aliases": [],
+          "fixed_versions": []
+        },
+        {
+          "id": "CVE-2026-66032",
+          "severity": "UNKNOWN",
+          "summary": "libssh2 Double-Free Heap Corruption via sftp_open()",
+          "aliases": [],
+          "fixed_versions": [
+            "5e4776146552d898b9c0e1b313cd093fa8dc92d0"
+          ]
+        },
+        {
+          "id": "CVE-2026-66033",
+          "severity": "UNKNOWN",
+          "summary": "libssh2 Integer Underflow DoS via AES-GCM Cipher Negotiation",
+          "aliases": [],
+          "fixed_versions": [
+            "a2ed82d40964bbc0d64cd717aa0a5a892117d2e6"
+          ]
+        },
+        {
+          "id": "CVE-2026-66034",
+          "severity": "UNKNOWN",
+          "summary": "libssh2 Heap Out-of-Bounds Read via publickey subsystem",
+          "aliases": [],
+          "fixed_versions": [
+            "a13bb6c773f0d55ad1628cede57e99803cd898d9"
+          ]
+        },
+        {
+          "id": "CVE-2026-66035",
+          "severity": "UNKNOWN",
+          "summary": "libssh2 Heap Buffer Overflow via ETM Cipher Negotiation",
+          "aliases": [],
+          "fixed_versions": [
+            "42e33d81577ed4b95d4b4f6f845e5ee8efe5eeb4"
+          ]
+        },
+        {
+          "id": "CVE-2026-7598",
+          "severity": "UNKNOWN",
+          "summary": "libssh2 userauth.c userauth_password integer overflow",
+          "aliases": [],
+          "fixed_versions": [
+            "256d04b60d80bf1190e96b0ad1e91b2174d744b1"
+          ]
+        },
+        {
+          "id": "OSV-2022-24",
+          "severity": "UNKNOWN",
+          "summary": "Null-dereference READ in session_startup",
+          "aliases": [],
+          "fixed_versions": [
+            "b89858b83d68d7e29e0c5b0bb803f8a68271710c"
+          ]
+        },
+        {
+          "id": "OSV-2024-847",
+          "severity": "UNKNOWN",
+          "summary": "Null-dereference READ in _libssh2_packet_add",
+          "aliases": [],
+          "fixed_versions": [
+            "b89858b83d68d7e29e0c5b0bb803f8a68271710c"
+          ]
+        },
+        {
+          "id": "OSV-2025-90",
+          "severity": "UNKNOWN",
+          "summary": "Null-dereference READ in ubsan_GetStackTrace",
+          "aliases": [],
+          "fixed_versions": [
+            "631e2f82a32ef016299ebb1af66efeae0161f68e"
+          ]
+        },
+        {
+          "id": "OSV-2025-92",
+          "severity": "UNKNOWN",
+          "summary": "Null-dereference READ in session_startup",
+          "aliases": [],
+          "fixed_versions": [
+            "631e2f82a32ef016299ebb1af66efeae0161f68e"
+          ]
+        }
+      ]
+    },
+    {
+      "formula": "openssl@4",
+      "version": "4.1.0",
+      "tag": "openssl-4.1.0",
+      "repo_url": "https://github.com/openssl/openssl",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2026-107494",
+          "severity": "HIGH",
+          "summary": "Unbounded QUIC RETIRE_CONNECTION_ID Frame Sending Queue",
+          "aliases": [],
+          "fixed_versions": [
+            "dec00b87a89e8f81cef0e50cbbecdfad4d377849",
+            "c94e74a0d6273109ac86ad98ce42354c60499d1d",
+            "734c6cd7444bdbf589bfec917e47598c1b21ddd3"
+          ]
+        },
+        {
+          "id": "CVE-2026-121482",
+          "severity": "HIGH",
+          "summary": "Relative CRL Distribution Point Names Rebuilt per CRL in X.509 Verification",
+          "aliases": [],
+          "fixed_versions": [
+            "14a9f9ad6e8a17437fb75545f33e4fc56e9d41f6",
+            "c37874e29c43e86f5ed94d02275f1c31cf68afb3",
+            "468c287cf451a834b370b69ab321b8ffdfac23aa"
+          ]
+        },
+        {
+          "id": "CVE-2026-124709",
+          "severity": "HIGH",
+          "summary": "Unbounded Memory Retention in QUIC Server for Rejected Streams",
+          "aliases": [],
+          "fixed_versions": [
+            "ead311df1037e7994a6d86c7e862d71ad59c52c7",
+            "22291a6af12f158fbb13bfbd572a33dbdbf290d2",
+            "f3acb0a3328046741479482c51cec815839e1b05"
+          ]
+        },
+        {
+          "id": "CVE-2026-35190",
+          "severity": "MEDIUM",
+          "summary": "Out-of-Bounds Read in TLS 1.3 Key-Share Processing with Suite B Certificate Flag",
+          "aliases": [],
+          "fixed_versions": [
+            "ade64619df04056b3e5fd1c1befe9425a7c80eb6",
+            "9a812981b927c5714b7c2e5d138618105cea2152",
+            "9491b0d9cc7950af1f3dc89499bd5433b9cd4f43"
+          ]
+        },
+        {
+          "id": "CVE-2026-84785",
+          "severity": "UNKNOWN",
+          "summary": "Unbounded Out-of-Order Fragment Reassembly in QUIC Streams",
+          "aliases": [],
+          "fixed_versions": [
+            "fead004f52d6e5efffa62019ea451218c0aa79e9",
+            "05bfccf68184665b989dc7001fc5f1f885f84194",
+            "7a14b6e410c881365881596231ea6f88e7d27c6e"
+          ]
+        },
+        {
+          "id": "CVE-2026-88822",
+          "severity": "MEDIUM",
+          "summary": "QUIC Uses Uninitialized Stack Bytes During Automated Peer Detection",
+          "aliases": [],
+          "fixed_versions": [
+            "7b4f5344aa0401e7b777640050b5257ed2a70e88",
+            "911eee8eb7550b95a206f1ad8cbdb986098982f3",
+            "1a73dc590cbad62d6f0329ea4779eadaa8d8fd75"
+          ]
+        },
+        {
+          "id": "CVE-2026-88823",
+          "severity": "HIGH",
+          "summary": "AES-GCM-SIV AAD Forgery After Zero-length Incremental AAD Update",
+          "aliases": [],
+          "fixed_versions": [
+            "6747b1a278816dd7db46438040a70b0b5e5e0a90",
+            "2f5fc833ff9b5bfe00b32f8b5c74f73c5773c682",
+            "159e1de0c448d7b9f09ad768c8e141def4aa1eb4"
+          ]
+        },
+        {
+          "id": "CVE-2026-95691",
+          "severity": "HIGH",
+          "summary": "Retransmitted QUIC CRYPTO Frames Can Cause DoS or One-byte Disclosure",
+          "aliases": [],
+          "fixed_versions": [
+            "dd90ceb99a3c2ddba336bb4a00be9ebabd84c2a1",
+            "ec9d4de9d03989b29db5a3d7efdb4c285deaf386",
+            "f6244675833e097c2429a40d1b206d95385bd42f"
+          ]
+        },
+        {
+          "id": "CVE-2026-95692",
+          "severity": "HIGH",
+          "summary": "Out-of-Bounds Read and Incorrect IV Length Handling in AES-GCM-SIV",
+          "aliases": [],
+          "fixed_versions": [
+            "70a47ac78b6f3be1b22fb1551bd0bfcff4f29613",
+            "510872388f5d145cf870868b3d288a23822cb776",
+            "257a3427aa0ef8d9dd2ef5b3e2d1c021a221b116"
+          ]
+        }
+      ],
+      "patched": []
+    }
+  ],
+  "skipped_formulae": [
+    "lame",
+    "libtiff",
+    "pinentry",
+    "libksba",
+    "little-cms2",
+    "ncurses",
+    "nettle",
+    "mpdecimal",
+    "mpg123",
+    "libunistring",
+    "cffi",
+    "python@3.15",
+    "readline",
+    "libassuan",
+    "sqlite",
+    "libgpg-error",
+    "libgcrypt",
+    "giflib",
+    "ca-certificates",
+    "gettext",
+    "dav1d",
+    "libtasn1",
+    "git-crypt",
+    "python@3.11",
+    "rpds-py",
+    "gnupg",
+    "gnutls",
+    "npth"
+  ],
+  "checked": 121,
+  "complete": false,
+  "outdated_without_sbom": [],
+  "unscanned_formulae": {}
+}

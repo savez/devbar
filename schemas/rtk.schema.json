@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "check rtk",
+  "description": "Totali RTK e ultimi 7 giorni (lib/checks/tokens.sh). Con ok o action tutti i campi ci sono.",
+  "allOf": [
+    { "$ref": "defs.schema.json#/$defs/checkEnvelope" },
+    {
+      "if": { "required": ["status"], "properties": { "status": { "enum": ["ok", "action"] } } },
+      "then": { "required": ["saved", "input", "pct", "commands", "daily"] }
+    }
+  ],
+  "properties": {
+    "saved": { "type": "integer", "minimum": 0 },
+    "input": { "type": "integer", "minimum": 0 },
+    "pct": { "type": "number", "description": "Percentuale di risparmio medio (0..100)." },
+    "commands": { "type": "integer", "minimum": 0 },
+    "daily": {
+      "type": "array",
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "required": ["date", "saved"],
+        "properties": {
+          "date": { "type": "string", "minLength": 1 },
+          "saved": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

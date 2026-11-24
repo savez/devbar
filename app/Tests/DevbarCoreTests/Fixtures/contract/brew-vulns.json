@@ -1,0 +1,21 @@
+{
+  "status": "action",
+  "count": 2,
+  "summary": "2 vulnerabilità Homebrew (1 alte o critiche)",
+  "items": [
+    {
+      "formula": "ffmpeg",
+      "id": "CVE-2026-0001",
+      "severity": "HIGH",
+      "fixAvailable": true
+    },
+    {
+      "formula": "ffmpeg",
+      "id": "CVE-2026-0002",
+      "severity": "UNKNOWN",
+      "fixAvailable": false
+    }
+  ],
+  "checkedAt": "2026-01-01T00:00:00Z",
+  "severe": 1
+}

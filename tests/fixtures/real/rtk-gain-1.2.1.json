@@ -1,0 +1,144 @@
+{
+  "summary": {
+    "total_commands": 3594,
+    "total_input": 1416712,
+    "total_output": 1196220,
+    "total_saved": 221601,
+    "avg_savings_pct": 15.641922987876153,
+    "total_time_ms": 4257588,
+    "avg_time_ms": 1256,
+    "oversized_excluded": 13
+  },
+  "daily": [
+    {
+      "date": "2026-11-06",
+      "commands": 26,
+      "input_tokens": 6277,
+      "output_tokens": 3455,
+      "saved_tokens": 2822,
+      "savings_pct": 44.95778238011789,
+      "total_time_ms": 93,
+      "avg_time_ms": 3
+    },
+    {
+      "date": "2026-11-09",
+      "commands": 39,
+      "input_tokens": 18182,
+      "output_tokens": 17155,
+      "saved_tokens": 1027,
+      "savings_pct": 5.6484435155648445,
+      "total_time_ms": 83,
+      "avg_time_ms": 2
+    },
+    {
+      "date": "2026-11-10",
+      "commands": 13,
+      "input_tokens": 799,
+      "output_tokens": 338,
+      "saved_tokens": 461,
+      "savings_pct": 57.69712140175219,
+      "total_time_ms": 3695,
+      "avg_time_ms": 284
+    },
+    {
+      "date": "2026-11-11",
+      "commands": 210,
+      "input_tokens": 73317,
+      "output_tokens": 67300,
+      "saved_tokens": 6017,
+      "savings_pct": 8.206827884392434,
+      "total_time_ms": 2160757,
+      "avg_time_ms": 11253
+    },
+    {
+      "date": "2026-11-12",
+      "commands": 232,
+      "input_tokens": 59735,
+      "output_tokens": 48322,
+      "saved_tokens": 11413,
+      "savings_pct": 19.106051728467396,
+      "total_time_ms": 1389884,
+      "avg_time_ms": 6317
+    },
+    {
+      "date": "2026-11-15",
+      "commands": 32,
+      "input_tokens": 4347,
+      "output_tokens": 2703,
+      "saved_tokens": 1644,
+      "savings_pct": 37.819185645272604,
+      "total_time_ms": 752,
+      "avg_time_ms": 25
+    },
+    {
+      "date": "2026-11-16",
+      "commands": 43,
+      "input_tokens": 7808,
+      "output_tokens": 3241,
+      "saved_tokens": 4567,
+      "savings_pct": 58.49129098360656,
+      "total_time_ms": 58971,
+      "avg_time_ms": 1512
+    },
+    {
+      "date": "2026-11-17",
+      "commands": 103,
+      "input_tokens": 23160,
+      "output_tokens": 20618,
+      "saved_tokens": 2542,
+      "savings_pct": 10.975820379965457,
+      "total_time_ms": 13227,
+      "avg_time_ms": 146
+    },
+    {
+      "date": "2026-11-18",
+      "commands": 783,
+      "input_tokens": 314290,
+      "output_tokens": 266807,
+      "saved_tokens": 47483,
+      "savings_pct": 15.108021254255624,
+      "total_time_ms": 68569,
+      "avg_time_ms": 94
+    },
+    {
+      "date": "2026-11-19",
+      "commands": 626,
+      "input_tokens": 281251,
+      "output_tokens": 221315,
+      "saved_tokens": 59936,
+      "savings_pct": 21.310502007103974,
+      "total_time_ms": 38562,
+      "avg_time_ms": 63
+    },
+    {
+      "date": "2026-11-20",
+      "commands": 261,
+      "input_tokens": 134698,
+      "output_tokens": 108611,
+      "saved_tokens": 26087,
+      "savings_pct": 19.367028463674295,
+      "total_time_ms": 14974,
+      "avg_time_ms": 59
+    },
+    {
+      "date": "2026-11-23",
+      "commands": 260,
+      "input_tokens": 43763,
+      "output_tokens": 30528,
+      "saved_tokens": 13235,
+      "savings_pct": 30.242442245732697,
+      "total_time_ms": 57895,
+      "avg_time_ms": 261
+    },
+    {
+      "date": "2026-11-24",
+      "commands": 966,
+      "input_tokens": 449085,
+      "output_tokens": 405827,
+      "saved_tokens": 43258,
+      "savings_pct": 9.63247492122872,
+      "total_time_ms": 450126,
+      "avg_time_ms": 481
+    }
+  ]
+}
