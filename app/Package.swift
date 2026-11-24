@@ -9,7 +9,7 @@ let package = Package(
         .executable(name: "Devbar", targets: ["Devbar"]),
     ],
     targets: [
-        .target(name: "DevbarCore"),
+        .target(name: "DevbarCore", swiftSettings: [.enableExperimentalFeature("StrictConcurrency")]),
         .executableTarget(name: "Devbar", dependencies: ["DevbarCore"]),
         .testTarget(
             name: "DevbarCoreTests",
