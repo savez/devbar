@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.5.0](https://github.com/savez/devbar/compare/v0.4.2...v0.5.0) (2026-11-25)
+
+
+### Features
+
+* **ai:** setup di TokenEconomizer per claude, codex e copilot ([5ea732f](https://github.com/savez/devbar/commit/5ea732fac8ae0f3c325e6604890b08c2eb5fffa7))
+* **app:** card token con una riga per strumento e limiti di Claude a parte ([5f382a8](https://github.com/savez/devbar/commit/5f382a882b99286b24c33a7a57baac0c43b9ee4b))
+* **app:** intervalli dei controlli automatici nelle impostazioni ([e05a543](https://github.com/savez/devbar/commit/e05a543f1259d0abfde733ed771888b94ad3f93f))
+* **check:** intervalli configurabili per vulnerabilità e brew update ([0530735](https://github.com/savez/devbar/commit/05307353d1d6b71ee6052c63d02719cc44c5b57a))
+* **check:** stato di TokenEconomizer ([2f5bc48](https://github.com/savez/devbar/commit/2f5bc48ada50199b5b7c2942c7f06842730caa93))
+* **project:** attiva TokenEconomizer su un repo ([03e515d](https://github.com/savez/devbar/commit/03e515d416c86528433bf39fddd223299953ed1d))
+* TokenEconomizer, card token più chiara e intervalli dei controlli ([5a56848](https://github.com/savez/devbar/commit/5a56848d8d002d8450376137e93b3af27dbfb774))
+
+
+### Bug Fixes
+
+* install TokenEconomizer senza modifiche a metà e apply solo ciò che il piano mostra ([4911b55](https://github.com/savez/devbar/commit/4911b554bdce6871e6c5d63ac7768f695b1b671e))
+* **statusline:** legge il flag caveman per sessione ([fb1ccce](https://github.com/savez/devbar/commit/fb1ccce48bd9136cf576e1231152267314c30b28))
+* **statusline:** legge il flag caveman per sessione (caveman 4.x) ([17b0c46](https://github.com/savez/devbar/commit/17b0c46a7d2d552c95a408baa308b8cb55f1a481))
+
 ## [0.4.2](https://github.com/savez/devbar/compare/v0.4.1...v0.4.2) (2026-11-24)
 
 
