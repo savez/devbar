@@ -35,7 +35,7 @@ per ognuna ti dà il pulsante per sistemarla.
 | **Vulnerabilità** | `brew vulns`, `npm audit` e `composer audit` sui repo che scegli tu, una volta al giorno. |
 | **colima** | Stato, CPU, RAM e container; avvia e ferma. |
 | **Token risparmiati** | RTK, tokensave e l'uso di Claude Code in un colpo d'occhio. |
-| **Strumenti AI** | Installa e aggiorna RTK, caveman, tokensave e la statusline su tutti gli harness che trovi (Claude Code, OpenCode, Copilot…). "Init progetto" configura un repo in un clic. |
+| **Strumenti AI** | Installa e aggiorna RTK, caveman, tokensave, [TokenEconomizer](https://github.com/microsoft/TokenEconomizer) e la statusline su tutti gli harness che trovi (Claude Code, OpenCode, Copilot…). "Init progetto" configura un repo in un clic. |
 | **Statusline per Claude Code** | Con i minuti che restano alla prompt cache. |
 | **Dettagli** | Tabelle ordinabili in una finestra, non liste che si espandono nel menu. |
 
@@ -74,7 +74,9 @@ Per installare da sorgente vedi [docs/SVILUPPO.md](docs/SVILUPPO.md).
 1. Apri il pannello dall'icona nella barra dei menu.
 2. In **Impostazioni** scegli le cartelle dei tuoi repo: `npm audit` e `composer audit`
    girano solo lì dentro.
-3. Facoltativo: in **Strumenti AI** scegli gli harness che usi e installa quello che ti serve.
+3. In **Impostazioni, Controlli automatici** scegli ogni quanto controllare le vulnerabilità (di
+   default ogni giorno) e gli aggiornamenti Homebrew (di default ogni 6 ore).
+4. Facoltativo: in **Strumenti AI** scegli gli harness che usi e installa quello che ti serve.
 
 ## Sicurezza prima di tutto
 
