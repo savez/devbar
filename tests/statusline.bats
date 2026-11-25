@@ -104,3 +104,60 @@ raw() {
   run go 782; [[ "$output" == *"◷ 46m"* ]]
   run go 790; [[ "$output" == *"◷"* && "$output" != *"◷ 4"* ]]
 }
+
+# --- caveman: flag per sessione (caveman 4.x) ---
+
+# cave_render <session_id>: statusline senza ANSI per quella sessione.
+cave_render() {
+  jq --arg sid "$1" '.session_id=$sid | del(.transcript_path)' "$FX/input.json" \
+    | DEVBAR_STATUSLINE_NOW=$T0 "$SL" | sed $'s/\x1b\\[[0-9;]*m//g'
+}
+cave_session() { # cave_session <id> <contenuto>
+  mkdir -p "$HOME/.claude/.caveman-sessions"
+  printf '%s\n' "$2" >"$HOME/.claude/.caveman-sessions/$1.mode"
+}
+
+@test "caveman: legge il flag della sessione (caveman 4.x)" {
+  cave_session abc123 caveman
+  run cave_render abc123
+  [[ "$output" == *"CAVEMAN"* ]]
+  [[ "$output" != *"CAVEMAN:"* ]]
+}
+
+@test "caveman: ultracave e megacave dal flag di sessione" {
+  cave_session u1 ultracave; run cave_render u1; [[ "$output" == *"CAVEMAN:ULTRA"* ]]
+  cave_session m1 megacave; run cave_render m1; [[ "$output" == *"CAVEMAN:WENYAN"* ]]
+}
+
+@test "caveman: off nella sessione vince sul flag globale" {
+  cave_session s1 off
+  mkdir -p "$HOME/.claude"; echo caveman >"$HOME/.claude/.caveman-active"
+  run cave_render s1
+  [[ "$output" != *"CAVEMAN"* ]]
+}
+
+@test "caveman: senza flag di sessione si usa il flag globale" {
+  mkdir -p "$HOME/.claude"; echo ultracave >"$HOME/.claude/.caveman-active"
+  run cave_render senza-file
+  [[ "$output" == *"CAVEMAN:ULTRA"* ]]
+}
+
+@test "caveman: il flag di un'altra sessione non conta" {
+  cave_session altra caveman
+  run cave_render questa
+  [[ "$output" != *"CAVEMAN"* ]]
+}
+
+@test "caveman: session_id con caratteri strani non esce dalla cartella" {
+  mkdir -p "$HOME/.claude"; echo caveman >"$HOME/.caveman-sessions-x.mode"
+  run cave_render '../../.caveman-sessions-x'
+  [[ "$output" != *"CAVEMAN"* ]]
+}
+
+@test "caveman: flag di sessione che è un symlink viene ignorato" {
+  mkdir -p "$HOME/.claude/.caveman-sessions"
+  echo caveman >"$BATS_TEST_TMPDIR/target"
+  ln -s "$BATS_TEST_TMPDIR/target" "$HOME/.claude/.caveman-sessions/lnk.mode"
+  run cave_render lnk
+  [[ "$output" != *"CAVEMAN"* ]]
+}

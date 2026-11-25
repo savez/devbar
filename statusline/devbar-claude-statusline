@@ -286,8 +286,20 @@ if [ -n "$style" ] && [ "$style" != "default" ]; then
 fi
 
 # ── Caveman mode (flag file written by the caveman plugin) ───────────────────
+# caveman 4.x writes one flag per window, .caveman-sessions/<session_id>.mode, and no longer
+# keeps .caveman-active up to date: read this session's flag first, fall back to the global one.
+# The id becomes part of a path: same alphabet and length rule as caveman itself.
 # Read with builtins and reduce the value to [a-z0-9-] before rendering it.
 cave_flag="${CFG}/.caveman-active"
+case "$session_id" in
+  ''|*[!A-Za-z0-9_-]*) ;;
+  *)
+    if [ "${#session_id}" -le 128 ] &&
+       { [ -e "${CFG}/.caveman-sessions/${session_id}.mode" ] || [ -L "${CFG}/.caveman-sessions/${session_id}.mode" ]; }; then
+      cave_flag="${CFG}/.caveman-sessions/${session_id}.mode"
+    fi
+    ;;
+esac
 if [ ! -L "$cave_flag" ] && [ -f "$cave_flag" ]; then
   cave_mode=""
   IFS= read -r -n 64 cave_mode < "$cave_flag" 2>/dev/null
