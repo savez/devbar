@@ -206,7 +206,7 @@ struct ContractTests {
     @Test func projectStatus() throws {
         let p = try decode(ProjectStatus.self, "project-status")
         #expect(!p.path.isEmpty)
-        #expect(p.checks.map(\.tool) == ["rtk", "caveman", "tokensave"])
+        #expect(p.checks.map(\.tool) == ["rtk", "caveman", "tokensave", "tokeneconomizer"])
         for c in p.checks { #expect(!c.detail.isEmpty) }
         #expect(p.checks.contains { !$0.willWrite.isEmpty })
         expectKeys(["tool", "ok", "detail", "willWrite"], in: try nested("project-status", "checks"), "project-status check")

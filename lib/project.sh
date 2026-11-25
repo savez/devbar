@@ -179,11 +179,57 @@ _proj_root() {
   git -C "$d" rev-parse --show-toplevel 2>/dev/null || return 2
 }
 
+# _proj_te_enabled <root>: stampa true|false (config effettiva di te per il repo), rc 1 se illeggibile.
+_proj_te_enabled() {
+  local te v
+  te="$(te_bin)" || return 1
+  v="$("$te" --cwd "$1" config show 2>/dev/null </dev/null | jq -r '.enabled' 2>/dev/null)" || return 1
+  case "$v" in true | false) printf '%s' "$v" ;; *) return 1 ;;
+  esac
+}
+
+# _proj_te_config_path <root>: config di te per questo repo (<repo di te>/config.json), accanto
+# alla cartella di stato dell'harness. rc 1 se non si legge.
+_proj_te_config_path() {
+  local te state
+  te="$(te_bin)" || return 1
+  state="$("$te" --cwd "$1" status --json 2>/dev/null </dev/null | jq -r '.state // empty' 2>/dev/null)" || return 1
+  [ -n "$state" ] || return 1
+  printf '%s/config.json' "$(dirname "$state")"
+}
+
+# _proj_check_tokeneconomizer <root>: acceso sul repo = plugin in almeno un harness e enabled
+# vero. Spento: willWrite è la config di te del repo (te config set enabled=on).
+_proj_check_tokeneconomizer() {
+  local root="$1" st n en path
+  if ! te_clone_dir >/dev/null; then
+    jq -nc '{tool:"tokeneconomizer",ok:false,detail:"TokenEconomizer non installato (usa Impostazioni, AI setup)",willWrite:[]}'
+    return 0
+  fi
+  st="$(action_ai_status tokeneconomizer 2>/dev/null)" || st='{"harnesses":[]}'
+  n="$(jq -r '[.harnesses[] | select(.state == "installed")] | length' <<<"$st" 2>/dev/null || echo 0)"
+  if [ "${n:-0}" -eq 0 ]; then
+    jq -nc '{tool:"tokeneconomizer",ok:false,detail:"plugin TokenEconomizer in nessun harness (usa Impostazioni, AI setup)",willWrite:[]}'
+    return 0
+  fi
+  en="$(_proj_te_enabled "$root")" || {
+    jq -nc '{tool:"tokeneconomizer",ok:false,detail:"stato di TokenEconomizer non leggibile",willWrite:[]}'
+    return 0
+  }
+  if [ "$en" = true ]; then
+    jq -nc '{tool:"tokeneconomizer",ok:true,detail:"attivo su questo repo",willWrite:[]}'
+    return 0
+  fi
+  path="$(_proj_te_config_path "$root")" || path=""
+  jq -nc --arg p "$path" '{tool:"tokeneconomizer",ok:false,detail:"spento su questo repo",willWrite:(if $p == "" then [] else [$p] end)}'
+}
+
 _proj_status_json() {
   local root="$1"
   jq -nc --arg p "$root" --argjson r "$(_proj_check_rtk)" \
     --argjson c "$(_proj_check_caveman "$root")" --argjson t "$(_proj_check_tokensave "$root")" \
-    '{path:$p,checks:[$r,$c,$t]}'
+    --argjson e "$(_proj_check_tokeneconomizer "$root")" \
+    '{path:$p,checks:[$r,$c,$t,$e]}'
 }
 
 action_project_status() {
@@ -232,5 +278,14 @@ action_project_apply() {
     nohook) (cd "$root" && tokensave githooks on --local </dev/null) >&2 || rc=$? ;;
   esac
   [ "$rc" -eq 0 ] || { _ai_error "tokensave fallito (rc $rc)"; return 2; }
+  # TokenEconomizer: solo se spento su questo repo (config di te fuori dal repo, registrata).
+  if [ "$(_proj_te_enabled "$root" 2>/dev/null || true)" = false ]; then
+    local te tecfg
+    te="$(te_bin)" && tecfg="$(_proj_te_config_path "$root")" || tecfg=""
+    if [ -n "$tecfg" ]; then
+      journal_before "$tecfg" </dev/null || { _ai_error "backup prima di TokenEconomizer fallito"; return 2; }
+      "$te" --cwd "$root" config set enabled=on </dev/null >&2 || { _ai_error "TokenEconomizer fallito"; return 2; }
+    fi
+  fi
   _proj_status_json "$root"
 }
