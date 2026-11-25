@@ -32,6 +32,35 @@ struct SettingsModelTests {
         (try? JSONSerialization.jsonObject(with: Data(contentsOf: url))) as? [String: Any] ?? [:]
     }
 
+    @Test func checkIntervalsAutosave() async {
+        let url = tempURL()
+        let m = make(url: url)
+        await m.load()
+        m.setVulnEvery("1w")
+        m.setBrewHours(3)
+        #expect(disk(url)["vulnCheckEvery"] as? String == "1w")
+        #expect(disk(url)["brewCheckHours"] as? Int == 3)
+        m.setVulnEvery("3d")            // fuori elenco: ignorato
+        m.setBrewHours(5)
+        #expect(m.config.vulnCheckEvery == "1w" && m.config.brewCheckHours == 3)
+    }
+
+    @Test func dailyTimeOnlyForEveryDay() async {
+        let m = make(url: tempURL())
+        await m.load()
+        #expect(m.showsDailyTime)                       // default: ogni giorno
+        m.setVulnEvery("12h"); #expect(!m.showsDailyTime)
+        m.setVulnEvery("1w"); #expect(!m.showsDailyTime)
+        m.setVulnEvery("1d"); #expect(m.showsDailyTime)
+    }
+
+    @Test func checkIntervalOptions() {
+        #expect(SettingsModel.vulnOptions.map(\.id) == ["12h", "1d", "1w"])
+        #expect(SettingsModel.vulnOptions.map(\.title) == ["Ogni 12 ore", "Ogni giorno", "Ogni settimana"])
+        #expect(SettingsModel.brewOptions.map(\.hours) == [1, 3, 6, 12, 24])
+        #expect(SettingsModel.brewOptions.map(\.title) == ["Ogni ora", "Ogni 3 ore", "Ogni 6 ore", "Ogni 12 ore", "Ogni giorno"])
+    }
+
     @Test func editsAutosave() async {
         let url = tempURL()
         let m = make(url: url)

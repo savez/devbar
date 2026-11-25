@@ -49,6 +49,7 @@ public final class StatusStore {
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     @ObservationIgnored private var pathMonitor: NWPathMonitor?
     @ObservationIgnored private var dailyTask: Task<Void, Never>?
+    @ObservationIgnored private var hourlyTask: Task<Void, Never>?
 
     /// - Parameters:
     ///   - allTimeout: `check all`: solo riserva (`defaultAllTimeout`), il motore dà già a ogni
@@ -189,10 +190,20 @@ public final class StatusStore {
         pathMonitor = nil
         dailyTask?.cancel()
         dailyTask = nil
+        hourlyTask?.cancel()
+        hourlyTask = nil
     }
+
+    /// Controllo ogni ora: il motore rifà solo ciò che ha la cache scaduta (vulnerabilità,
+    /// `brew update`), secondo `vulnCheckEvery` e `brewCheckHours`.
+    public nonisolated static let hourlyTick: TimeInterval = 3600
+
+    /// Solo "ogni giorno" forza la scansione all'orario `dailyCheckTime`.
+    public nonisolated static func forcesAtDailyTime(_ c: DevbarConfig) -> Bool { c.vulnCheckEvery == "1d" }
 
     private func scheduleDaily() {
         dailyTask?.cancel()
+        hourlyTask?.cancel()
         dailyTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
@@ -202,7 +213,15 @@ public final class StatusStore {
                 // Se il Mac dorme all'orario, ci pensa il refresh del risveglio.
                 try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                 if Task.isCancelled { return }
-                await self.refresh(force: true)
+                self.reloadConfig()
+                if Self.forcesAtDailyTime(self.config) { await self.refresh(force: true) }
+            }
+        }
+        hourlyTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64(Self.hourlyTick * 1_000_000_000))
+                if Task.isCancelled { return }
+                await self?.refresh(force: false)
             }
         }
     }

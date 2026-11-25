@@ -9,11 +9,18 @@ public struct DevbarConfig: Codable, Equatable, Sendable {
     public var brewExclude: [String] = []
     public var terminal: String = "Terminal"
     public var launchAtLogin: Bool = true
+    /// Ogni quanto rifare la scansione delle vulnerabilità: "12h", "1d" o "1w".
+    public var vulnCheckEvery: String = "1d"
+    /// Ogni quante ore rifare `brew update`: 1, 3, 6, 12 o 24.
+    public var brewCheckHours: Int = 6
+
+    public static let vulnCheckValues = ["12h", "1d", "1w"]
+    public static let brewCheckValues = [1, 3, 6, 12, 24]
 
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case repoRoots, scanDepth, dailyCheckTime, harnesses, brewExclude, terminal, launchAtLogin
+        case repoRoots, scanDepth, dailyCheckTime, harnesses, brewExclude, terminal, launchAtLogin, vulnCheckEvery, brewCheckHours
     }
 
     /// Tollerante: chiavi mancanti o di tipo errato tornano al default.
@@ -27,6 +34,11 @@ public struct DevbarConfig: Codable, Equatable, Sendable {
         brewExclude = (try? c.decodeIfPresent([String].self, forKey: .brewExclude)) ?? d.brewExclude
         terminal = (try? c.decodeIfPresent(String.self, forKey: .terminal)) ?? d.terminal
         launchAtLogin = (try? c.decodeIfPresent(Bool.self, forKey: .launchAtLogin)) ?? d.launchAtLogin
+        // Valori fuori elenco: default, come fa il motore.
+        let v = (try? c.decodeIfPresent(String.self, forKey: .vulnCheckEvery)) ?? d.vulnCheckEvery
+        vulnCheckEvery = Self.vulnCheckValues.contains(v) ? v : d.vulnCheckEvery
+        let b = (try? c.decodeIfPresent(Int.self, forKey: .brewCheckHours)) ?? d.brewCheckHours
+        brewCheckHours = Self.brewCheckValues.contains(b) ? b : d.brewCheckHours
     }
 }
 
