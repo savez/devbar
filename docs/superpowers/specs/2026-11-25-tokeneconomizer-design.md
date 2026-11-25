@@ -91,15 +91,16 @@ l'azione è `te config set enabled=on --cwd <repo>`, che scrive
   (1 | 3 | 6 | 12 | 24, default 6). Valori non validi: default.
 - Motore: `brew-vulns`, `npm-audit`, `composer-audit` usano come durata della cache
   `vulnCheckEvery` (12h = 720 min, 1d = 1440, 1w = 10080) al posto del 1440 fisso.
-  `brew-outdated` ha una cache nuova di `brewCheckHours`: a cache scaduta (o `--force`) lancia
-  `brew update` (errore di rete: si va avanti con l'indice locale) e poi `brew outdated`;
+  `brew-outdated`: solo `brew update` segue `brewCheckHours` (stamp in cache; `--force` lo
+  rifà; errore di rete: si va avanti con l'indice locale); `brew outdated` gira a ogni
+  controllo, così un aggiornamento fatto a mano sparisce subito;
   timeout del check portato a quello lungo (300 s) come gli audit.
 - App: il timer giornaliero diventa un controllo ogni ora (`check all` senza `--force`);
-  il motore rifà la scansione solo a cache scaduta. Per "ogni giorno" e "ogni settimana" la
-  scansione delle vulnerabilità resta forzata all'orario `dailyCheckTime` (come oggi);
-  "ogni 12 ore" non usa l'orario. "Ricontrolla" forza tutto come oggi.
+  il motore rifà la scansione solo a cache scaduta. Solo per "ogni giorno" la scansione resta forzata
+  all'orario `dailyCheckTime` (come oggi); "ogni 12 ore" e "ogni settimana" seguono la durata
+  della cache. "Ricontrolla" forza tutto come oggi.
 - Impostazioni: sezione "Controlli automatici" con le due scelte; l'orario si mostra solo
-  per "ogni giorno" e "ogni settimana".
+  per "ogni giorno".
 
 ## Lasciato a chi costruisce
 
