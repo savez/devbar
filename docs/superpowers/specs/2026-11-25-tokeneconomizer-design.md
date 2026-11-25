@@ -21,6 +21,9 @@ e le righe 5h / 7 giorni.
 4. **Card "Token risparmiati" ridisegnata** come nel mockup (proposta 2, senza stima): una riga
    per strumento con colore, valore e una frase su cosa misura; limiti di Claude in una
    sezione a parte.
+5. **Intervalli dei controlli automatici** in Impostazioni: vulnerabilità ogni 12 ore / ogni
+   giorno (predefinito, all'orario `dailyCheckTime`) / ogni settimana; Homebrew ogni 1 / 3 / 6
+   (predefinito) / 12 / 24 ore, con `brew update` prima di `brew outdated`.
 
 ## Non obiettivi
 
