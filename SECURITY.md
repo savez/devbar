@@ -8,8 +8,8 @@ segnalazioni sono benvenute e prese sul serio.
 
 | Versione                          | Supportata |
 | --------------------------------- | ---------- |
-| Ultima release su `main`          | ✅         |
-| Versioni precedenti               | ❌         |
+| Ultima release su `main`          | Sì         |
+| Versioni precedenti               | No         |
 
 ## Come segnalare una vulnerabilità
 
@@ -17,7 +17,7 @@ Se trovi una vulnerabilità, **non aprire una issue pubblica**.
 
 Usa **GitHub Security Advisories**: la segnalazione resta privata tra te e il maintainer.
 
-🔗 <https://github.com/savez/devbar/security/advisories/new>
+<https://github.com/savez/devbar/security/advisories/new>
 
 In alternativa scrivi a [@savez](https://github.com/savez) su GitHub.
 

@@ -1,0 +1,86 @@
+name: Segnala un bug
+description: Qualcosa in devbar non funziona come dovrebbe
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Grazie per la segnalazione. Per i problemi di **sicurezza** non usare questo modulo: vedi [SECURITY.md](https://github.com/savez/devbar/blob/main/SECURITY.md).
+  - type: textarea
+    id: cosa
+    attributes:
+      label: Cosa è successo
+      description: Descrivi il problema. Uno screenshot del pannello aiuta.
+    validations:
+      required: true
+  - type: textarea
+    id: atteso
+    attributes:
+      label: Cosa ti aspettavi
+    validations:
+      required: true
+  - type: textarea
+    id: passi
+    attributes:
+      label: Passi per riprodurre
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: versione
+    attributes:
+      label: Versione di devbar
+      description: Output di `devbar version`, oppure la versione nelle Impostazioni.
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: Versione di macOS e chip
+      placeholder: "macOS 15.1, Apple Silicon"
+    validations:
+      required: true
+  - type: dropdown
+    id: installazione
+    attributes:
+      label: Come l'hai installato
+      options:
+        - Da release (zip)
+        - Da sorgente (just install)
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area coinvolta
+      multiple: true
+      options:
+        - Icona nella barra dei menu
+        - Pannello
+        - Homebrew
+        - Vulnerabilità (brew vulns, npm, composer)
+        - colima
+        - Token risparmiati (RTK, tokensave, Claude)
+        - Strumenti AI / Init progetto
+        - Statusline
+        - Impostazioni
+        - Installazione / aggiornamento
+        - Undo / registro modifiche
+        - Altro
+  - type: input
+    id: strumento
+    attributes:
+      label: Strumento esterno e sua versione
+      description: Se il problema riguarda brew, colima, npm, rtk, tokensave, Claude Code…
+  - type: textarea
+    id: log
+    attributes:
+      label: Output utile
+      description: |
+        `devbar check <nome>` del controllo che sbaglia, o l'errore mostrato dal pannello.
+        **Prima di incollare** togli nomi di repo privati e percorsi personali; non allegare `~/.config/devbar/config.json` senza ripulirlo.
+      render: shell

@@ -1,0 +1,18 @@
+name: Domanda
+description: Non capisci come si usa qualcosa
+title: "[Domanda] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: Prima dai un'occhiata al [README](https://github.com/savez/devbar#readme) e al [riferimento](https://github.com/savez/devbar/blob/main/docs/RIFERIMENTO.md).
+  - type: textarea
+    id: domanda
+    attributes:
+      label: Cosa vuoi sapere
+    validations:
+      required: true
+  - type: textarea
+    id: contesto
+    attributes:
+      label: Cosa hai già provato

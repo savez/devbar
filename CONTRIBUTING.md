@@ -92,11 +92,13 @@ Non committare fixture con nomi di repo privati, percorsi della tua home o token
    - `chore: …`, `test: …`, `ci: …`, `build: …`, `style: …`: manutenzione, fuori dal CHANGELOG
    - `feat!: …` o footer `BREAKING CHANGE: …`: versione major
 
-   > 🤖 CHANGELOG e release sono generati da
+   > CHANGELOG e release sono generati da
    > [release-please](https://github.com/googleapis/release-please) a partire dai commit:
    > non modificare `CHANGELOG.md` né `version.txt` a mano.
 
 5. Pubblica il branch sul tuo fork e apri una PR verso `main`, compilando il template.
+   Non si può fare push direttamente su `main`: ogni modifica passa da una PR che il
+   maintainer deve approvare prima del merge.
 
 ## Cosa aspettarti nella review
 
@@ -145,4 +147,4 @@ app/Icon/                 icona dell'app (SVG e .icns)
 
 ## Domande
 
-Apri una issue o una [discussione](https://github.com/savez/devbar/discussions).
+Apri una [issue](https://github.com/savez/devbar/issues/new/choose) e scegli il modulo più vicino (bug o funzione). Per le domande d'uso c'è il modulo "Domanda".

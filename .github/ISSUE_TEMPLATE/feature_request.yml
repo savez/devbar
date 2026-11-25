@@ -1,0 +1,37 @@
+name: Suggerisci una funzione
+description: Una nuova funzione o un miglioramento
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Quale problema risolve
+      description: Cosa del tuo Mac di sviluppo oggi non riesci a vedere o a sistemare dal pannello?
+    validations:
+      required: true
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Come dovrebbe funzionare
+      description: Cosa vedresti nella barra o nel pannello, e cosa succede al clic.
+    validations:
+      required: true
+  - type: textarea
+    id: alternative
+    attributes:
+      label: Alternative considerate
+      description: Cosa fai oggi per aggirare il problema.
+  - type: checkboxes
+    id: principi
+    attributes:
+      label: Principi del progetto
+      description: devbar scrive in file di altri programmi, quindi segue [alcune regole](https://github.com/savez/devbar/blob/main/CONTRIBUTING.md#principi-del-progetto).
+      options:
+        - label: Ho letto i principi e la proposta non li viola (conferma esplicita, tutto annullabile, nessun server)
+  - type: checkboxes
+    id: contributo
+    attributes:
+      label: Contributo
+      options:
+        - label: Posso aprire io la pull request
