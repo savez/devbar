@@ -176,7 +176,7 @@ struct ContractTests {
             #expect(d.tools[t] != nil, "tools.\(t)")
         }
         let ai = try #require(d.aiTools)
-        for t in ["rtk", "caveman", "tokensave", "statusline"] { #expect(ai[t] != nil, "aiTools.\(t)") }
+        for t in ["rtk", "caveman", "tokensave", "tokeneconomizer", "statusline"] { #expect(ai[t] != nil, "aiTools.\(t)") }
         expectKeys(["id", "installed", "managed"], in: try nested("detect", "harnesses"), "detect harness")
     }
 

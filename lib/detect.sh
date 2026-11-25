@@ -58,7 +58,7 @@ cmd_detect() {
 }
 
 # Strumenti dell'AI setup mostrati nel pannello (ordine dei pulsanti).
-DEVBAR_AI_TOOLS="rtk caveman tokensave statusline"
+DEVBAR_AI_TOOLS="rtk caveman tokensave tokeneconomizer statusline"
 
 # detect_ai_tools: {"<tool>":bool}: true se almeno un harness installato è supportato.
 detect_ai_tools() {

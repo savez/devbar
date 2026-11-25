@@ -103,6 +103,20 @@ public enum SectionKind: Equatable, Sendable {
     }
 }
 
+/// Una riga della card "Token risparmiati": uno strumento con il suo numero e cosa misura.
+public struct TokenToolRow: Equatable, Sendable, Identifiable {
+    public var id: String
+    public var title: String
+    /// Numero a destra ("194K"); nil per gli strumenti senza conteggio.
+    public var value: String?
+    /// Frase su cosa misura o sullo stato.
+    public var detail: String
+    /// Interruttore attivo / spento; nil per gli strumenti con un numero.
+    public var active: Bool?
+    /// Barre degli ultimi giorni (solo RTK).
+    public var daily: [DailySaving]
+}
+
 public struct PanelModel: Equatable, Sendable {
     // Homebrew
     public var brewState: SectionKind
@@ -145,6 +159,13 @@ public struct PanelModel: Equatable, Sendable {
     public var caveman: CavemanPanel?
     public var cavemanMode: String? { caveman?.mode.rawValue }
     public var cavemanVersion: String? { caveman?.version }
+    public var tokenEconomizerState: SectionKind
+    public var tokenEconomizerActive: Bool
+    public var tokenEconomizerSummary: String
+    /// Una riga per strumento, nell'ordine RTK, tokensave, TokenEconomizer, caveman.
+    public var tokenRows: [TokenToolRow]
+    /// Somma dei token risparmiati da RTK e tokensave; nil se nessuno dei due ha dati.
+    public var tokenTotal: Int?
     public var usageState: SectionKind
     public var usageFiveHour: Double?
     public var usageWeek: Double?
@@ -152,8 +173,10 @@ public struct PanelModel: Equatable, Sendable {
     public var usageWeekReset: String?
     public var usageNote: String?
     public var showsTokenSection: Bool {
-        rtkState != .hidden || tokensaveState != .hidden || usageState != .hidden
+        rtkState != .hidden || tokensaveState != .hidden || tokenEconomizerState != .hidden
     }
+    /// "Limiti di Claude": sezione a parte, non fa parte dei risparmi.
+    public var showsLimits: Bool { usageState != .hidden }
 
     // AI setup
     public var aiTools: [String]
@@ -206,12 +229,44 @@ public struct PanelModel: Equatable, Sendable {
         tokensaveLine = ts.map { "tokensave \(Fmt.tokens($0.saved)) risparmiati, \($0.missedTurns) occasioni perse" }
             ?? (all.rows["tokensave"]?.summary ?? "")
 
+        // TokenEconomizer: informativo, solo attivo / non attivo
+        let te = all.typed(TokenEconomizerStatus.self, "tokeneconomizer")
+        tokenEconomizerState = SectionKind.of(all.rows["tokeneconomizer"]?.state, hasRow: all.rows["tokeneconomizer"] != nil)
+        tokenEconomizerActive = te?.active ?? false
+        tokenEconomizerSummary = all.rows["tokeneconomizer"]?.summary ?? ""
+
         // caveman: solo se installato
         if let cv = all.typed(CavemanStatus.self, "caveman"), cv.result.state != .unconfigured {
             caveman = CavemanPanel(status: cv)
         } else {
             caveman = nil
         }
+
+        // Card dei risparmi: una riga per strumento
+        var trs: [TokenToolRow] = []
+        if rtkState == .shown, let rtk {
+            trs.append(TokenToolRow(id: "rtk", title: "RTK", value: Fmt.tokens(rtk.saved),
+                                    detail: "output dei comandi ridotto del \(Fmt.percent(rtk.pct))",
+                                    active: nil, daily: rtkDaily))
+        }
+        if tokensaveState == .shown, let ts {
+            trs.append(TokenToolRow(id: "tokensave", title: "tokensave", value: Fmt.tokens(ts.saved),
+                                    detail: "\(ts.missedTurns) volte l'agente ha letto file invece di usare tokensave",
+                                    active: nil, daily: []))
+        }
+        if tokenEconomizerState == .shown {
+            trs.append(TokenToolRow(id: "tokeneconomizer", title: "TokenEconomizer", value: nil,
+                                    detail: tokenEconomizerActive ? "attivo" : tokenEconomizerSummary,
+                                    active: tokenEconomizerActive, daily: []))
+        }
+        if let cv = caveman {
+            trs.append(TokenToolRow(id: "caveman", title: "caveman", value: nil,
+                                    detail: "risposte più corte, nessun conteggio disponibile",
+                                    active: cv.active, daily: []))
+        }
+        tokenRows = trs
+        let totals = [rtkState == .shown ? rtk?.saved : nil, tokensaveState == .shown ? ts?.saved : nil].compactMap { $0 }
+        tokenTotal = totals.isEmpty ? nil : totals.reduce(0, +)
 
         // claude-usage
         let cu = all.typed(ClaudeUsage.self, "claude-usage")
@@ -226,13 +281,13 @@ public struct PanelModel: Equatable, Sendable {
         }
 
         // AI setup
-        let display = ["RTK", "caveman", "tokensave", "statusline"]
+        let display = ["RTK", "caveman", "tokensave", "TokenEconomizer", "statusline"]
         if let ai = detect?.aiTools {
             // Visibili solo con almeno un harness installato e supportato (calcolato dal motore).
             aiTools = display.filter { ai[AISetup.cliName($0)] == true }
         } else {
             let claudeInstalled = detect?.harnesses.first(where: { $0.id == "claude" })?.installed ?? false
-            aiTools = claudeInstalled ? display : Array(display.prefix(3))
+            aiTools = claudeInstalled ? display : display.filter { $0 != "statusline" }
         }
         // Gli harness non gestiti si gestiscono solo nelle impostazioni: niente righe nel pannello.
         showsAISetup = detect != nil

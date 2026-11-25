@@ -127,11 +127,11 @@ STUB
 @test "detect: aiTools = almeno un harness installato supportato dal tool" {
   mkdir -p "$HOME/.codex"
   run --separate-stderr "$DEVBAR" detect
-  # codex: solo tokensave lo supporta
-  [ "$(jq -c '.aiTools' <<<"$output")" = '{"rtk":false,"caveman":false,"tokensave":true,"statusline":false}' ]
+  # codex: lo supportano solo tokensave e TokenEconomizer
+  [ "$(jq -c '.aiTools' <<<"$output")" = '{"rtk":false,"caveman":false,"tokensave":true,"tokeneconomizer":true,"statusline":false}' ]
   mkdir -p "$HOME/.copilot"
   run --separate-stderr "$DEVBAR" detect
-  [ "$(jq -c '.aiTools' <<<"$output")" = '{"rtk":true,"caveman":true,"tokensave":true,"statusline":false}' ]
+  [ "$(jq -c '.aiTools' <<<"$output")" = '{"rtk":true,"caveman":true,"tokensave":true,"tokeneconomizer":true,"statusline":false}' ]
   make_stub claude
   run --separate-stderr "$DEVBAR" detect
   [ "$(jq -r '.aiTools.statusline' <<<"$output")" = true ]

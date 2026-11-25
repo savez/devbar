@@ -175,9 +175,10 @@ public extension PanelModel {
         return Readout(value: hasValue ? "\(total)" : nil, tone: tone, subtitle: brewShown ? sub : note, note: brewShown ? note : nil)
     }
 
-    /// Token risparmiati da RTK, compatti ("194K").
+    /// Somma dei token risparmiati da RTK e tokensave, compatta ("194K").
     var tokensReadout: Readout {
-        Readout(value: rtkSaved.map(Fmt.tokens), tone: .info)
+        Readout(value: tokenTotal.map(Fmt.tokens), tone: .info,
+                subtitle: tokenTotal == nil ? nil : "somma di RTK e tokensave")
     }
 
     /// Sezione informativa: sempre ardesia (le soglie di consumo colorano solo gli indicatori).
@@ -185,9 +186,9 @@ public extension PanelModel {
 
     var usageMeters: [UsageMeter] {
         guard usageState == .shown else { return [] }
-        return [("5h", usageFiveHour, usageFiveHourReset), ("7 giorni", usageWeek, usageWeekReset)]
+        return [("Sessione 5 ore", usageFiveHour, usageFiveHourReset), ("Settimana", usageWeek, usageWeekReset)]
             .filter { $0.1 != nil }
             .map { UsageMeter(label: $0.0, fraction: Fmt.fraction($0.1), percentText: Fmt.percent($0.1 ?? 0),
-                              reset: $0.2.map { "reset \($0)" }, tone: Tone.usage($0.1)) }
+                              reset: $0.2.map { "si azzera \($0)" }, tone: Tone.usage($0.1)) }
     }
 }

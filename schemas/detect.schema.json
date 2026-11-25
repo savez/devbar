@@ -37,11 +37,12 @@
     },
     "aiTools": {
       "type": "object",
-      "required": ["rtk", "caveman", "tokensave", "statusline"],
+      "required": ["rtk", "caveman", "tokensave", "tokeneconomizer", "statusline"],
       "properties": {
         "rtk": { "type": "boolean" },
         "caveman": { "type": "boolean" },
         "tokensave": { "type": "boolean" },
+        "tokeneconomizer": { "type": "boolean" },
         "statusline": { "type": "boolean" }
       },
       "additionalProperties": false

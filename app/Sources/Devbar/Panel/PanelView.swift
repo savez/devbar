@@ -40,7 +40,7 @@ struct PanelView: View {
     /// mai sopra la prima.
     @ViewBuilder private func rows(_ model: PanelModel, open: DetailsOpener) -> some View {
         let shown = [model.brewState == .shown, model.showsVulns, actions.colima.readout != nil,
-                     model.showsTokenSection, model.caveman != nil, model.showsAISetup]
+                     model.showsTokenSection, model.showsLimits, model.caveman != nil, model.showsAISetup]
         let line = { (i: Int) in shown[..<i].contains(true) }
         if shown[0] {
             BrewRow(model: model, actions: actions, open: open)
@@ -57,12 +57,16 @@ struct PanelView: View {
             if line(3) { Divider() }
             TokensRow(model: model, actions: actions, open: open)
         }
-        if shown[4], let cv = model.caveman {
+        if shown[4] {
             if line(4) { Divider() }
+            LimitsRow(model: model, actions: actions)
+        }
+        if shown[5], let cv = model.caveman {
+            if line(5) { Divider() }
             CavemanRow(panel: cv, control: actions.caveman)
         }
-        if shown[5] {
-            if line(5) { Divider() }
+        if shown[6] {
+            if line(6) { Divider() }
             AISetupRow(model: model, actions: actions)
         }
     }
@@ -99,6 +103,8 @@ struct VulnsRow: View {
     }
 }
 
+/// Una riga per strumento: colore, nome, numero (o stato) e una frase su cosa misura.
+/// Il grafico a barre sta nella riga di RTK, perché è di RTK.
 struct TokensRow: View {
     let model: PanelModel
     let actions: PanelActions
@@ -106,24 +112,10 @@ struct TokensRow: View {
 
     var body: some View {
         let r = model.tokensReadout
-        ReadoutRow(title: "Token risparmiati", readout: r.value, tone: r.tone,
+        ReadoutRow(title: "Token risparmiati", subtitle: r.subtitle, readout: r.value, tone: r.tone,
                    busy: actions.isRunning("tokens"), onDetails: { open(.tokens) }) {
-            VStack(alignment: .leading, spacing: 5) {
-                if model.rtkState == .shown || model.tokensaveState == .shown {
-                    HStack(spacing: 8) {
-                        if model.rtkState == .shown {
-                            if !model.rtkDaily.isEmpty { MiniBars(daily: model.rtkDaily).frame(width: 80, height: 18) }
-                            Text(model.rtkLine).font(Typo.note).foregroundStyle(.secondary)
-                        }
-                    }
-                    if model.tokensaveState == .shown {
-                        Text(model.tokensaveLine).font(Typo.note).foregroundStyle(.secondary).lineLimit(1)
-                    }
-                }
-                if !model.usageMeters.isEmpty {
-                    UsageMeters(meters: model.usageMeters).padding(.top, 2)
-                }
-                if let n = model.usageNote { Text(n).font(Typo.note).foregroundStyle(.secondary) }
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(model.tokenRows) { row in TokenToolLine(row: row) }
                 let inits = initTools
                 if !inits.isEmpty {
                     HStack(spacing: 6) {
@@ -134,7 +126,6 @@ struct TokensRow: View {
                             }.controlSize(.small).disabled(actions.isRunning("tokens"))
                         }
                     }
-                    .padding(.top, 2)
                 }
             }
         }
@@ -144,8 +135,70 @@ struct TokensRow: View {
         var out: [(String, String)] = []
         if model.rtkState == .initOnly { out.append(("RTK", "rtk")) }
         if model.tokensaveState == .initOnly { out.append(("tokensave", "tokensave")) }
-        if model.usageState == .initOnly { out.append(("claude-usage", "claude-usage")) }
+        if model.tokenEconomizerState == .initOnly { out.append(("TokenEconomizer", "tokeneconomizer")) }
         return out
+    }
+}
+
+struct TokenToolLine: View {
+    let row: TokenToolRow
+
+    /// Un colore fisso per strumento, lo stesso in riga e nelle barre.
+    static func color(for id: String) -> Color {
+        switch id {
+        case "rtk": return .blue
+        case "tokensave": return .purple
+        case "tokeneconomizer": return .teal
+        default: return .orange
+        }
+    }
+
+    var body: some View {
+        let color = Self.color(for: row.id)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 3).fill(color).frame(width: 10, height: 10)
+                Text(row.title).font(Typo.title)
+                if !row.daily.isEmpty {
+                    MiniBars(daily: row.daily, color: color).frame(width: 56, height: 16)
+                }
+                Spacer(minLength: 8)
+                if let v = row.value {
+                    Text(v).font(Typo.title.monospacedDigit())
+                } else if let active = row.active {
+                    Text(active ? "attivo" : "non attivo").font(Typo.note)
+                        .foregroundStyle(active ? Tone.ok.color : .secondary)
+                        .fixedSize()
+                        .padding(.horizontal, 7).padding(.vertical, 1)
+                        .overlay(Capsule().stroke(active ? Tone.ok.color : Color.secondary.opacity(0.5), lineWidth: 1))
+                }
+            }
+            Text(row.detail).font(Typo.note).foregroundStyle(.secondary)
+                .lineLimit(2).padding(.leading, 18)
+        }
+    }
+}
+
+/// Limiti di consumo di Claude: non sono risparmi, hanno una sezione loro.
+struct LimitsRow: View {
+    let model: PanelModel
+    let actions: PanelActions
+
+    var body: some View {
+        ReadoutRow(title: "Limiti di Claude", busy: actions.isRunning("tokens")) {
+            VStack(alignment: .leading, spacing: 5) {
+                if !model.usageMeters.isEmpty {
+                    UsageMeters(meters: model.usageMeters)
+                }
+                if let n = model.usageNote { Text(n).font(Typo.note).foregroundStyle(.secondary) }
+                if model.usageState == .initOnly {
+                    Button("Init claude-usage") {
+                        Task { await actions.request(.init(title: "Installa claude-usage",
+                                                           args: ["run", "tool-install", "claude-usage"])) }
+                    }.controlSize(.small).disabled(actions.isRunning("tokens"))
+                }
+            }
+        }
     }
 }
 
@@ -194,10 +247,11 @@ struct CavemanRow: View {
 /// Barre minime degli ultimi giorni RTK (Swift Charts, senza assi).
 struct MiniBars: View {
     let daily: [DailySaving]
+    var color: Color = Tone.info.color
     var body: some View {
         Chart(daily, id: \.date) { d in
             BarMark(x: .value("Giorno", d.date), y: .value("Token risparmiati", d.saved))
-                .foregroundStyle(Tone.info.color)
+                .foregroundStyle(color)
                 .cornerRadius(1)
         }
         .chartXAxis(.hidden).chartYAxis(.hidden)

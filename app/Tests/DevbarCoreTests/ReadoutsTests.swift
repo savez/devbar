@@ -150,10 +150,10 @@ struct ReadoutTests {
         let m = try Fixture.model(rich: true)
         #expect(m.tokensReadout.value == "194K")
         #expect(m.rtkLine == "RTK 18%")
-        #expect(m.usageMeters.map(\.label) == ["5h", "7 giorni"])
+        #expect(m.usageMeters.map(\.label) == ["Sessione 5 ore", "Settimana"])
         #expect(m.usageMeters.map(\.tone) == [.action, .ok])
         #expect(m.usageMeters.map(\.percentText) == ["76%", "42%"])
-        #expect(m.usageMeters.first?.reset == "reset oggi 14:30" || m.usageMeters.first?.reset?.hasPrefix("reset ") == true)
+        #expect(m.usageMeters.first?.reset?.hasPrefix("si azzera ") == true)
         // senza claude-usage configurato: nessun indicatore
         #expect(try Fixture.model(rich: false).usageMeters.isEmpty)
     }
@@ -210,5 +210,85 @@ struct DetailsTests {
         #expect(m.rtkSaved == 193_742)
         #expect(m.tokensave?.missedTurns == 53)
         #expect(m.cavemanMode == "caveman")
+    }
+
+    // MARK: - Card "Token risparmiati": una riga per strumento
+
+    func withTokenEconomizer(_ all: AllChecks, state: String = "ok", active: Bool? = true) throws -> AllChecks {
+        var a = all
+        let activeJSON = active.map { #","active":\#($0)"# } ?? ""
+        let summary = state == "unconfigured" ? "TokenEconomizer non installato"
+            : (active == true ? "TokenEconomizer attivo" : "TokenEconomizer spento")
+        let json = #"{"status":"\#(state)","rc":\#(state == "unconfigured" ? 3 : 1),"count":0,"summary":"\#(summary)","items":[],"checkedAt":"2026-11-24T09:25:26Z"\#(activeJSON)}"#
+        a.raw["tokeneconomizer"] = try JSONDecoder().decode(JSONValue.self, from: Data(json.utf8))
+        a.rows["tokeneconomizer"] = try JSONDecoder().decode(CheckResult.self, from: Data(json.utf8))
+        return a
+    }
+
+    func baseAll() throws -> AllChecks {
+        let url = try #require(Bundle.module.url(forResource: "all", withExtension: "json", subdirectory: "Fixtures"))
+        return try AllChecks.decode(Data(contentsOf: url))
+    }
+
+    @Test func tokenRowsOnePerTool() throws {
+        let m = PanelModel(all: try withTokenEconomizer(try baseAll()))
+        #expect(m.tokenRows.map(\.id) == ["rtk", "tokensave", "tokeneconomizer", "caveman"])
+        let rtk = try #require(m.tokenRows.first { $0.id == "rtk" })
+        #expect(rtk.title == "RTK" && rtk.value == "194K")
+        #expect(rtk.detail == "output dei comandi ridotto del 18%")
+        #expect(rtk.daily.count <= 7 && !rtk.daily.isEmpty)
+        let ts = try #require(m.tokenRows.first { $0.id == "tokensave" })
+        #expect(ts.value == "0")
+        #expect(ts.detail == "53 volte l'agente ha letto file invece di usare tokensave")
+        #expect(ts.daily.isEmpty)
+    }
+
+    @Test func tokenRowTokenEconomizerShowsOnlyActiveOrNot() throws {
+        let on = PanelModel(all: try withTokenEconomizer(try baseAll(), active: true))
+        let r1 = try #require(on.tokenRows.first { $0.id == "tokeneconomizer" })
+        #expect(r1.value == nil && r1.active == true && r1.detail == "attivo")
+        let off = PanelModel(all: try withTokenEconomizer(try baseAll(), active: false))
+        let r2 = try #require(off.tokenRows.first { $0.id == "tokeneconomizer" })
+        #expect(r2.value == nil && r2.active == false && r2.detail == "TokenEconomizer spento")
+    }
+
+    @Test func tokenEconomizerNotInstalledHasNoRowButInitButton() throws {
+        let m = PanelModel(all: try withTokenEconomizer(try baseAll(), state: "unconfigured", active: nil))
+        #expect(!m.tokenRows.contains { $0.id == "tokeneconomizer" })
+        #expect(m.tokenEconomizerState == .initOnly)
+    }
+
+    @Test func tokenRowCavemanHasStateNoNumber() throws {
+        let m = PanelModel(all: try baseAll())
+        let cv = try #require(m.tokenRows.first { $0.id == "caveman" })
+        #expect(cv.value == nil && cv.active == true)
+        #expect(cv.detail == "risposte più corte, nessun conteggio disponibile")
+    }
+
+    @Test func tokenTotalSumsRtkAndTokensave() throws {
+        let m = PanelModel(all: try baseAll())
+        #expect(m.tokenTotal == 193_742)             // RTK 193742 + tokensave 0
+        #expect(m.tokensReadout.value == "194K")
+        #expect(m.tokensReadout.subtitle == "somma di RTK e tokensave")
+        // senza RTK né tokensave: nessun numero
+        let none = PanelModel(all: try AllChecks.decode(Data(#"{"brew-outdated":{"status":"ok","rc":1,"count":0,"summary":"","items":[]}}"#.utf8)))
+        #expect(none.tokenTotal == nil && none.tokensReadout.value == nil)
+    }
+
+    @Test func limitsSectionIsSeparateFromTokens() throws {
+        let m = try Fixture.model(rich: true)
+        #expect(m.showsLimits)
+        let off = try Fixture.model(rich: false)
+        #expect(off.usageState == .initOnly)            // claude-usage non installato
+        #expect(m.usageState == .shown)
+    }
+
+    @Test func tokenEconomizerIsInAISetupWhenSupported() throws {
+        let detect = try JSONDecoder().decode(DetectResult.self, from: Data(#"{"harnesses":[{"id":"claude","installed":true,"managed":false}],"tools":{"cork":false},"aiTools":{"rtk":true,"caveman":true,"tokensave":true,"tokeneconomizer":true,"statusline":true}}"#.utf8))
+        let m = PanelModel(all: try baseAll(), detect: detect)
+        #expect(m.aiTools == ["RTK", "caveman", "tokensave", "TokenEconomizer", "statusline"])
+        #expect(AISetup.tools.contains("tokeneconomizer"))
+        #expect(AISetup.cliName("TokenEconomizer") == "tokeneconomizer")
+        #expect(AISetup.binaryInstallable.contains("tokeneconomizer"))
     }
 }
