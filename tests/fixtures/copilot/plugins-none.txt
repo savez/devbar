@@ -1,0 +1,2 @@
+Built-in plugins:
+  • computer-use (v0.1.97) [disabled]

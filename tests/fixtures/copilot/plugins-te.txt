@@ -1,0 +1,5 @@
+Built-in plugins:
+  • computer-use (v0.1.97) [disabled]
+Live Plugins (loaded from a local marketplace directory, never copied):
+  • tokeneconomizer@tokeneconomizer (v0.1.0) (enabled)
+      from /tmp/TokenEconomizer
