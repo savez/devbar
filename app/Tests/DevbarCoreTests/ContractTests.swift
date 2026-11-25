@@ -33,7 +33,7 @@ struct ContractTests {
 
     @Test func checkEnvelopeOfEveryCheck() throws {
         for name in ["brew-outdated", "brew-vulns", "npm-audit", "composer-audit", "colima", "rtk",
-                     "tokensave", "caveman", "claude-usage", "harnesses"] {
+                     "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses"] {
             let o = try object(name)
             expectKeys(envelope, in: o, name)
             let r = try decode(CheckResult.self, name)
@@ -107,6 +107,14 @@ struct ContractTests {
         #expect(t.saved > 0 && t.calls > 0 && t.usd > 0)
     }
 
+    @Test func tokeneconomizer() throws {
+        let t = try decode(TokenEconomizerStatus.self, "tokeneconomizer")
+        expectKeys(["active"], in: try object("tokeneconomizer"), "tokeneconomizer")
+        #expect(t.active == false)
+        let on = try decode(TokenEconomizerStatus.self, "tokeneconomizer.active")
+        #expect(on.active == true && !on.result.summary.isEmpty)
+    }
+
     @Test func caveman() throws {
         let c = try decode(CavemanStatus.self, "caveman")
         expectKeys(["pluginEnabled", "mode", "rawMode", "version", "lastMode", "active"], in: try object("caveman"), "caveman")
@@ -140,7 +148,7 @@ struct ContractTests {
     @Test func checkAll() throws {
         let all = try AllChecks.decode(data("all"))
         let names = ["brew-outdated", "brew-vulns", "npm-audit", "composer-audit", "colima", "rtk",
-                     "tokensave", "caveman", "claude-usage", "harnesses"]
+                     "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses"]
         #expect(Set(all.rows.keys) == Set(names))
         for n in names {
             let o = try #require(all.raw[n])

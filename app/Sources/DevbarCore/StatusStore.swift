@@ -7,12 +7,12 @@ import Network
 @Observable @MainActor
 public final class StatusStore {
     /// Check solo informativi: non contribuiscono mai al badge (né al conteggio né al colore).
-    public static let informative: Set<String> = ["colima", "rtk", "tokensave", "caveman", "claude-usage", "harnesses"]
+    public static let informative: Set<String> = ["colima", "rtk", "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses"]
     /// Timeout per check del motore dentro `check all` (stessi valori di `devbar check-timeouts`,
     /// verificati da un test). Il motore uccide il check oltre il suo timeout.
     public nonisolated static let checkTimeouts: [String: TimeInterval] = [
         "brew-outdated": 60, "brew-vulns": 60, "npm-audit": 300, "composer-audit": 300,
-        "colima": 60, "rtk": 60, "tokensave": 60, "caveman": 60, "claude-usage": 60, "harnesses": 60,
+        "colima": 60, "rtk": 60, "tokensave": 60, "tokeneconomizer": 60, "caveman": 60, "claude-usage": 60, "harnesses": 60,
     ]
     /// Riserva per `check all`: caso peggiore del motore (somma dei timeout) + 5 s per check.
     public nonisolated static var defaultAllTimeout: TimeInterval {

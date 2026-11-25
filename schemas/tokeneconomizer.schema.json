@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "check tokeneconomizer",
+  "description": "Stato di TokenEconomizer (lib/checks/tokens.sh): solo se è attivo. Informativo, non entra nel badge.",
+  "allOf": [
+    { "$ref": "defs.schema.json#/$defs/checkEnvelope" },
+    {
+      "if": { "required": ["status"], "properties": { "status": { "enum": ["ok", "action"] } } },
+      "then": { "required": ["active"] }
+    }
+  ],
+  "properties": {
+    "active": { "type": "boolean" }
+  },
+  "unevaluatedProperties": false
+}

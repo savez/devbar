@@ -90,7 +90,7 @@ check_harnesses() {
   emit ok 0 "nessun nuovo harness" "[]"
 }
 
-DEVBAR_ALL_CHECKS="brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave caveman claude-usage harnesses"
+DEVBAR_ALL_CHECKS="brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave tokeneconomizer caveman claude-usage harnesses"
 
 # Timeout di ogni check dentro check all (secondi). npm/composer audit scorrono
 # tutti i repo, uno dopo l'altro: più tempo. DEVBAR_CHECK_TIMEOUT (intero > 0)

@@ -65,7 +65,7 @@ neg() {
 
 @test "negativo: busta dei check senza status/count/summary/items/checkedAt" {
   local c k
-  for c in brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave caveman claude-usage harnesses; do
+  for c in brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave tokeneconomizer caveman claude-usage harnesses; do
     for k in status count summary items checkedAt; do neg "$c" "del(.$k)"; done
   done
 }
@@ -77,6 +77,7 @@ neg() {
 @test "negativo: colima" { neg colima 'del(.profiles)'; neg colima 'del(.containers)'; neg colima 'del(.profiles[0].memoryBytes)'; neg colima '.containers[0].id = 7'; }
 @test "negativo: rtk" { neg rtk 'del(.daily)'; neg rtk 'del(.saved)'; neg rtk '.pct = "18"'; neg rtk 'del(.daily[0].date)'; }
 @test "negativo: tokensave" { neg tokensave 'del(.missedTurns)'; neg tokensave 'del(.usd)'; neg tokensave '.calls = null'; }
+@test "negativo: tokeneconomizer" { neg tokeneconomizer 'del(.active)'; neg tokeneconomizer '.active = "true"'; }
 @test "negativo: caveman" { neg caveman 'del(.pluginEnabled)'; neg caveman 'del(.mode)'; neg caveman '.mode = "ultra"'; neg caveman '.lastMode = "off"'; neg caveman '.active = "true"'; }
 @test "negativo: claude-usage (auth è una stringa, non un booleano)" {
   neg claude-usage 'del(.usage)'
@@ -88,7 +89,7 @@ neg() {
 @test "negativo: harnesses" { neg harnesses '.items[0] = 5'; neg harnesses '.items[0] = "vim"'; }
 @test "negativo: check all" {
   local c
-  for c in brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave caveman claude-usage harnesses; do neg all "del(.[\"$c\"])"; done
+  for c in brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave tokeneconomizer caveman claude-usage harnesses; do neg all "del(.[\"$c\"])"; done
   neg all 'del(.colima.profiles)'
   neg all 'del(.rtk.rc)'
   neg all '.caveman.active = 1'
