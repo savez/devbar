@@ -5,7 +5,7 @@
   "oneOf": [
     {
       "type": "object",
-      "required": ["brew-outdated", "brew-vulns", "npm-audit", "composer-audit", "colima", "rtk", "tokensave", "caveman", "claude-usage", "harnesses"],
+      "required": ["brew-outdated", "brew-vulns", "npm-audit", "composer-audit", "colima", "rtk", "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses"],
       "properties": {
         "brew-outdated": { "$ref": "#/$defs/row/brew-outdated" },
         "brew-vulns": { "$ref": "#/$defs/row/brew-vulns" },
@@ -14,6 +14,7 @@
         "colima": { "$ref": "#/$defs/row/colima" },
         "rtk": { "$ref": "#/$defs/row/rtk" },
         "tokensave": { "$ref": "#/$defs/row/tokensave" },
+        "tokeneconomizer": { "$ref": "#/$defs/row/tokeneconomizer" },
         "caveman": { "$ref": "#/$defs/row/caveman" },
         "claude-usage": { "$ref": "#/$defs/row/claude-usage" },
         "harnesses": { "$ref": "#/$defs/row/harnesses" }
@@ -31,6 +32,7 @@
       "colima": { "anyOf": [{ "allOf": [{ "$ref": "colima.schema.json" }, { "required": ["rc"] }] }, { "$ref": "defs.schema.json#/$defs/checkFailureRow" }] },
       "rtk": { "anyOf": [{ "allOf": [{ "$ref": "rtk.schema.json" }, { "required": ["rc"] }] }, { "$ref": "defs.schema.json#/$defs/checkFailureRow" }] },
       "tokensave": { "anyOf": [{ "allOf": [{ "$ref": "tokensave.schema.json" }, { "required": ["rc"] }] }, { "$ref": "defs.schema.json#/$defs/checkFailureRow" }] },
+      "tokeneconomizer": { "anyOf": [{ "allOf": [{ "$ref": "tokeneconomizer.schema.json" }, { "required": ["rc"] }] }, { "$ref": "defs.schema.json#/$defs/checkFailureRow" }] },
       "caveman": { "anyOf": [{ "allOf": [{ "$ref": "caveman.schema.json" }, { "required": ["rc"] }] }, { "$ref": "defs.schema.json#/$defs/checkFailureRow" }] },
       "claude-usage": { "anyOf": [{ "allOf": [{ "$ref": "claude-usage.schema.json" }, { "required": ["rc"] }] }, { "$ref": "defs.schema.json#/$defs/checkFailureRow" }] },
       "harnesses": { "anyOf": [{ "allOf": [{ "$ref": "harnesses.schema.json" }, { "required": ["rc"] }] }, { "$ref": "defs.schema.json#/$defs/checkFailureRow" }] }

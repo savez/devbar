@@ -330,6 +330,14 @@ struct DailyScheduleTests {
         return f.date(from: s)!
     }
 
+    @Test func testForcedAtDailyTimeOnlyForEveryDay() {
+        var cfg = DevbarConfig()
+        #expect(StatusStore.forcesAtDailyTime(cfg))
+        cfg.vulnCheckEvery = "12h"; #expect(!StatusStore.forcesAtDailyTime(cfg))
+        cfg.vulnCheckEvery = "1w"; #expect(!StatusStore.forcesAtDailyTime(cfg))
+        #expect(StatusStore.hourlyTick == 3600)
+    }
+
     @Test func testLaterToday() {
         #expect(StatusStore.nextDailyFire(after: date("2026-11-24 08:00"), time: "09:00", calendar: cal)
             == date("2026-11-24 09:00"))

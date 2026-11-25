@@ -1,0 +1,49 @@
+[
+  {
+    "id": "caveman@caveman",
+    "version": "4.2.0",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "/Users/anon/.claude/plugins/cache/caveman/caveman/4.2.0",
+    "installedAt": "2026-11-23T17:59:09.558Z",
+    "lastUpdated": "2026-11-23T17:59:09.558Z",
+    "notes": [
+      "The packages it lists were not installed, because it uses a yarn or pnpm lockfile, which plugin installs do not support"
+    ],
+    "noteDetails": [
+      {
+        "type": "dependencies-refused",
+        "plugin": "caveman"
+      }
+    ],
+    "projectEnabled": false
+  },
+  {
+    "id": "superpowers@claude-plugins-official",
+    "version": "7.0.2",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "/Users/anon/.claude/plugins/cache/claude-plugins-official/superpowers/7.0.2",
+    "installedAt": "2026-11-06T19:43:01.254Z",
+    "lastUpdated": "2026-11-13T12:24:06.504Z",
+    "projectEnabled": false
+  },
+  {
+    "id": "tokeneconomizer@tokeneconomizer",
+    "version": "0.1.0",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "/Users/anon/.claude/plugins/cache/tokeneconomizer/tokeneconomizer/0.1.0",
+    "readFromFolder": "/Users/anon/Documents/personale/TokenEconomizer/plugin",
+    "folderVersion": "0.1.0",
+    "installedAt": "2026-11-09T20:05:40.389Z",
+    "lastUpdated": "2026-11-09T20:05:40.389Z",
+    "projectEnabled": false
+  },
+  {
+    "id": "cc-plugin-privacy@builtin",
+    "version": "unknown",
+    "scope": "user",
+    "enabled": true
+  }
+]

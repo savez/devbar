@@ -36,6 +36,28 @@ check_tokensave() {
   emit ok 0 "tokensave: $missed turni sostituibili" "[]" "$extra"
 }
 
+# check_tokeneconomizer: informativo. Attivo = il plugin c'è su almeno un harness scelto in
+# devbar e `enabled` non è falso nella config globale di te (assente o rotta = acceso).
+# Il dettaglio per harness sta in AI setup; qui nessun conteggio.
+check_tokeneconomizer() {
+  te_clone_dir >/dev/null || emit unconfigured 0 "TokenEconomizer non installato"
+  local harnesses h on=false enabled=true cfg="$HOME/.tokeneconomizer/config.json" msg
+  harnesses="$(config_get .harnesses | jq -r 'if type == "array" then .[] else empty end' 2>/dev/null || true)"
+  for h in $harnesses; do
+    ai_tokeneconomizer_supports "$h" || continue
+    if [ "$(ai_tokeneconomizer_state "$h")" = installed ]; then on=true; break; fi
+  done
+  if [ -f "$cfg" ] && [ "$(jq -r '.enabled' "$cfg" 2>/dev/null || true)" = false ]; then enabled=false; fi
+  if [ "$on" = false ]; then
+    msg="TokenEconomizer non installato negli harness scelti"
+  elif [ "$enabled" = false ]; then
+    msg="TokenEconomizer spento"; on=false
+  else
+    msg="TokenEconomizer attivo"
+  fi
+  emit ok 0 "$msg" "[]" "$(jq -nc --argjson a "$on" '{active:$a}')"
+}
+
 # _caveman_canonical_mode <valore>: modalità canonica del plugin (valori legacy mappati).
 # Vuoto o sconosciuto: "caveman", come il default del plugin.
 _caveman_canonical_mode() {

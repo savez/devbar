@@ -105,10 +105,10 @@ struct UsageMeters: View {
     let meters: [UsageMeter]
 
     var body: some View {
-        Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 5) {
+        Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 3) {
             ForEach(meters) { m in
                 GridRow {
-                    Text(m.label).font(Typo.note).foregroundStyle(.secondary)
+                    Text(m.label).font(Typo.note).foregroundStyle(.secondary).fixedSize()
                     Capsule().fill(Color.secondary.opacity(0.18))
                         .frame(height: 4)
                         .frame(minWidth: 60, maxWidth: .infinity)
@@ -118,7 +118,14 @@ struct UsageMeters: View {
                             }
                         }
                     Text(m.percentText).font(Typo.note.monospacedDigit()).gridColumnAlignment(.trailing)
-                    Text(m.reset ?? "").font(Typo.note).foregroundStyle(.secondary).lineLimit(1).fixedSize()
+                }
+                if let reset = m.reset {
+                    GridRow {
+                        Color.clear.frame(width: 0, height: 0)
+                        Text(reset).font(Typo.note).foregroundStyle(.secondary).lineLimit(1)
+                            .gridCellColumns(2)
+                    }
+                    .padding(.bottom, 4)
                 }
             }
         }

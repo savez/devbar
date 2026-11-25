@@ -21,6 +21,31 @@ final class ConfigStoreTests {
         #expect(c.launchAtLogin)
     }
 
+    @Test func testCheckIntervalDefaults() {
+        let c = DevbarConfig()
+        #expect(c.vulnCheckEvery == "1d")
+        #expect(c.brewCheckHours == 6)
+    }
+
+    @Test func testInvalidCheckIntervalsFallBackToDefaults() throws {
+        let u = dir.appendingPathComponent("config.json")
+        try #"{"vulnCheckEvery":"2d","brewCheckHours":5}"#.write(to: u, atomically: true, encoding: .utf8)
+        let (c, err) = ConfigStore(url: u).load()
+        #expect(err == nil)
+        #expect(c.vulnCheckEvery == "1d")
+        #expect(c.brewCheckHours == 6)
+        try #"{"vulnCheckEvery":7,"brewCheckHours":"x"}"#.write(to: u, atomically: true, encoding: .utf8)
+        let (d, _) = ConfigStore(url: u).load()
+        #expect(d.vulnCheckEvery == "1d" && d.brewCheckHours == 6)
+    }
+
+    @Test func testValidCheckIntervalsAreRead() throws {
+        let u = dir.appendingPathComponent("config.json")
+        try #"{"vulnCheckEvery":"1w","brewCheckHours":12}"#.write(to: u, atomically: true, encoding: .utf8)
+        let (c, _) = ConfigStore(url: u).load()
+        #expect(c.vulnCheckEvery == "1w" && c.brewCheckHours == 12)
+    }
+
     @Test func testBrokenJSONGivesDefaultsAndError() throws {
         let u = dir.appendingPathComponent("config.json")
         try "{ rotto".write(to: u, atomically: true, encoding: .utf8)

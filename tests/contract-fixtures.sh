@@ -20,7 +20,7 @@ export BATS_TEST_TMPDIR="$TMP"
 # shellcheck source=helpers.bash
 source "$REPO/tests/helpers.bash"
 setup_env
-make_stub brew colima docker npm composer rtk tokensave claude-usage osascript
+make_stub brew colima docker npm composer rtk tokensave claude claude-usage osascript
 
 # PATH ristretto: stub, jq, git e strumenti di sistema. Nessun harness o tool reale visibile.
 mkdir -p "$TMP/bin"
@@ -42,6 +42,13 @@ write_config "{\"repoRoots\":[\"$ROOT\"],\"scanDepth\":4,\"harnesses\":[]}"
 mkdir -p "$HOME/.config/caveman" "$HOME/.claude/plugins/cache/caveman/caveman/4.10.0"
 echo '{"defaultMode":"ultracave"}' >"$HOME/.config/caveman/config.json"
 echo '{"enabledPlugins":{"caveman@caveman":true}}' >"$HOME/.claude/settings.json"
+# TokenEconomizer: clone finto nel marketplace locale di Claude Code, plugin abilitato.
+mkdir -p "$TMP/te-clone/plugin/scripts" "$HOME/.claude/plugins"
+printf '#!/bin/sh\n' >"$TMP/te-clone/plugin/scripts/te"
+chmod +x "$TMP/te-clone/plugin/scripts/te"
+jq -nc --arg p "$TMP/te-clone" '{tokeneconomizer:{source:{source:"directory",path:$p}}}' \
+  >"$HOME/.claude/plugins/known_marketplaces.json"
+export STUB_CLAUDE_PLUGIN_FIXTURE=plugins-te-enabled.json
 mkdir -p "$TMP/Applications/Cork.app"
 export DEVBAR_APPLICATIONS_DIR="$TMP/Applications"
 
@@ -92,6 +99,10 @@ fixture composer-audit check composer-audit
 fixture colima check colima
 fixture rtk check rtk
 fixture tokensave check tokensave
+fixture tokeneconomizer check tokeneconomizer
+write_config "{\"repoRoots\":[\"$ROOT\"],\"scanDepth\":4,\"harnesses\":[\"claude\"]}"
+fixture tokeneconomizer.active check tokeneconomizer
+write_config "{\"repoRoots\":[\"$ROOT\"],\"scanDepth\":4,\"harnesses\":[]}"
 fixture caveman check caveman
 fixture claude-usage check claude-usage
 fixture harnesses check harnesses

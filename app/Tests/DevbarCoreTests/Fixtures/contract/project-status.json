@@ -31,6 +31,12 @@
         "/Users/example/repos/proj/.git/hooks/post-commit",
         "/Users/example/repos/proj/.git/hooks/post-merge"
       ]
+    },
+    {
+      "tool": "tokeneconomizer",
+      "ok": false,
+      "detail": "stato di TokenEconomizer non leggibile",
+      "willWrite": []
     }
   ]
 }

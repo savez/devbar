@@ -32,8 +32,18 @@ struct SettingsView: View {
                         in: SettingsModel.depthRange)
             }
 
-            Section("Controllo giornaliero") {
-                DatePicker("Orario", selection: timeBinding, displayedComponents: .hourAndMinute)
+            Section("Controlli automatici") {
+                Picker("Vulnerabilità", selection: Binding(get: { model.config.vulnCheckEvery },
+                                                           set: { model.setVulnEvery($0) })) {
+                    ForEach(SettingsModel.vulnOptions, id: \.id) { Text($0.title).tag($0.id) }
+                }
+                if model.showsDailyTime {
+                    DatePicker("Orario", selection: timeBinding, displayedComponents: .hourAndMinute)
+                }
+                Picker("Homebrew", selection: Binding(get: { model.config.brewCheckHours },
+                                                      set: { model.setBrewHours($0) })) {
+                    ForEach(SettingsModel.brewOptions, id: \.hours) { Text($0.title).tag($0.hours) }
+                }
             }
 
             Section("Harness gestiti") {

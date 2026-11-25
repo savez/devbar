@@ -165,6 +165,15 @@
     "missedTurns": 0,
     "rc": 1
   },
+  "tokeneconomizer": {
+    "status": "ok",
+    "count": 0,
+    "summary": "TokenEconomizer non installato negli harness scelti",
+    "items": [],
+    "checkedAt": "2026-01-01T00:00:00Z",
+    "active": false,
+    "rc": 1
+  },
   "caveman": {
     "status": "ok",
     "count": 0,

@@ -45,6 +45,7 @@
     "rtk": true,
     "caveman": true,
     "tokensave": true,
+    "tokeneconomizer": true,
     "statusline": true
   }
 }

@@ -259,6 +259,17 @@ public struct TokensaveGain: Decodable, Equatable, Sendable {
     }
 }
 
+public struct TokenEconomizerStatus: Decodable, Equatable, Sendable {
+    public var result: CheckResult
+    /// Plugin su almeno un harness scelto e `enabled` non falso nella config di te.
+    public var active: Bool
+    public init(from decoder: Decoder) throws {
+        result = try CheckResult(from: decoder)
+        let c = try top(decoder)
+        active = c.opt("active") ?? false
+    }
+}
+
 public struct CavemanStatus: Decodable, Equatable, Sendable {
     public var result: CheckResult
     /// Modalità canonica (valori legacy già mappati dal motore). nil se assente o "".

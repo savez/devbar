@@ -63,8 +63,8 @@ struct PanelModelTests {
     }
 
     @Test func statuslineOnlyWithClaude() throws {
-        #expect(PanelModel(all: try all(), detect: detect(claude: true)).aiTools == ["RTK", "caveman", "tokensave", "statusline"])
-        #expect(PanelModel(all: try all(), detect: detect(claude: false)).aiTools == ["RTK", "caveman", "tokensave"])
+        #expect(PanelModel(all: try all(), detect: detect(claude: true)).aiTools == ["RTK", "caveman", "tokensave", "TokenEconomizer", "statusline"])
+        #expect(PanelModel(all: try all(), detect: detect(claude: false)).aiTools == ["RTK", "caveman", "tokensave", "TokenEconomizer"])
     }
 
     @Test func cavemanPanelFromCheck() throws {

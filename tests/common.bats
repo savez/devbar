@@ -170,3 +170,20 @@ setup() { setup_env; }
   [ "$(sed -n 2p "$f")" = '<!-- B -->' ]
   [ "$(sed -n 3p "$f")" = 'x' ]
 }
+
+@test "vuln_cache_minutes: 12h, 1d, 1w e valori non validi" {
+  write_config '{"vulnCheckEvery":"12h"}'; run in_common 'vuln_cache_minutes'; [ "$output" = 720 ]
+  write_config '{"vulnCheckEvery":"1w"}'; run in_common 'vuln_cache_minutes'; [ "$output" = 10080 ]
+  write_config '{"vulnCheckEvery":"1d"}'; run in_common 'vuln_cache_minutes'; [ "$output" = 1440 ]
+  write_config '{}'; run in_common 'vuln_cache_minutes'; [ "$output" = 1440 ]
+  write_config '{"vulnCheckEvery":"2d"}'; run in_common 'vuln_cache_minutes'; [ "$output" = 1440 ]
+  write_config '{"vulnCheckEvery":5}'; run in_common 'vuln_cache_minutes'; [ "$output" = 1440 ]
+}
+
+@test "brew_update_minutes: ore consentite, il resto 6 ore" {
+  write_config '{"brewCheckHours":3}'; run in_common 'brew_update_minutes'; [ "$output" = 180 ]
+  write_config '{"brewCheckHours":24}'; run in_common 'brew_update_minutes'; [ "$output" = 1440 ]
+  write_config '{}'; run in_common 'brew_update_minutes'; [ "$output" = 360 ]
+  write_config '{"brewCheckHours":5}'; run in_common 'brew_update_minutes'; [ "$output" = 360 ]
+  write_config '{"brewCheckHours":"x"}'; run in_common 'brew_update_minutes'; [ "$output" = 360 ]
+}

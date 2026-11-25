@@ -33,7 +33,7 @@ struct ContractTests {
 
     @Test func checkEnvelopeOfEveryCheck() throws {
         for name in ["brew-outdated", "brew-vulns", "npm-audit", "composer-audit", "colima", "rtk",
-                     "tokensave", "caveman", "claude-usage", "harnesses"] {
+                     "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses"] {
             let o = try object(name)
             expectKeys(envelope, in: o, name)
             let r = try decode(CheckResult.self, name)
@@ -107,6 +107,14 @@ struct ContractTests {
         #expect(t.saved > 0 && t.calls > 0 && t.usd > 0)
     }
 
+    @Test func tokeneconomizer() throws {
+        let t = try decode(TokenEconomizerStatus.self, "tokeneconomizer")
+        expectKeys(["active"], in: try object("tokeneconomizer"), "tokeneconomizer")
+        #expect(t.active == false)
+        let on = try decode(TokenEconomizerStatus.self, "tokeneconomizer.active")
+        #expect(on.active == true && !on.result.summary.isEmpty)
+    }
+
     @Test func caveman() throws {
         let c = try decode(CavemanStatus.self, "caveman")
         expectKeys(["pluginEnabled", "mode", "rawMode", "version", "lastMode", "active"], in: try object("caveman"), "caveman")
@@ -140,7 +148,7 @@ struct ContractTests {
     @Test func checkAll() throws {
         let all = try AllChecks.decode(data("all"))
         let names = ["brew-outdated", "brew-vulns", "npm-audit", "composer-audit", "colima", "rtk",
-                     "tokensave", "caveman", "claude-usage", "harnesses"]
+                     "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses"]
         #expect(Set(all.rows.keys) == Set(names))
         for n in names {
             let o = try #require(all.raw[n])
@@ -168,7 +176,7 @@ struct ContractTests {
             #expect(d.tools[t] != nil, "tools.\(t)")
         }
         let ai = try #require(d.aiTools)
-        for t in ["rtk", "caveman", "tokensave", "statusline"] { #expect(ai[t] != nil, "aiTools.\(t)") }
+        for t in ["rtk", "caveman", "tokensave", "tokeneconomizer", "statusline"] { #expect(ai[t] != nil, "aiTools.\(t)") }
         expectKeys(["id", "installed", "managed"], in: try nested("detect", "harnesses"), "detect harness")
     }
 
@@ -198,7 +206,7 @@ struct ContractTests {
     @Test func projectStatus() throws {
         let p = try decode(ProjectStatus.self, "project-status")
         #expect(!p.path.isEmpty)
-        #expect(p.checks.map(\.tool) == ["rtk", "caveman", "tokensave"])
+        #expect(p.checks.map(\.tool) == ["rtk", "caveman", "tokensave", "tokeneconomizer"])
         for c in p.checks { #expect(!c.detail.isEmpty) }
         #expect(p.checks.contains { !$0.willWrite.isEmpty })
         expectKeys(["tool", "ok", "detail", "willWrite"], in: try nested("project-status", "checks"), "project-status check")

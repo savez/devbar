@@ -157,3 +157,53 @@ setup() {
     grep -qF 'SHELL' "$BATS_TEST_TMPDIR/osascript.calls"
   done
 }
+
+@test "brew-outdated: senza stamp lancia brew update prima di outdated" {
+  export STUB_BREW_FIXTURE=outdated-empty.json
+  run --separate-stderr "$DEVBAR" check brew-outdated
+  [ "$status" -eq 1 ]
+  [ "$(sed -n 1p "$BATS_TEST_TMPDIR/brew.calls")" = "update" ]
+  [ "$(sed -n 2p "$BATS_TEST_TMPDIR/brew.calls")" = "outdated --json=v2" ]
+}
+
+@test "brew-outdated: stamp recente, niente update ma outdated gira sempre" {
+  export STUB_BREW_FIXTURE=outdated-empty.json
+  "$DEVBAR" check brew-outdated >/dev/null 2>&1 || true
+  : >"$BATS_TEST_TMPDIR/brew.calls"
+  "$DEVBAR" check brew-outdated >/dev/null 2>&1 || true
+  ! grep -qx "update" "$BATS_TEST_TMPDIR/brew.calls"
+  grep -qx "outdated --json=v2" "$BATS_TEST_TMPDIR/brew.calls"
+}
+
+@test "brew-outdated: stamp più vecchio di brewCheckHours -> update" {
+  write_config '{"brewCheckHours":3}'
+  export STUB_BREW_FIXTURE=outdated-empty.json
+  "$DEVBAR" check brew-outdated >/dev/null 2>&1 || true
+  touch -t "$(date -v-181M +%Y%m%d%H%M.%S)" "$DEVBAR_CACHE_DIR/brew-update.json"
+  : >"$BATS_TEST_TMPDIR/brew.calls"
+  "$DEVBAR" check brew-outdated >/dev/null 2>&1 || true
+  grep -qx "update" "$BATS_TEST_TMPDIR/brew.calls"
+}
+
+@test "brew-outdated: --force rifà brew update anche con stamp recente" {
+  export STUB_BREW_FIXTURE=outdated-empty.json
+  "$DEVBAR" check brew-outdated >/dev/null 2>&1 || true
+  : >"$BATS_TEST_TMPDIR/brew.calls"
+  "$DEVBAR" check brew-outdated --force >/dev/null 2>&1 || true
+  grep -qx "update" "$BATS_TEST_TMPDIR/brew.calls"
+}
+
+@test "brew-outdated: brew update che fallisce -> il check va avanti con l'indice locale" {
+  export STUB_BREW_FIXTURE=outdated.json STUB_BREW_UPDATE_RC=1
+  run --separate-stderr "$DEVBAR" check brew-outdated
+  [ "$status" -eq 0 ]
+  [ "$(jq -r .count <<<"$output")" = 3 ]
+}
+
+@test "brew-outdated: update fallito non ripete il tentativo a ogni controllo" {
+  export STUB_BREW_FIXTURE=outdated-empty.json STUB_BREW_UPDATE_RC=1
+  "$DEVBAR" check brew-outdated >/dev/null 2>&1 || true
+  : >"$BATS_TEST_TMPDIR/brew.calls"
+  "$DEVBAR" check brew-outdated >/dev/null 2>&1 || true
+  ! grep -qx "update" "$BATS_TEST_TMPDIR/brew.calls"
+}

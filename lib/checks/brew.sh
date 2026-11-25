@@ -3,8 +3,16 @@
 
 # check_brew_outdated: formule e cask da aggiornare (esclusi brewExclude e pinned).
 check_brew_outdated() {
+  local force="${1:-}"
   require_tool brew
   local raw json exclude items count
+  # Solo `brew update` (rete) segue brewCheckHours; `brew outdated` gira sempre, così un
+  # aggiornamento fatto a mano sparisce subito. Il tentativo si segna anche se fallisce
+  # (niente rete): il prossimo giro non riprova a ogni controllo.
+  if [ "$force" = "--force" ] || ! cache_fresh brew-update "$(brew_update_minutes)"; then
+    HOMEBREW_NO_INSTALL_CLEANUP=1 brew update >/dev/null 2>&1 </dev/null || true
+    echo '{}' | cache_write brew-update
+  fi
   raw="$(brew outdated --json=v2 2>/dev/null || true)"
   # il JSON parte dalla prima riga che inizia con '{' (brew può stampare '==> ...' prima)
   json="$(printf '%s\n' "$raw" | extract_json)"
@@ -35,7 +43,7 @@ check_brew_outdated() {
 check_brew_vulns() {
   local force="${1:-}" json raw items count severe
   require_tool brew
-  if [ "$force" = "--force" ] || ! cache_fresh brew-vulns 1440; then
+  if [ "$force" = "--force" ] || ! cache_fresh brew-vulns "$(vuln_cache_minutes)"; then
     export HOMEBREW_NO_AUTO_UPDATE=1
     # brew senza `vulns` non può scansionare: non è una scansione fallita
     brew vulns --help >/dev/null 2>&1 || emit unconfigured 0 "brew vulns non disponibile"

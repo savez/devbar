@@ -3,7 +3,7 @@
   "title": "check-timeouts",
   "description": "Timeout in secondi di ogni check di `check all` (lib/detect.sh cmd_check_timeouts). L'app ne somma i valori (StatusStore.checkTimeouts).",
   "type": "object",
-  "required": ["brew-outdated", "brew-vulns", "npm-audit", "composer-audit", "colima", "rtk", "tokensave", "caveman", "claude-usage", "harnesses"],
+  "required": ["brew-outdated", "brew-vulns", "npm-audit", "composer-audit", "colima", "rtk", "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses"],
   "properties": {
     "brew-outdated": { "$ref": "#/$defs/secs" },
     "brew-vulns": { "$ref": "#/$defs/secs" },
@@ -12,6 +12,7 @@
     "colima": { "$ref": "#/$defs/secs" },
     "rtk": { "$ref": "#/$defs/secs" },
     "tokensave": { "$ref": "#/$defs/secs" },
+    "tokeneconomizer": { "$ref": "#/$defs/secs" },
     "caveman": { "$ref": "#/$defs/secs" },
     "claude-usage": { "$ref": "#/$defs/secs" },
     "harnesses": { "$ref": "#/$defs/secs" }

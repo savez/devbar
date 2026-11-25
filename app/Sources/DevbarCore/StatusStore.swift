@@ -7,12 +7,12 @@ import Network
 @Observable @MainActor
 public final class StatusStore {
     /// Check solo informativi: non contribuiscono mai al badge (né al conteggio né al colore).
-    public static let informative: Set<String> = ["colima", "rtk", "tokensave", "caveman", "claude-usage", "harnesses"]
+    public static let informative: Set<String> = ["colima", "rtk", "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses"]
     /// Timeout per check del motore dentro `check all` (stessi valori di `devbar check-timeouts`,
     /// verificati da un test). Il motore uccide il check oltre il suo timeout.
     public nonisolated static let checkTimeouts: [String: TimeInterval] = [
-        "brew-outdated": 60, "brew-vulns": 60, "npm-audit": 300, "composer-audit": 300,
-        "colima": 60, "rtk": 60, "tokensave": 60, "caveman": 60, "claude-usage": 60, "harnesses": 60,
+        "brew-outdated": 300, "brew-vulns": 60, "npm-audit": 300, "composer-audit": 300,
+        "colima": 60, "rtk": 60, "tokensave": 60, "tokeneconomizer": 60, "caveman": 60, "claude-usage": 60, "harnesses": 60,
     ]
     /// Riserva per `check all`: caso peggiore del motore (somma dei timeout) + 5 s per check.
     public nonisolated static var defaultAllTimeout: TimeInterval {
@@ -49,6 +49,7 @@ public final class StatusStore {
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     @ObservationIgnored private var pathMonitor: NWPathMonitor?
     @ObservationIgnored private var dailyTask: Task<Void, Never>?
+    @ObservationIgnored private var hourlyTask: Task<Void, Never>?
 
     /// - Parameters:
     ///   - allTimeout: `check all`: solo riserva (`defaultAllTimeout`), il motore dà già a ogni
@@ -189,10 +190,20 @@ public final class StatusStore {
         pathMonitor = nil
         dailyTask?.cancel()
         dailyTask = nil
+        hourlyTask?.cancel()
+        hourlyTask = nil
     }
+
+    /// Controllo ogni ora: il motore rifà solo ciò che ha la cache scaduta (vulnerabilità,
+    /// `brew update`), secondo `vulnCheckEvery` e `brewCheckHours`.
+    public nonisolated static let hourlyTick: TimeInterval = 3600
+
+    /// Solo "ogni giorno" forza la scansione all'orario `dailyCheckTime`.
+    public nonisolated static func forcesAtDailyTime(_ c: DevbarConfig) -> Bool { c.vulnCheckEvery == "1d" }
 
     private func scheduleDaily() {
         dailyTask?.cancel()
+        hourlyTask?.cancel()
         dailyTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
@@ -202,7 +213,15 @@ public final class StatusStore {
                 // Se il Mac dorme all'orario, ci pensa il refresh del risveglio.
                 try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                 if Task.isCancelled { return }
-                await self.refresh(force: true)
+                self.reloadConfig()
+                if Self.forcesAtDailyTime(self.config) { await self.refresh(force: true) }
+            }
+        }
+        hourlyTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64(Self.hourlyTick * 1_000_000_000))
+                if Task.isCancelled { return }
+                await self?.refresh(force: false)
             }
         }
     }

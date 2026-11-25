@@ -27,9 +27,9 @@ public struct HarnessRow: Equatable, Sendable, Identifiable {
 /// Logica pura dell'AI setup. Nessuna scelta sta nelle viste.
 public enum AISetup {
     /// Strumenti noti, nome per la CLI.
-    public static let tools = ["rtk", "caveman", "tokensave", "statusline"]
+    public static let tools = ["rtk", "caveman", "tokensave", "tokeneconomizer", "statusline"]
     /// Strumenti il cui binario si può installare con `tool-install`.
-    public static let binaryInstallable: Set<String> = ["rtk", "tokensave"]
+    public static let binaryInstallable: Set<String> = ["rtk", "tokensave", "tokeneconomizer"]
 
     /// "RTK" -> "rtk": il pannello mostra i nomi, la CLI vuole il minuscolo.
     public static func cliName(_ display: String) -> String { display.lowercased() }

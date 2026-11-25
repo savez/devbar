@@ -8,6 +8,10 @@ import Observation
 public final class SettingsModel {
     public static let terminals = ["Terminal", "iTerm", "Ghostty"]
     public static let depthRange = 1...8
+    public static let vulnOptions: [(id: String, title: String)] =
+        [("12h", "Ogni 12 ore"), ("1d", "Ogni giorno"), ("1w", "Ogni settimana")]
+    public static let brewOptions: [(hours: Int, title: String)] =
+        [(1, "Ogni ora"), (3, "Ogni 3 ore"), (6, "Ogni 6 ore"), (12, "Ogni 12 ore"), (24, "Ogni giorno")]
 
     public private(set) var config = DevbarConfig()
     public private(set) var configError: String?
@@ -139,6 +143,19 @@ public final class SettingsModel {
         guard t != config.dailyCheckTime else { return }
         persist { $0.dailyCheckTime = t }
     }
+
+    public func setVulnEvery(_ id: String) {
+        guard Self.vulnOptions.contains(where: { $0.id == id }), id != config.vulnCheckEvery else { return }
+        persist { $0.vulnCheckEvery = id }
+    }
+
+    public func setBrewHours(_ h: Int) {
+        guard Self.brewOptions.contains(where: { $0.hours == h }), h != config.brewCheckHours else { return }
+        persist { $0.brewCheckHours = h }
+    }
+
+    /// L'orario conta solo per "ogni giorno": ogni 12 ore e ogni settimana seguono la cache del motore.
+    public var showsDailyTime: Bool { config.vulnCheckEvery == "1d" }
 
     public var dailyTimeParts: (hour: Int, minute: Int) {
         let p = config.dailyCheckTime.split(separator: ":").compactMap { Int($0) }

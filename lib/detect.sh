@@ -58,7 +58,7 @@ cmd_detect() {
 }
 
 # Strumenti dell'AI setup mostrati nel pannello (ordine dei pulsanti).
-DEVBAR_AI_TOOLS="rtk caveman tokensave statusline"
+DEVBAR_AI_TOOLS="rtk caveman tokensave tokeneconomizer statusline"
 
 # detect_ai_tools: {"<tool>":bool}: true se almeno un harness installato è supportato.
 detect_ai_tools() {
@@ -90,10 +90,10 @@ check_harnesses() {
   emit ok 0 "nessun nuovo harness" "[]"
 }
 
-DEVBAR_ALL_CHECKS="brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave caveman claude-usage harnesses"
+DEVBAR_ALL_CHECKS="brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave tokeneconomizer caveman claude-usage harnesses"
 
 # Timeout di ogni check dentro check all (secondi). npm/composer audit scorrono
-# tutti i repo, uno dopo l'altro: più tempo. DEVBAR_CHECK_TIMEOUT (intero > 0)
+# tutti i repo, uno dopo l'altro, e brew-outdated può lanciare `brew update`: più tempo. DEVBAR_CHECK_TIMEOUT (intero > 0)
 # vale per tutti i check. L'app somma questi valori per il suo timeout di riserva
 # (StatusStore.checkTimeouts, verificato da un test contro `devbar check-timeouts`).
 DEVBAR_CHECK_TIMEOUT_DEFAULT=60
@@ -104,7 +104,7 @@ check_timeout_secs() {
   local t="${DEVBAR_CHECK_TIMEOUT:-}"
   if [[ "$t" =~ ^[0-9]+$ ]] && [ "$t" -gt 0 ]; then echo "$t"; return; fi
   case "${1:-}" in
-    npm-audit | composer-audit) echo "$DEVBAR_CHECK_TIMEOUT_AUDIT" ;;
+    npm-audit | composer-audit | brew-outdated) echo "$DEVBAR_CHECK_TIMEOUT_AUDIT" ;;
     *) echo "$DEVBAR_CHECK_TIMEOUT_DEFAULT" ;;
   esac
 }

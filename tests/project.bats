@@ -28,11 +28,11 @@ STUB
   chmod +x "$BATS_TEST_TMPDIR/stubs/tokensave"
 }
 
-@test "project-status repo vuoto: 3 check, caveman e tokensave non ok con willWrite" {
+@test "project-status repo vuoto: 4 check, caveman e tokensave non ok con willWrite" {
   run --separate-stderr "$DEVBAR" run project-status "$REPO"
   [ "$status" -eq 0 ]
-  [ "$(jq '.checks | length' <<<"$output")" -eq 3 ]
-  [ "$(jq -r '[.checks[].tool] | join(",")' <<<"$output")" = "rtk,caveman,tokensave" ]
+  [ "$(jq '.checks | length' <<<"$output")" -eq 4 ]
+  [ "$(jq -r '[.checks[].tool] | join(",")' <<<"$output")" = "rtk,caveman,tokensave,tokeneconomizer" ]
   [ "$(jq -r '.checks[] | select(.tool=="caveman") | .ok' <<<"$output")" = false ]
   [ "$(jq -r '.checks[] | select(.tool=="caveman") | .willWrite | length' <<<"$output")" -gt 0 ]
   [ "$(jq -r '.checks[] | select(.tool=="tokensave") | .ok' <<<"$output")" = false ]
@@ -49,7 +49,7 @@ STUB
 @test "project-apply senza --yes: nessun file creato" {
   run --separate-stderr "$DEVBAR" run project-apply "$REPO"
   [ "$status" -eq 0 ]
-  [ "$(jq '.checks | length' <<<"$output")" -eq 3 ]
+  [ "$(jq '.checks | length' <<<"$output")" -eq 4 ]
   [ -z "$(git -C "$REPO" status --porcelain)" ]
   [ ! -e "$BATS_TEST_TMPDIR/tokensave.calls" ]
 }
@@ -178,4 +178,91 @@ no_tokensave_path() {
 @test "project-status tokensave: il dettaglio avvisa sugli hook git esistenti" {
   run --separate-stderr "$DEVBAR" run project-status "$REPO"
   [[ "$(jq -r '.checks[] | select(.tool=="tokensave") | .detail' <<<"$output")" == *"core.hooksPath"* ]]
+}
+
+# --- TokenEconomizer per repo ---
+
+te_repo_setup() { # te_repo_setup <enabled: true|false>: clone finto con `te` che risponde da env
+  make_stub claude
+  export CLAUDE_CONFIG_DIR="$HOME/.claude" TE_ENABLED="$1"
+  TE_CLONE="$BATS_TEST_TMPDIR/te-clone"
+  mkdir -p "$TE_CLONE/plugin/scripts" "$CLAUDE_CONFIG_DIR/plugins" "$HOME/.tokeneconomizer/repos/r-1/claude"
+  cat >"$TE_CLONE/plugin/scripts/te" <<'TE'
+#!/bin/sh
+echo "$*" >>"$BATS_TEST_TMPDIR/te.calls"
+case "$3 $4" in
+  "config show") printf '{"enabled": %s}\n' "$TE_ENABLED" ;;
+  "status --json") printf '{"state":"%s"}\n' "$HOME/.tokeneconomizer/repos/r-1/claude" ;;
+  "config set") : ;;
+esac
+TE
+  chmod +x "$TE_CLONE/plugin/scripts/te"
+  jq -nc --arg p "$TE_CLONE" '{tokeneconomizer:{source:{source:"directory",path:$p}}}' \
+    >"$CLAUDE_CONFIG_DIR/plugins/known_marketplaces.json"
+  export STUB_CLAUDE_PLUGIN_FIXTURE=plugins-te-enabled.json
+}
+
+te_check() { jq -c '.checks[] | select(.tool=="tokeneconomizer")' <<<"$output"; }
+
+@test "project-status: TokenEconomizer non installato" {
+  export DEVBAR_TE_DIR="$BATS_TEST_TMPDIR/nessun-clone"
+  run --separate-stderr "$DEVBAR" run project-status "$REPO"
+  [ "$(te_check | jq -r .ok)" = false ]
+  [[ "$(te_check | jq -r .detail)" == *"non installato"* ]]
+  [ "$(te_check | jq '.willWrite | length')" -eq 0 ]
+}
+
+@test "project-status: TokenEconomizer acceso sul repo" {
+  te_repo_setup true
+  run --separate-stderr "$DEVBAR" run project-status "$REPO"
+  [ "$(te_check | jq -r .ok)" = true ]
+  [ "$(te_check | jq -r .detail)" = "attivo su questo repo" ]
+  grep -q -- "--cwd .* config show" "$BATS_TEST_TMPDIR/te.calls"
+}
+
+@test "project-status: TokenEconomizer spento sul repo, willWrite = config del repo" {
+  te_repo_setup false
+  run --separate-stderr "$DEVBAR" run project-status "$REPO"
+  [ "$(te_check | jq -r .ok)" = false ]
+  [ "$(te_check | jq -r .detail)" = "spento su questo repo" ]
+  [ "$(te_check | jq -r '.willWrite[0]')" = "$HOME/.tokeneconomizer/repos/r-1/config.json" ]
+}
+
+@test "project-status: plugin in nessun harness -> non ok, niente da scrivere" {
+  te_repo_setup false
+  export STUB_CLAUDE_PLUGIN_FIXTURE=plugins-none.json
+  run --separate-stderr "$DEVBAR" run project-status "$REPO"
+  [ "$(te_check | jq -r .ok)" = false ]
+  [[ "$(te_check | jq -r .detail)" == *"nessun harness"* ]]
+  [ "$(te_check | jq '.willWrite | length')" -eq 0 ]
+}
+
+@test "project-apply --yes: accende TokenEconomizer sul repo e lo registra" {
+  te_repo_setup false
+  export STUB_RTK_FIXTURE=show-all.txt
+  run --separate-stderr "$DEVBAR" run project-apply "$REPO" --yes
+  [ "$status" -eq 0 ]
+  grep -q -- "--cwd .* config set enabled=on" "$BATS_TEST_TMPDIR/te.calls"
+}
+
+@test "project-apply --yes: TokenEconomizer già acceso, nessun config set" {
+  te_repo_setup true
+  run --separate-stderr "$DEVBAR" run project-apply "$REPO" --yes
+  [ "$status" -eq 0 ]
+  ! grep -q "config set" "$BATS_TEST_TMPDIR/te.calls"
+}
+
+@test "project-apply --yes: te che fallisce -> rc 2" {
+  te_repo_setup false
+  sed -i '' 's#"config set") : ;;#"config set") exit 1 ;;#' "$TE_CLONE/plugin/scripts/te"
+  run --separate-stderr "$DEVBAR" run project-apply "$REPO" --yes
+  [ "$status" -eq 2 ]
+}
+
+@test "project-apply --yes: plugin in nessun harness, nessun config set (il piano non lo mostrava)" {
+  te_repo_setup false
+  export STUB_CLAUDE_PLUGIN_FIXTURE=plugins-none.json
+  run --separate-stderr "$DEVBAR" run project-apply "$REPO" --yes
+  [ "$status" -eq 0 ]
+  ! grep -q "config set" "$BATS_TEST_TMPDIR/te.calls"
 }

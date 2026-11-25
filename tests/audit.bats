@@ -154,7 +154,20 @@ S
   [ "$(jq -r '."npm-audit"' <<<"$output")" = 300 ]
   [ "$(jq -r '."composer-audit"' <<<"$output")" = 300 ]
   [ "$(jq -r '."brew-vulns"' <<<"$output")" = 60 ]
-  [ "$(jq -r 'keys|length' <<<"$output")" = 10 ]
+  [ "$(jq -r '."brew-outdated"' <<<"$output")" = 300 ]
+  [ "$(jq -r 'keys|length' <<<"$output")" = 11 ]
   DEVBAR_CHECK_TIMEOUT=7 run --separate-stderr "$DEVBAR" check-timeouts
   [ "$(jq -r '[.[]]|unique|join(",")' <<<"$output")" = 7 ]
+}
+
+@test "npm-audit: vulnCheckEvery 1w tiene la cache dopo 3 giorni, 1d no" {
+  export STUB_NPM_FIXTURE=audit-critical.json
+  write_config "{\"repoRoots\":[\"$R\"],\"scanDepth\":4,\"vulnCheckEvery\":\"1w\"}"
+  "$DEVBAR" check npm-audit >/dev/null 2>&1 || true
+  touch -t "$(date -v-3d +%Y%m%d%H%M.%S)" "$DEVBAR_CACHE_DIR"/*.json
+  "$DEVBAR" check npm-audit >/dev/null 2>&1 || true
+  [ "$(wc -l <"$BATS_TEST_TMPDIR/npm.calls")" -eq 1 ]
+  write_config "{\"repoRoots\":[\"$R\"],\"scanDepth\":4,\"vulnCheckEvery\":\"1d\"}"
+  "$DEVBAR" check npm-audit >/dev/null 2>&1 || true
+  [ "$(wc -l <"$BATS_TEST_TMPDIR/npm.calls")" -eq 2 ]
 }

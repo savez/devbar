@@ -1,11 +1,12 @@
 {
-  "brew-outdated": 60,
+  "brew-outdated": 300,
   "brew-vulns": 60,
   "npm-audit": 300,
   "composer-audit": 300,
   "colima": 60,
   "rtk": 60,
   "tokensave": 60,
+  "tokeneconomizer": 60,
   "caveman": 60,
   "claude-usage": 60,
   "harnesses": 60

@@ -200,3 +200,72 @@ absent() { # absent <tool> <check>
   absent claude-usage claude-usage
   [ "$status" -eq 3 ]
 }
+
+# --- tokeneconomizer: informativo, solo "attivo / non attivo" ---
+
+te_setup() { # te_setup: clone finto nel marketplace + claude stub
+  make_stub claude
+  export CLAUDE_CONFIG_DIR="$HOME/.claude"
+  TE_CLONE="$BATS_TEST_TMPDIR/te-clone"
+  mkdir -p "$TE_CLONE/plugin/scripts" "$CLAUDE_CONFIG_DIR/plugins"
+  printf '#!/bin/sh\n' >"$TE_CLONE/plugin/scripts/te"
+  chmod +x "$TE_CLONE/plugin/scripts/te"
+  jq -nc --arg p "$TE_CLONE" '{tokeneconomizer:{source:{source:"directory",path:$p}}}' \
+    >"$CLAUDE_CONFIG_DIR/plugins/known_marketplaces.json"
+}
+
+@test "tokeneconomizer: non installato -> rc 3" {
+  export DEVBAR_TE_DIR="$BATS_TEST_TMPDIR/nessun-clone"
+  run --separate-stderr "$DEVBAR" check tokeneconomizer
+  [ "$status" -eq 3 ]
+  [ "$(jq -r .status <<<"$output")" = unconfigured ]
+}
+
+@test "tokeneconomizer: attivo (plugin su un harness scelto, config assente)" {
+  te_setup
+  write_config '{"harnesses":["claude"]}'
+  export STUB_CLAUDE_PLUGIN_FIXTURE=plugins-te-enabled.json
+  run --separate-stderr "$DEVBAR" check tokeneconomizer
+  [ "$status" -eq 1 ]
+  [ "$(jq -r .active <<<"$output")" = true ]
+  [ "$(jq -r .summary <<<"$output")" = "TokenEconomizer attivo" ]
+}
+
+@test "tokeneconomizer: spento dalla config globale di te" {
+  te_setup
+  write_config '{"harnesses":["claude"]}'
+  export STUB_CLAUDE_PLUGIN_FIXTURE=plugins-te-enabled.json
+  mkdir -p "$HOME/.tokeneconomizer"
+  echo '{"enabled":false}' >"$HOME/.tokeneconomizer/config.json"
+  run --separate-stderr "$DEVBAR" check tokeneconomizer
+  [ "$status" -eq 1 ]
+  [ "$(jq -r .active <<<"$output")" = false ]
+  [ "$(jq -r .summary <<<"$output")" = "TokenEconomizer spento" ]
+}
+
+@test "tokeneconomizer: config di te rotta -> trattata come acceso" {
+  te_setup
+  write_config '{"harnesses":["claude"]}'
+  export STUB_CLAUDE_PLUGIN_FIXTURE=plugins-te-enabled.json
+  mkdir -p "$HOME/.tokeneconomizer"
+  echo 'non json' >"$HOME/.tokeneconomizer/config.json"
+  run --separate-stderr "$DEVBAR" check tokeneconomizer
+  [ "$(jq -r .active <<<"$output")" = true ]
+}
+
+@test "tokeneconomizer: plugin su nessun harness scelto" {
+  te_setup
+  write_config '{"harnesses":["claude"]}'
+  export STUB_CLAUDE_PLUGIN_FIXTURE=plugins-none.json
+  run --separate-stderr "$DEVBAR" check tokeneconomizer
+  [ "$status" -eq 1 ]
+  [ "$(jq -r .active <<<"$output")" = false ]
+  [ "$(jq -r .summary <<<"$output")" = "TokenEconomizer non installato negli harness scelti" ]
+}
+
+@test "tokeneconomizer: nessun harness scelto -> non attivo" {
+  te_setup
+  export STUB_CLAUDE_PLUGIN_FIXTURE=plugins-te-enabled.json
+  run --separate-stderr "$DEVBAR" check tokeneconomizer
+  [ "$(jq -r .active <<<"$output")" = false ]
+}

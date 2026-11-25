@@ -7,6 +7,8 @@
 #   ai_<t>_state <harness>               stampa installed|outdated|missing
 #                                        (chiamata solo se supportato e installato)
 #   ai_<t>_install_cmds <harness>...     stampa il piano, una riga per comando
+#   ai_<t>_preflight <harness>...        (opzionale) controlli prima di scrivere; rc != 0 = errore,
+#                                        il messaggio su stdout va all'utente, nessuna modifica fatta
 #   ai_<t>_install <harness>...          esegue l'install; rc != 0 = errore
 #                                        (stdout del tool va su stderr: lo gestisce il dispatch)
 #   ai_<t>_tool_install_cmd              (opzionale) comando che installa il binario
@@ -80,7 +82,7 @@ action_ai_status() {
 
 # action_ai_install <tool> <harness>... [--yes]
 action_ai_install() {
-  local tool="${1:-}" yes=false h harnesses=() cmds plan rc=0
+  local tool="${1:-}" yes=false h harnesses=() cmds plan rc=0 f msg
   [ $# -gt 0 ] && shift
   for h in "$@"; do
     if [ "$h" = "--yes" ]; then yes=true; else harnesses+=("$h"); fi
@@ -98,6 +100,9 @@ action_ai_install() {
     return 0
   fi
   "$(_ai_fn "$tool" installed)" || { _ai_error "$tool non installato"; return 2; }
+  if f="$(_ai_fn "$tool" preflight)"; then
+    msg="$("$f" "${harnesses[@]}")" || { _ai_error "${msg:-controllo preliminare fallito}"; return 2; }
+  fi
   "$(_ai_fn "$tool" install)" "${harnesses[@]}" >&2 || rc=$?
   [ "$rc" -eq 0 ] || { _ai_error "installazione $tool fallita (rc $rc)"; return 2; }
   _ai_config_add_harnesses "${harnesses[@]}" || { _ai_error "scrittura config fallita"; return 2; }
