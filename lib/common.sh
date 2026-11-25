@@ -2,7 +2,7 @@
 # devbar: funzioni comuni (config, cache, lock, emit).
 # Compatibile con bash 3.2 (macOS di sistema).
 
-DEVBAR_DEFAULT_CONFIG='{"repoRoots":[],"scanDepth":4,"dailyCheckTime":"09:00","harnesses":[],"brewExclude":[],"terminal":"Terminal","launchAtLogin":true}'
+DEVBAR_DEFAULT_CONFIG='{"repoRoots":[],"scanDepth":4,"dailyCheckTime":"09:00","harnesses":[],"brewExclude":[],"terminal":"Terminal","launchAtLogin":true,"vulnCheckEvery":"1d","brewCheckHours":6}'
 
 devbar_config_path() { printf '%s' "${DEVBAR_CONFIG:-$HOME/.config/devbar/config.json}"; }
 devbar_cache_dir() { printf '%s' "${DEVBAR_CACHE_DIR:-$HOME/.cache/devbar}"; }
@@ -28,6 +28,26 @@ cache_fresh() {
   f="$(devbar_cache_dir)/$1.json"
   [ -f "$f" ] || return 1
   [ -z "$(find "$f" -mmin "+$2" 2>/dev/null)" ]
+}
+
+# vuln_cache_minutes: durata della cache delle vulnerabilità da vulnCheckEvery (12h, 1d, 1w).
+vuln_cache_minutes() {
+  case "$(config_get .vulnCheckEvery)" in
+    12h) echo 720 ;;
+    1w) echo 10080 ;;
+    *) echo 1440 ;;
+  esac
+}
+
+# brew_update_minutes: ogni quanto rifare `brew update`, da brewCheckHours (1, 3, 6, 12, 24).
+brew_update_minutes() {
+  case "$(config_get .brewCheckHours)" in
+    1) echo 60 ;;
+    3) echo 180 ;;
+    12) echo 720 ;;
+    24) echo 1440 ;;
+    *) echo 360 ;;
+  esac
 }
 
 # cache_read <name>: stampa il contenuto della cache.

@@ -1,5 +1,5 @@
 {
-  "brew-outdated": 60,
+  "brew-outdated": 300,
   "brew-vulns": 60,
   "npm-audit": 300,
   "composer-audit": 300,

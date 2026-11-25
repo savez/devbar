@@ -77,3 +77,27 @@ setup() {
   PATH="/usr/bin:/bin" run --separate-stderr "$DEVBAR" check brew-vulns
   [ "$status" -eq 3 ]
 }
+
+@test "brew-vulns: vulnCheckEvery 12h rifà la scansione dopo 13 ore, non dopo 11" {
+  write_config '{"vulnCheckEvery":"12h"}'
+  export STUB_BREW_FIXTURE=vulns-two.json
+  "$DEVBAR" check brew-vulns >/dev/null 2>&1 || true
+  touch -t "$(date -v-11H +%Y%m%d%H%M.%S)" "$DEVBAR_CACHE_DIR/brew-vulns.json"
+  : >"$BATS_TEST_TMPDIR/brew.calls"
+  "$DEVBAR" check brew-vulns >/dev/null 2>&1 || true
+  ! grep -qx "vulns --json" "$BATS_TEST_TMPDIR/brew.calls"
+  touch -t "$(date -v-13H +%Y%m%d%H%M.%S)" "$DEVBAR_CACHE_DIR/brew-vulns.json"
+  : >"$BATS_TEST_TMPDIR/brew.calls"
+  "$DEVBAR" check brew-vulns >/dev/null 2>&1 || true
+  grep -qx "vulns --json" "$BATS_TEST_TMPDIR/brew.calls"
+}
+
+@test "brew-vulns: vulnCheckEvery 1w tiene la cache per 6 giorni" {
+  write_config '{"vulnCheckEvery":"1w"}'
+  export STUB_BREW_FIXTURE=vulns-two.json
+  "$DEVBAR" check brew-vulns >/dev/null 2>&1 || true
+  touch -t "$(date -v-6d +%Y%m%d%H%M.%S)" "$DEVBAR_CACHE_DIR/brew-vulns.json"
+  : >"$BATS_TEST_TMPDIR/brew.calls"
+  "$DEVBAR" check brew-vulns >/dev/null 2>&1 || true
+  ! grep -qx "vulns --json" "$BATS_TEST_TMPDIR/brew.calls"
+}

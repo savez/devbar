@@ -89,7 +89,7 @@ audit_repos() {
     emit unconfigured 0 "nessuna cartella repo configurata"
   fi
   cache="$kind-audit-cfg-$(devbar_hash "$(config_get .repoRoots)|$(config_get .scanDepth)")"
-  if [ "$force" != "--force" ] && cache_fresh "$cache" 1440; then
+  if [ "$force" != "--force" ] && cache_fresh "$cache" "$(vuln_cache_minutes)"; then
     items="$(cache_read "$cache")"
   else
     repos="$(list_repos | jq -r --arg k "$kind" '.[] | select(.[$k]) | .path')"
@@ -98,7 +98,7 @@ audit_repos() {
     while IFS= read -r d; do
       [ -n "$d" ] || continue
       rcache="$kind-audit-repo-$(devbar_hash "$d")"
-      if [ "$force" != "--force" ] && cache_fresh "$rcache" 1440; then
+      if [ "$force" != "--force" ] && cache_fresh "$rcache" "$(vuln_cache_minutes)"; then
         counts="$(cache_read "$rcache")"
       else
         counts="$(_audit_repo_counts "$kind" "$d")"
