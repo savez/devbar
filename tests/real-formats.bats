@@ -10,7 +10,7 @@ load helpers
 
 setup() {
   setup_env
-  make_stub brew rtk tokensave colima docker npm composer claude-usage
+  make_stub brew rtk tokensave colima docker npm composer claude-usage claude
   DEVBAR="$DEVBAR_REPO/bin/devbar"
   # versioni lette dal check solo nel caso di formato non riconosciuto
   export STUB_BREW___VERSION_FIXTURE=../versions/brew.txt
@@ -309,7 +309,7 @@ _rec_setup() {
           "rtk --version" | "rtk gain -d -f json" | \
           "tokensave --version" | "tokensave gain --all --json --range 7d" | "tokensave discover --json --since 7d" | \
           "colima version" | "colima list --json" | "docker stats --no-stream --format json" | \
-          "claude-usage --status" | "npm -v" | "npm audit --json") ;;
+          "claude-usage --status" | "claude --version" | "claude plugin list --json" | "npm -v" | "npm audit --json") ;;
         *) echo "chiamata non di sola lettura: $(basename "$f" .calls) $line" >&2; return 1 ;;
       esac
     done <"$f"
@@ -353,4 +353,16 @@ _rec_setup() {
 @test "record-fixtures: un comando fuori lista viene rifiutato" {
   run bash -c "source <(sed -n '/^ro_allowed()/,/^have()/p' '$DEVBAR_REPO/scripts/record-fixtures.sh' | sed '\$d'); ro_allowed brew install wget || echo rifiutato; ro_allowed brew upgrade || echo rifiutato; ro_allowed docker rm x || echo rifiutato"
   [ "$(grep -c rifiutato <<<"$output")" = 3 ]
+}
+
+@test "reale: TokenEconomizer da claude plugin list --json" {
+  local clone="$BATS_TEST_TMPDIR/te-clone"
+  mkdir -p "$clone/plugin/scripts" "$HOME/.claude/plugins"
+  printf '#!/bin/sh\n' >"$clone/plugin/scripts/te"; chmod +x "$clone/plugin/scripts/te"
+  jq -nc --arg p "$clone" '{tokeneconomizer:{source:{source:"directory",path:$p}}}' >"$HOME/.claude/plugins/known_marketplaces.json"
+  export STUB_CLAUDE_PLUGIN_FIXTURE="$(latest claude-plugin-list)"
+  run --separate-stderr "$DEVBAR" run ai-status tokeneconomizer
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '.harnesses[] | select(.id=="claude").state' <<<"$output")" = installed ]
+  schema_ok ai-status "$output"
 }

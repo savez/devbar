@@ -8,6 +8,7 @@
 # separati da ':') e poi controllata: se contiene ancora un dato personale lo script
 # rifiuta di scrivere il file e termina con errore.
 # File: <strumento>-<comando>-<versione>.json (.txt se l'uscita non è JSON, es. ha un preambolo).
+# RECORD_ONLY=<nome>[,<nome>...] registra solo quelle voci (per aggiungere una fixture senza rifare tutto).
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,6 +25,7 @@ ro_allowed() {
       "colima version" | "colima list --json" | \
       "docker --version" | "docker stats --no-stream --format json" | \
       "claude-usage --version" | "claude-usage --status" | \
+      "claude --version" | "claude plugin list --json" | \
       "npm -v" | "npm audit --json" | \
       "composer --version" | "composer audit --format=json --locked") return 0 ;;
   esac
@@ -94,6 +96,7 @@ FAIL=0
 record() {
   local name="$1" raw tmp ext ver why
   shift
+  if [ -n "${RECORD_ONLY:-}" ] && [[ ",$RECORD_ONLY," != *",$name,"* ]]; then return 0; fi
   local vcmd=()
   while [ "$1" != "--" ]; do vcmd+=("$1"); shift; done
   shift
@@ -122,6 +125,7 @@ record tokensave-discover tokensave --version -- tokensave discover --json --sin
 record colima-list colima version -- colima list --json || FAIL=1
 record docker-stats docker --version -- docker stats --no-stream --format json || FAIL=1
 record claude-usage-status claude-usage --version -- claude-usage --status || FAIL=1
+record claude-plugin-list claude --version -- claude plugin list --json || FAIL=1
 
 if [ -d "$SAMPLE" ]; then
   # gli audit girano nella cartella di esempio (sottoshell: nessun effetto sulla cartella corrente)
