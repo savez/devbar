@@ -143,6 +143,14 @@ h1{max-width:12ch;margin-top:1.5rem;font-size:clamp(3.2rem,9vw,6.5rem)}
 pre{margin:.9rem 0 0;padding:.9rem 1rem;overflow-x:auto;background:#0c1013;border:1px solid var(--linea);border-radius:12px;color:var(--testo);font-size:.88rem;line-height:1.55}
 .go{margin-top:2rem}
 
+.changes{display:grid;gap:1rem;margin:2.5rem 0 0;padding:0;list-style:none}
+@media (min-width:900px){.changes{grid-template-columns:repeat(3,1fr)}}
+.changes li{position:relative;overflow:hidden;padding:1.25rem 1.25rem 1.25rem 1.5rem;background:var(--pannello);border:1px solid var(--linea);border-radius:var(--radius)}
+.changes li::before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:var(--ok)}
+.changes h3{margin-bottom:.4rem;color:var(--ok);font:700 1.8rem/1 var(--display);letter-spacing:.03em}
+.changes p{color:var(--tenue)}
+.go .btn+.btn{margin-left:.5rem}
+
 /* open source */
 .author{display:flex;align-items:center;gap:.85rem;max-width:58ch;margin-top:1.5rem;color:var(--tenue)}
 .author img{flex:none;border:2px solid var(--ok);border-radius:999px}
@@ -218,6 +226,7 @@ pre{margin:.9rem 0 0;padding:.9rem 1rem;overflow-x:auto;background:#0c1013;borde
       <a class="sec" href="#statusline">Statusline</a>
       <a class="sec" href="#sicurezza">Sicurezza</a>
       <a class="sec" href="#installa">Installa</a>
+      <a class="sec" href="#novita">Novità</a>
       <a class="sec" href="https://github.com/savez/devbar" rel="noopener noreferrer" target="_blank">GitHub</a>
       <a class="open" href="https://github.com/savez/devbar/releases/latest" rel="noopener noreferrer" target="_blank">Scarica</a>
     </div>
@@ -314,6 +323,20 @@ cd devbar</code></pre></li>
     </div>
   </section>
 
+  <section class="section" id="novita">
+    <div class="container">
+      <span class="eyebrow" style="--dot:var(--ok)">Novità</span>
+      <h2 class="section-title">Cosa è cambiato di recente.</h2>
+      <p class="section-sub">Ogni versione ha le sue note di rilascio, generate dai commit. Qui le ultime tre.</p>
+      <ol class="changes">
+        <li><h3>0.4.1</h3><p>Il testo della licenza GPLv3 è nello zip e dentro l'app.</p></li>
+        <li><h3>0.4.0</h3><p>Scheda Informazioni più curata, con icona, collegamenti e il pulsante Offrimi una birra.</p></li>
+        <li><h3>0.3.0</h3><p>Icona dell'app e impostazioni con versione e link al progetto.</p></li>
+      </ol>
+      <p class="go"><a class="btn btn-secondary" href="https://github.com/savez/devbar/blob/main/CHANGELOG.md" rel="noopener noreferrer" target="_blank">Leggi il changelog</a> <a class="btn btn-secondary" href="https://github.com/savez/devbar/releases" rel="noopener noreferrer" target="_blank">Tutte le release</a></p>
+    </div>
+  </section>
+
   <section class="section" id="open-source">
     <div class="container">
       <span class="eyebrow" style="--dot:var(--muto)">Open source</span>
@@ -363,7 +386,8 @@ cd devbar</code></pre></li>
         <h2 id="f-progetto">Progetto</h2>
         <ul>
           <li><a href="https://github.com/savez/devbar" rel="noopener noreferrer" target="_blank">Codice sorgente</a></li>
-          <li><a href="https://github.com/savez/devbar/releases" rel="noopener noreferrer" target="_blank">Novità</a></li>
+          <li><a href="https://github.com/savez/devbar/blob/main/CHANGELOG.md" rel="noopener noreferrer" target="_blank">Changelog</a></li>
+          <li><a href="https://github.com/savez/devbar/releases" rel="noopener noreferrer" target="_blank">Release</a></li>
           <li><a href="https://github.com/savez/devbar/blob/main/CONTRIBUTING.md" rel="noopener noreferrer" target="_blank">Contribuire</a></li>
           <li><a href="https://github.com/savez/devbar/issues/new/choose" rel="noopener noreferrer" target="_blank">Segnala un problema</a></li>
         </ul>
