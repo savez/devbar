@@ -258,3 +258,11 @@ te_check() { jq -c '.checks[] | select(.tool=="tokeneconomizer")' <<<"$output"; 
   run --separate-stderr "$DEVBAR" run project-apply "$REPO" --yes
   [ "$status" -eq 2 ]
 }
+
+@test "project-apply --yes: plugin in nessun harness, nessun config set (il piano non lo mostrava)" {
+  te_repo_setup false
+  export STUB_CLAUDE_PLUGIN_FIXTURE=plugins-none.json
+  run --separate-stderr "$DEVBAR" run project-apply "$REPO" --yes
+  [ "$status" -eq 0 ]
+  ! grep -q "config set" "$BATS_TEST_TMPDIR/te.calls"
+}

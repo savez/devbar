@@ -77,6 +77,16 @@ ai_tokeneconomizer_install_cmds() {
   done
 }
 
+# Prima di scrivere qualsiasi cosa: ogni CLI scelta deve esistere, altrimenti nessuna installazione
+# a metà (action_ai_install mostra questo messaggio).
+ai_tokeneconomizer_preflight() {
+  local h
+  te_clone_dir >/dev/null || { echo "clone di TokenEconomizer non trovato: nessuna modifica (usa AI setup, Init TokenEconomizer)"; return 1; }
+  for h in "$@"; do
+    command -v "$h" >/dev/null 2>&1 || { echo "$h non installato: nessuna modifica"; return 1; }
+  done
+}
+
 ai_tokeneconomizer_install() {
   local h clone
   clone="$(te_clone_dir)" || { echo "devbar: clone di TokenEconomizer non trovato (usa AI setup, Init TokenEconomizer)" >&2; return 1; }

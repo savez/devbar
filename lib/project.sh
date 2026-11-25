@@ -278,14 +278,13 @@ action_project_apply() {
     nohook) (cd "$root" && tokensave githooks on --local </dev/null) >&2 || rc=$? ;;
   esac
   [ "$rc" -eq 0 ] || { _ai_error "tokensave fallito (rc $rc)"; return 2; }
-  # TokenEconomizer: solo se spento su questo repo (config di te fuori dal repo, registrata).
-  if [ "$(_proj_te_enabled "$root" 2>/dev/null || true)" = false ]; then
-    local te tecfg
-    te="$(te_bin)" && tecfg="$(_proj_te_config_path "$root")" || tecfg=""
-    if [ -n "$tecfg" ]; then
-      journal_before "$tecfg" </dev/null || { _ai_error "backup prima di TokenEconomizer fallito"; return 2; }
-      "$te" --cwd "$root" config set enabled=on </dev/null >&2 || { _ai_error "TokenEconomizer fallito"; return 2; }
-    fi
+  # TokenEconomizer: solo ciò che il piano mostra (willWrite del check: plugin in un harness e
+  # spento su questo repo). Config di te fuori dal repo, registrata.
+  local te tecfg
+  tecfg="$(_proj_check_tokeneconomizer "$root" | jq -r '.willWrite[0] // empty')"
+  if [ -n "$tecfg" ] && te="$(te_bin)"; then
+    journal_before "$tecfg" </dev/null || { _ai_error "backup prima di TokenEconomizer fallito"; return 2; }
+    "$te" --cwd "$root" config set enabled=on </dev/null >&2 || { _ai_error "TokenEconomizer fallito"; return 2; }
   fi
   _proj_status_json "$root"
 }

@@ -155,3 +155,14 @@ state_of() { jq -r --arg i "$1" '.harnesses[]|select(.id==$i).state' <<<"$output
   [ "$status" -ne 0 ]
   [ ! -e "$BATS_TEST_TMPDIR/claude.calls" ]
 }
+
+@test "ai-install con una CLI mancante: errore chiaro, nessuna installazione a metà, config invariata" {
+  make_clone "$CLONE"; marketplace "$CLONE"
+  rm -f "$BATS_TEST_TMPDIR/stubs/codex"
+  run --separate-stderr env PATH="$BATS_TEST_TMPDIR/stubs:/usr/bin:/bin" "$(command -v bash)" "$DEVBAR" run ai-install tokeneconomizer claude codex copilot --yes
+  [ "$status" -eq 2 ]
+  [[ "$(jq -r .error <<<"$output")" == *"codex non installato"* ]]
+  [ ! -e "$BATS_TEST_TMPDIR/claude.calls" ]
+  [ ! -e "$BATS_TEST_TMPDIR/copilot.calls" ]
+  [ ! -e "$DEVBAR_CONFIG" ]
+}
