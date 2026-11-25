@@ -1,4 +1,4 @@
-# TokenEconomizer in devbar e card "Token risparmiati" più chiara
+# TokenEconomizer, card "Token risparmiati" più chiara e intervalli dei controlli
 
 Design breve, 25/11/2026.
 
@@ -12,8 +12,9 @@ e le righe 5h / 7 giorni.
 
 ## Obiettivi
 
-1. **Vedere se è attivo**: installato (clone presente), plugin installato e abilitato per
-   ogni harness, `enabled` vero nella config di `te`, numero di repo seguiti.
+1. **Vedere se è attivo**: solo "attivo / non attivo" nella card (installato, plugin su
+   almeno un harness scelto, `enabled` vero nella config globale di `te`). Il dettaglio per
+   harness l'utente lo vede già in Impostazioni / AI setup.
 2. **Attivarlo sul Mac**: clone come dice il loro README, poi plugin per ogni harness scelto
    in devbar.
 3. **Attivarlo su un repo**: da "Init progetto".
@@ -64,9 +65,10 @@ e le righe 5h / 7 giorni.
   `/tokeneconomizer:toolprune refresh-catalog` una volta.
 - **Undo**: i file li scrive la CLI dell'harness. Si registrano nel journal solo i percorsi
   noti, come per tokensave; il piano dice cosa non si può annullare.
-- **Check `tokeneconomizer`**: installato o no (codice `3` se manca), `enabled` dalla config
-  globale (`te config show` o `te status --json`), repo seguiti da `te repos --json`, harness
-  con plugin. Codice `0` se il plugin manca su un harness scelto, `1` se tutto a posto.
+- **Check `tokeneconomizer`** (informativo, non entra nel badge): codice `3` se non
+  installato; altrimenti `1` con `active` vero se il plugin è su almeno un harness scelto e
+  `enabled` è vero nella config globale (`~/.tokeneconomizer/config.json`, assente = vero).
+  Nessun conteggio di repo né elenco di harness nell'output del check.
 
 **Su un repo** ("Init progetto"): nuovo controllo `_proj_check_tokeneconomizer`. Ok se il
 plugin è installato per almeno un harness e `enabled` è vero per quel repo. Se è spento,
@@ -77,11 +79,27 @@ l'azione è `te config set enabled=on --cwd <repo>`, che scrive
 
 - Card "Token risparmiati": numero grande = somma di RTK e tokensave con sottotitolo che lo
   dice; righe per RTK (con le barre dei 7 giorni), tokensave, TokenEconomizer (pill
-  attivo/spento, valore "N repo", frase "plugin su Claude Code, Codex"), caveman (stato).
+  attivo / non attivo, nessun numero), caveman (stato).
 - Nuova sezione "Limiti di Claude": "Sessione 5 ore" e "Settimana" con percentuale e data di
   azzeramento.
 - AI setup: pulsante "TokenEconomizer" come gli altri strumenti.
 - Contratto: schema `schemas/` per il nuovo check, fixture reali con `just record-fixtures`.
+
+## Intervalli dei controlli
+
+- Config: `vulnCheckEvery` (`"12h"` | `"1d"` | `"1w"`, default `"1d"`) e `brewCheckHours`
+  (1 | 3 | 6 | 12 | 24, default 6). Valori non validi: default.
+- Motore: `brew-vulns`, `npm-audit`, `composer-audit` usano come durata della cache
+  `vulnCheckEvery` (12h = 720 min, 1d = 1440, 1w = 10080) al posto del 1440 fisso.
+  `brew-outdated` ha una cache nuova di `brewCheckHours`: a cache scaduta (o `--force`) lancia
+  `brew update` (errore di rete: si va avanti con l'indice locale) e poi `brew outdated`;
+  timeout del check portato a quello lungo (300 s) come gli audit.
+- App: il timer giornaliero diventa un controllo ogni ora (`check all` senza `--force`);
+  il motore rifà la scansione solo a cache scaduta. Per "ogni giorno" e "ogni settimana" la
+  scansione delle vulnerabilità resta forzata all'orario `dailyCheckTime` (come oggi);
+  "ogni 12 ore" non usa l'orario. "Ricontrolla" forza tutto come oggi.
+- Impostazioni: sezione "Controlli automatici" con le due scelte; l'orario si mostra solo
+  per "ogni giorno" e "ogni settimana".
 
 ## Lasciato a chi costruisce
 
