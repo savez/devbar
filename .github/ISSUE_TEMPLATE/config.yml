@@ -2,7 +2,10 @@ blank_issues_enabled: false
 contact_links:
   - name: Documentazione e installazione
     url: https://github.com/savez/devbar#readme
-    about: Installazione, aggiornamento, configurazione e comandi
+    about: Installazione, aggiornamento, primi passi e problemi noti
+  - name: Riferimento (comandi e configurazione)
+    url: https://github.com/savez/devbar/blob/main/docs/RIFERIMENTO.md
+    about: Comandi da terminale, chiavi di configurazione, codici di uscita
   - name: Segnala una vulnerabilità (privato)
     url: https://github.com/savez/devbar/security/advisories/new
     about: Non aprire issue pubbliche per problemi di sicurezza
