@@ -20,6 +20,8 @@ final class PanelActions {
     var vulnFilter: VulnFilter = .all
     var brewSort: [KeyPathComparator<BrewDetailRow>] = [KeyPathComparator(\.name)]
     var vulnSort: [KeyPathComparator<VulnDetailRow>] = []
+    var advisorySearch = ""
+    var advisorySort: [KeyPathComparator<AdvisoryDetailRow>] = []
     var auditSort: [KeyPathComparator<AuditDetailRow>] = []
     private(set) var lastError: String?
     /// Finestre AI setup, Init progetto e impostazioni: ognuna con la sua conferma

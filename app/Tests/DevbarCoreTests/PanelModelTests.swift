@@ -41,6 +41,7 @@ struct PanelModelTests {
         #expect(m.advisoryItems.count == 2)
         #expect(m.advisorySummary == "1 advisory grave negli ultimi 7 giorni")
         #expect(m.advisoryError == nil)
+        #expect(m.advisoryReadout == Readout(value: "1", tone: .risk, subtitle: "1 advisory grave negli ultimi 7 giorni"))
     }
 
     @Test func advisoriesHiddenWithoutRow() throws {
@@ -52,7 +53,37 @@ struct PanelModelTests {
     @Test func advisoriesErrorKeepsMessage() throws {
         let m = PanelModel(all: try withAdvisories(status: "error", rc: 2, summary: "feed delle advisory non raggiungibile", items: "[]"))
         #expect(m.advisoryError == "feed delle advisory non raggiungibile")
+        #expect(m.advisoryReadout == Readout(value: nil, tone: .info, subtitle: "feed delle advisory non raggiungibile"))
         #expect(m.advisoryItems.isEmpty)
+    }
+
+    @Test func advisoryDetailRowsSortFilterAndLabels() throws {
+        let items = """
+        [{"id":"CVE-2026-2222","severity":"MEDIUM","score":5.3,"package":"other/lib","ecosystem":"pacchetti js","title":"Info leak","published":"2026-11-26T10:00:00Z","url":"not a url","source":""},
+         {"id":"CVE-2026-1111","severity":"CRITICAL","score":9.1,"package":"vendor/pkg","ecosystem":"composer","title":"Remote Code Execution","published":"2026-11-27T10:00:00Z","url":"https://example.org/a","source":""},
+         {"id":"smzstudio-alert:x","severity":"ALERT","score":null,"package":"","ecosystem":"alert","title":"Vulnerabilità in prodotti X","published":"2026-11-25T10:00:00Z","url":"https://example.org/x","source":""}]
+        """
+        let m = PanelModel(all: try withAdvisories(items: items))
+        let rows = m.advisoryDetailRows(search: "")
+        #expect(rows.map(\.package) == ["vendor/pkg", "other/lib", ""])
+        #expect(m.advisoryDetailRows(search: "VENDOR").map(\.id) == ["CVE-2026-1111 vendor/pkg"])
+        #expect(m.advisoryDetailRows(search: "cve-2026-2").count == 1)
+        #expect(m.advisoryDetailRows(search: "leak").count == 1)
+        #expect(m.advisoryDetailRows(search: "zzz").isEmpty)
+        let alert = try #require(rows.last)
+        #expect(alert.severity == "Alert CERT" && alert.severityRank == 5 && alert.score == "")
+        #expect(rows[0].severity == "Critica" && rows[0].score == "9.1" && rows[0].url?.absoluteString == "https://example.org/a")
+        #expect(rows[1].url == nil)
+    }
+
+    @Test func advisoriesToneFollowsSeverity() throws {
+        #expect(PanelModel(all: try withAdvisories()).tone(of: .advisories) == .risk)
+        let medium = """
+        [{"id":"CVE-1","severity":"MEDIUM","score":5.0,"package":"p","ecosystem":"php","title":"t","published":"2026-11-26T10:00:00Z","url":"https://example.org","source":""}]
+        """
+        #expect(PanelModel(all: try withAdvisories(items: medium)).tone(of: .advisories) == .action)
+        #expect(PanelModel(all: try withAdvisories(status: "ok", rc: 1, items: "[]")).tone(of: .advisories) == .ok)
+        #expect(PanelModel(all: try all()).tone(of: .advisories) == .info)
     }
 
     @Test func formatters() {

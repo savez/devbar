@@ -13,6 +13,8 @@ public struct DevbarConfig: Codable, Equatable, Sendable {
     public var vulnCheckEvery: String = "1d"
     /// Ogni quante ore rifare `brew update`: 1, 3, 6, 12 o 24.
     public var brewCheckHours: Int = 6
+    /// Finestra delle advisory recenti, in giorni (1...90).
+    public var advisoriesDays: Int = 7
 
     public static let vulnCheckValues = ["12h", "1d", "1w"]
     public static let brewCheckValues = [1, 3, 6, 12, 24]
@@ -20,7 +22,7 @@ public struct DevbarConfig: Codable, Equatable, Sendable {
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case repoRoots, scanDepth, dailyCheckTime, harnesses, brewExclude, terminal, launchAtLogin, vulnCheckEvery, brewCheckHours
+        case repoRoots, scanDepth, dailyCheckTime, harnesses, brewExclude, terminal, launchAtLogin, vulnCheckEvery, brewCheckHours, advisoriesDays
     }
 
     /// Tollerante: chiavi mancanti o di tipo errato tornano al default.
@@ -39,6 +41,8 @@ public struct DevbarConfig: Codable, Equatable, Sendable {
         vulnCheckEvery = Self.vulnCheckValues.contains(v) ? v : d.vulnCheckEvery
         let b = (try? c.decodeIfPresent(Int.self, forKey: .brewCheckHours)) ?? d.brewCheckHours
         brewCheckHours = Self.brewCheckValues.contains(b) ? b : d.brewCheckHours
+        let a = (try? c.decodeIfPresent(Int.self, forKey: .advisoriesDays)) ?? d.advisoriesDays
+        advisoriesDays = (1...90).contains(a) ? a : d.advisoriesDays
     }
 }
 

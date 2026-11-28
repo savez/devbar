@@ -24,7 +24,7 @@ struct DetailsView: View {
                 switch actions.detailsArea ?? .homebrew {
                 case .homebrew: BrewDetails(model: model, actions: actions)
                 case .vulns: VulnDetails(model: model, actions: actions)
-                case .advisories: EmptyArea(title: "Advisory", message: "In arrivo.")
+                case .advisories: AdvisoriesDetails(model: model, actions: actions)
                 case .audit: AuditDetails(model: model, actions: actions)
                 case .colima: ColimaDetails(feature: actions.colima)
                 case .tokens, .aiSetup: TokenDetails(model: model)
@@ -149,6 +149,54 @@ struct VulnDetails: View {
                 }
                 Divider()
                 Footnote(text: "Solo formule Homebrew: i cask non sono coperti.")
+            }
+        }
+    }
+}
+
+// MARK: - Advisory
+
+struct AdvisoriesDetails: View {
+    let model: PanelModel
+    let actions: PanelActions
+
+    var body: some View {
+        if model.advisoryState != .shown || (model.advisoryItems.isEmpty && actions.advisorySearch.isEmpty) {
+            EmptyArea(title: "Advisory", message: model.advisoryError ?? "Nessuna advisory recente.")
+        } else {
+            VStack(spacing: 0) {
+                HStack {
+                    TextField("Cerca per pacchetto, CVE o titolo", text: Bindable(actions).advisorySearch)
+                        .textFieldStyle(.roundedBorder).frame(maxWidth: 320)
+                    Spacer()
+                    if let e = model.advisoryError { Text(e).font(Typo.note).foregroundStyle(.secondary) }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                let rows = model.advisoryDetailRows(search: actions.advisorySearch)
+                Table(actions.advisorySort.isEmpty ? rows : rows.sorted(using: actions.advisorySort),
+                      sortOrder: Bindable(actions).advisorySort) {
+                    TableColumn("Gravità", value: \.severityRank) { r in
+                        HStack(spacing: 6) {
+                            Circle().fill(r.tone.color).frame(width: 7, height: 7)
+                            Text(r.severity).foregroundStyle(r.tone == .info ? .secondary : .primary)
+                        }
+                    }
+                    .width(110)
+                    TableColumn("Punteggio", value: \.score) { Text($0.score).foregroundStyle(.secondary) }.width(70)
+                    TableColumn("Pacchetto", value: \.package) { Text($0.package) }.width(min: 110, ideal: 170)
+                    TableColumn("Ecosistema", value: \.ecosystem) { Text($0.ecosystem).foregroundStyle(.secondary) }.width(min: 80, ideal: 100)
+                    TableColumn("Titolo", value: \.title) { r in
+                        if let url = r.url {
+                            Button(r.title) { NSWorkspace.shared.open(url) }.buttonStyle(.link)
+                        } else {
+                            Text(r.title)
+                        }
+                    }
+                    .width(min: 200, ideal: 340)
+                    TableColumn("Data", value: \.published) { Text($0.published).foregroundStyle(.secondary) }.width(60)
+                }
+                Divider()
+                Footnote(text: "Fonte: smzstudio.it/advisories, aggiornato ogni 6 ore. Un clic sul titolo apre la fonte.")
             }
         }
     }
