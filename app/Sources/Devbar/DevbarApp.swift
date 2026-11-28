@@ -73,10 +73,38 @@ struct DevbarApp: App {
 }
 
 /// Icona fissa e template (monocromatica): niente stato, niente colore, niente conteggio.
-/// L'icona dinamica sospettata di confondere Hidden Bar; lo stato si vede nel pannello.
+/// L'icona dinamica era sospettata di confondere Hidden Bar; lo stato si vede nel pannello.
 struct BarLabel: View {
     let store: StatusStore
     var body: some View {
-        Image(systemName: "shield.lefthalf.filled")
+        Image(nsImage: Self.glyph)
     }
+
+    /// La "d." dell'icona dell'app (Icon/AppIcon.svg), disegnata in coordinate del SVG.
+    static let glyph: NSImage = {
+        let box = CGRect(x: 240, y: 210, width: 544, height: 526)
+        let height = 18.0
+        let scale = height / box.height
+        let img = NSImage(size: NSSize(width: box.width * scale, height: height), flipped: true) { _ in
+            let t = NSAffineTransform()
+            t.scale(by: scale)
+            t.translateX(by: -box.minX, yBy: -box.minY)
+            t.concat()
+            NSColor.black.set()
+            let ring = NSBezierPath(ovalIn: CGRect(x: 443 - 150, y: 530 - 150, width: 300, height: 300))
+            ring.lineWidth = 88
+            ring.stroke()
+            let stem = NSBezierPath()
+            stem.move(to: NSPoint(x: 593, y: 260))
+            stem.line(to: NSPoint(x: 593, y: 680))
+            stem.lineWidth = 88
+            stem.lineCapStyle = .round
+            stem.stroke()
+            NSBezierPath(ovalIn: CGRect(x: 729 - 46, y: 680 - 46, width: 92, height: 92)).fill()
+            return true
+        }
+        img.isTemplate = true
+        img.accessibilityDescription = "devbar"
+        return img
+    }()
 }
