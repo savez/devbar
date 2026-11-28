@@ -27,6 +27,20 @@ final class ConfigStoreTests {
         #expect(c.brewCheckHours == 6)
     }
 
+    @Test func testAdvisoriesDaysSurvivesUpdateAndFallsBack() throws {
+        let u = dir.appendingPathComponent("config.json")
+        try #"{"advisoriesDays":3}"#.write(to: u, atomically: true, encoding: .utf8)
+        let store = ConfigStore(url: u)
+        #expect(store.load().0.advisoriesDays == 3)
+        try store.update { $0.terminal = "iTerm" }
+        #expect(store.load().0.advisoriesDays == 3)
+        for bad in ["0", "91", #""x""#, "-2"] {
+            try #"{"advisoriesDays":\#(bad)}"#.write(to: u, atomically: true, encoding: .utf8)
+            #expect(store.load().0.advisoriesDays == 7, "advisoriesDays \(bad)")
+        }
+        #expect(DevbarConfig().advisoriesDays == 7)
+    }
+
     @Test func testInvalidCheckIntervalsFallBackToDefaults() throws {
         let u = dir.appendingPathComponent("config.json")
         try #"{"vulnCheckEvery":"2d","brewCheckHours":5}"#.write(to: u, atomically: true, encoding: .utf8)

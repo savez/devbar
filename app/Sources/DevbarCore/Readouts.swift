@@ -44,13 +44,14 @@ public enum Tone: String, Equatable, Sendable, CaseIterable {
 
 /// Aree del pannello e della finestra Dettagli.
 public enum Area: String, Equatable, Hashable, Sendable, CaseIterable, Identifiable {
-    case homebrew, vulns, audit, colima, tokens, aiSetup
+    case homebrew, vulns, advisories, audit, colima, tokens, aiSetup
     public var id: String { rawValue }
 
     public var title: String {
         switch self {
         case .homebrew: "Homebrew"
         case .vulns: "Vulnerabilità"
+        case .advisories: "Advisory"
         case .audit: "Audit repo"
         case .colima: "colima"
         case .tokens: "Token"
@@ -59,7 +60,7 @@ public enum Area: String, Equatable, Hashable, Sendable, CaseIterable, Identifia
     }
 
     /// Aree della barra laterale dei Dettagli, nell'ordine.
-    public static let detailsAreas: [Area] = [.homebrew, .vulns, .audit, .colima, .tokens]
+    public static let detailsAreas: [Area] = [.homebrew, .vulns, .advisories, .audit, .colima, .tokens]
 }
 
 // MARK: - Formattazione extra

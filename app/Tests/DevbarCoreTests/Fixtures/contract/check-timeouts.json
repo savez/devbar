@@ -9,5 +9,6 @@
   "tokeneconomizer": 60,
   "caveman": 60,
   "claude-usage": 60,
-  "harnesses": 60
+  "harnesses": 60,
+  "advisories": 60
 }

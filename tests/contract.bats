@@ -65,7 +65,7 @@ neg() {
 
 @test "negativo: busta dei check senza status/count/summary/items/checkedAt" {
   local c k
-  for c in brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave tokeneconomizer caveman claude-usage harnesses; do
+  for c in brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave tokeneconomizer caveman claude-usage harnesses advisories; do
     for k in status count summary items checkedAt; do neg "$c" "del(.$k)"; done
   done
 }
@@ -86,10 +86,11 @@ neg() {
   neg claude-usage '.usage.c_pct = "42"'
   neg claude-usage.missing 'del(.usage.error)'
 }
+@test "negativo: advisories" { neg advisories 'del(.items[0].severity)'; neg advisories 'del(.items[0].published)'; neg advisories '.items[0].severity = "ENORME"'; neg advisories '.items[0].score = "9"'; }
 @test "negativo: harnesses" { neg harnesses '.items[0] = 5'; neg harnesses '.items[0] = "vim"'; }
 @test "negativo: check all" {
   local c
-  for c in brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave tokeneconomizer caveman claude-usage harnesses; do neg all "del(.[\"$c\"])"; done
+  for c in brew-outdated brew-vulns npm-audit composer-audit colima rtk tokensave tokeneconomizer caveman claude-usage harnesses advisories; do neg all "del(.[\"$c\"])"; done
   neg all 'del(.colima.profiles)'
   neg all 'del(.rtk.rc)'
   neg all '.caveman.active = 1'

@@ -5,7 +5,7 @@
   "oneOf": [
     {
       "type": "object",
-      "required": ["brew-outdated", "brew-vulns", "npm-audit", "composer-audit", "colima", "rtk", "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses"],
+      "required": ["brew-outdated", "brew-vulns", "npm-audit", "composer-audit", "colima", "rtk", "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses", "advisories"],
       "properties": {
         "brew-outdated": { "$ref": "#/$defs/row/brew-outdated" },
         "brew-vulns": { "$ref": "#/$defs/row/brew-vulns" },
@@ -17,7 +17,8 @@
         "tokeneconomizer": { "$ref": "#/$defs/row/tokeneconomizer" },
         "caveman": { "$ref": "#/$defs/row/caveman" },
         "claude-usage": { "$ref": "#/$defs/row/claude-usage" },
-        "harnesses": { "$ref": "#/$defs/row/harnesses" }
+        "harnesses": { "$ref": "#/$defs/row/harnesses" },
+        "advisories": { "$ref": "#/$defs/row/advisories" }
       },
       "additionalProperties": false
     },
@@ -35,7 +36,8 @@
       "tokeneconomizer": { "anyOf": [{ "allOf": [{ "$ref": "tokeneconomizer.schema.json" }, { "required": ["rc"] }] }, { "$ref": "defs.schema.json#/$defs/checkFailureRow" }] },
       "caveman": { "anyOf": [{ "allOf": [{ "$ref": "caveman.schema.json" }, { "required": ["rc"] }] }, { "$ref": "defs.schema.json#/$defs/checkFailureRow" }] },
       "claude-usage": { "anyOf": [{ "allOf": [{ "$ref": "claude-usage.schema.json" }, { "required": ["rc"] }] }, { "$ref": "defs.schema.json#/$defs/checkFailureRow" }] },
-      "harnesses": { "anyOf": [{ "allOf": [{ "$ref": "harnesses.schema.json" }, { "required": ["rc"] }] }, { "$ref": "defs.schema.json#/$defs/checkFailureRow" }] }
+      "harnesses": { "anyOf": [{ "allOf": [{ "$ref": "harnesses.schema.json" }, { "required": ["rc"] }] }, { "$ref": "defs.schema.json#/$defs/checkFailureRow" }] },
+      "advisories": { "anyOf": [{ "allOf": [{ "$ref": "advisories.schema.json" }, { "required": ["rc"] }] }, { "$ref": "defs.schema.json#/$defs/checkFailureRow" }] }
     }
   }
 }

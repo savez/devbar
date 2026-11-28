@@ -187,3 +187,10 @@ setup() { setup_env; }
   write_config '{"brewCheckHours":5}'; run in_common 'brew_update_minutes'; [ "$output" = 360 ]
   write_config '{"brewCheckHours":"x"}'; run in_common 'brew_update_minutes'; [ "$output" = 360 ]
 }
+
+@test "setup_env: curl è uno stub che fallisce, i test non fanno rete" {
+  setup_env
+  [ "$(command -v curl)" = "$BATS_TEST_TMPDIR/stubs/curl" ]
+  run curl https://smzstudio.it/advisories/index.xml
+  [ "$status" -ne 0 ]
+}

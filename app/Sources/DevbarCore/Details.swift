@@ -41,6 +41,24 @@ public struct AuditDetailRow: Equatable, Sendable, Identifiable {
     }
 }
 
+public struct AdvisoryDetailRow: Equatable, Sendable, Identifiable {
+    public var id: String
+    /// "Critica", "Alta", "Media", "Bassa", "Sconosciuta" o "Alert CERT"
+    public var severity: String
+    /// 5 alert, 4 critica … 0 sconosciuta.
+    public var severityRank: Int
+    /// "9.1", vuoto se il feed non lo dà.
+    public var score: String
+    public var package: String
+    public var ecosystem: String
+    public var title: String
+    /// "27/11"
+    public var published: String
+    /// Solo http e https: il feed è esterno, `file:` o altri schemi non si aprono.
+    public var url: URL?
+    public var tone: Tone
+}
+
 public enum VulnFilter: String, Equatable, Sendable, CaseIterable, Identifiable {
     case all, severe
     public var id: String { rawValue }
@@ -78,6 +96,36 @@ public extension PanelModel {
             .sorted { ($0.severityRank, $1.formula, $1.cve) > ($1.severityRank, $0.formula, $0.cve) }
     }
 
+    /// Advisory recenti, dalla più recente; `search` filtra (senza maiuscole) su pacchetto, id e titolo.
+    func advisoryDetailRows(search: String) -> [AdvisoryDetailRow] {
+        let q = search.trimmingCharacters(in: .whitespaces).lowercased()
+        return advisoryItems
+            .filter { q.isEmpty || [$0.package, $0.id, $0.title].contains { $0.lowercased().contains(q) } }
+            .sorted { $0.published > $1.published }
+            .map { a in
+                let (label, rank) = a.severity.uppercased() == "ALERT" ? ("Alert CERT", 5) : Self.severityLabel(a.severity)
+                return AdvisoryDetailRow(
+                    id: "\(a.id) \(a.package)", severity: label, severityRank: rank,
+                    score: a.score.map { String(format: "%.1f", $0) } ?? "",
+                    package: a.package, ecosystem: a.ecosystem, title: a.title,
+                    published: Fmt.day(String(a.published.prefix(10))), url: URL(string: a.url).flatMap { ["http", "https"].contains($0.scheme?.lowercased() ?? "") ? $0 : nil },
+                    tone: a.severity.uppercased() == "ALERT" ? .risk : Tone.severity(a.severity))
+            }
+    }
+
+    /// Riga del pannello: numero di advisory gravi (critiche, alte, alert) e la frase del check.
+    var advisoryReadout: Readout {
+        if let e = advisoryError { return Readout(value: nil, tone: .info, subtitle: e) }
+        let severe = advisoryItems.filter { Self.severeLevels.contains($0.severity.uppercased()) || $0.severity.uppercased() == "ALERT" }.count
+        return Readout(value: "\(severe)", tone: advisoriesTone, subtitle: advisorySummary)
+    }
+
+    private var advisoriesTone: Tone {
+        guard advisoryState == .shown, advisoryError == nil else { return .info }
+        if advisoryItems.contains(where: { Self.severeLevels.contains($0.severity.uppercased()) || $0.severity.uppercased() == "ALERT" }) { return .risk }
+        return advisoryItems.isEmpty ? .ok : .action
+    }
+
     static func severityLabel(_ s: String) -> (String, Int) {
         switch s.uppercased() {
         case "CRITICAL": ("Critica", 4)
@@ -110,6 +158,7 @@ public extension PanelModel {
         case .audit:
             auditDetailRows.contains { $0.tone == .risk } ? .risk
                 : (auditDetailRows.contains { $0.tone == .action } ? .action : (showsAudit ? .ok : .info))
+        case .advisories: advisoriesTone
         case .tokens: tokensTone
         default: .info
         }

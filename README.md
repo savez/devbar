@@ -33,6 +33,7 @@ per ognuna ti dà il pulsante per sistemarla.
 |---|---|
 | **Homebrew** | Quanti pacchetti sono da aggiornare; aggiorna tutto o un pacchetto solo. Apre [Cork](https://corkmac.app) se ce l'hai. |
 | **Vulnerabilità** | `brew vulns`, `npm audit` e `composer audit` sui repo che scegli tu, una volta al giorno. |
+| **Advisory recenti** | Le advisory di sicurezza degli ultimi giorni dal feed di [smzstudio.it/advisories](https://smzstudio.it/advisories/), con ricerca per pacchetto o CVE nei Dettagli. |
 | **colima** | Stato, CPU, RAM e container; avvia e ferma. |
 | **Token risparmiati** | RTK, tokensave e l'uso di Claude Code in un colpo d'occhio. |
 | **Strumenti AI** | Installa e aggiorna RTK, caveman, tokensave, [TokenEconomizer](https://github.com/microsoft/TokenEconomizer) e la statusline su tutti gli harness che trovi (Claude Code, OpenCode, Copilot…). "Init progetto" configura un repo in un clic. |
@@ -84,7 +85,7 @@ devbar scrive in file che non sono suoi, quindi lo fa con delle regole:
 
 - **Niente senza conferma**: ogni azione che scrive o installa mostra il piano e chiede il via.
 - **Tutto annullabile**: ogni modifica ai file di altri programmi è registrata con un backup. `devbar undo` la riporta com'era, senza sovrascrivere ciò che nel frattempo ha cambiato un altro programma.
-- **Nessun server, nessuna telemetria**: i controlli sono comandi locali.
+- **Nessun server, nessuna telemetria**: i controlli sono comandi locali. L'unica chiamata di rete fatta da devbar stesso è il download del feed pubblico delle advisory da smzstudio.it, senza inviare nessun dato (`brew`, `npm` e `composer` fanno le loro).
 
 Per segnalare una vulnerabilità vedi [SECURITY.md](SECURITY.md).
 

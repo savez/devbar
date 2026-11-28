@@ -33,7 +33,7 @@ struct ContractTests {
 
     @Test func checkEnvelopeOfEveryCheck() throws {
         for name in ["brew-outdated", "brew-vulns", "npm-audit", "composer-audit", "colima", "rtk",
-                     "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses"] {
+                     "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses", "advisories"] {
             let o = try object(name)
             expectKeys(envelope, in: o, name)
             let r = try decode(CheckResult.self, name)
@@ -61,6 +61,18 @@ struct ContractTests {
         #expect(b.items.count == b.result.count)
         for i in b.items { #expect(!i.formula.isEmpty && !i.id.isEmpty && i.severity != "") }
         expectKeys(["formula", "id", "severity", "fixAvailable"], in: try firstItem("brew-vulns"), "brew-vulns item")
+    }
+
+    @Test func advisories() throws {
+        let a = try decode(Advisories.self, "advisories")
+        #expect(a.result.state == .action && a.result.count == 2)
+        #expect(a.items.count == 4)
+        for i in a.items { #expect(!i.id.isEmpty && !i.severity.isEmpty && !i.url.isEmpty && !i.published.isEmpty) }
+        let crit = try #require(a.items.first { $0.severity == "CRITICAL" })
+        #expect(crit.package == "vendor/pkg" && crit.ecosystem == "composer" && crit.score == 9.1)
+        #expect(a.items.first { $0.severity == "ALERT" }?.score == nil)
+        expectKeys(["id", "severity", "score", "package", "ecosystem", "title", "published", "url", "source"],
+                   in: try firstItem("advisories"), "advisories item")
     }
 
     @Test func audits() throws {
@@ -148,7 +160,7 @@ struct ContractTests {
     @Test func checkAll() throws {
         let all = try AllChecks.decode(data("all"))
         let names = ["brew-outdated", "brew-vulns", "npm-audit", "composer-audit", "colima", "rtk",
-                     "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses"]
+                     "tokensave", "tokeneconomizer", "caveman", "claude-usage", "harnesses", "advisories"]
         #expect(Set(all.rows.keys) == Set(names))
         for n in names {
             let o = try #require(all.raw[n])
@@ -158,6 +170,7 @@ struct ContractTests {
         }
         #expect(all.typed(BrewOutdated.self, "brew-outdated")?.items.isEmpty == false)
         #expect(all.typed(BrewVulns.self, "brew-vulns")?.severe ?? 0 > 0)
+        #expect(all.typed(Advisories.self, "advisories")?.items.count == 4)
         #expect(all.typed(AuditResult.self, "npm-audit")?.items.isEmpty == false)
         #expect(all.typed(AuditResult.self, "composer-audit")?.items.isEmpty == false)
         #expect(all.typed(ColimaStatus.self, "colima")?.running == true)

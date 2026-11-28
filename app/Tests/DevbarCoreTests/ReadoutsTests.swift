@@ -201,7 +201,7 @@ struct DetailsTests {
         #expect(m.tone(of: .vulns) == .risk)
         #expect(m.tone(of: .audit) == .info)
         #expect(m.tone(of: .tokens) == .info)
-        #expect(Area.detailsAreas == [.homebrew, .vulns, .audit, .colima, .tokens])
+        #expect(Area.detailsAreas == [.homebrew, .vulns, .advisories, .audit, .colima, .tokens])
     }
 
     @Test func rtkAllDaily() throws {

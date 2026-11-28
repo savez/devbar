@@ -214,5 +214,58 @@
     ],
     "checkedAt": "2026-01-01T00:00:00Z",
     "rc": 0
+  },
+  "advisories": {
+    "status": "action",
+    "count": 2,
+    "summary": "2 advisory gravi negli ultimi 7 giorni",
+    "items": [
+      {
+        "id": "CVE-2026-4444",
+        "severity": "ALERT",
+        "score": null,
+        "package": "",
+        "ecosystem": "alert",
+        "title": "Vulnerabilità in prodotti X",
+        "published": "2026-01-01T00:00:00Z",
+        "url": "https://www.acn.gov.it/portale/w/vulnerabilita-x",
+        "source": "CSIRT Italia"
+      },
+      {
+        "id": "CVE-2026-1111",
+        "severity": "CRITICAL",
+        "score": 9.1,
+        "package": "vendor/pkg",
+        "ecosystem": "composer",
+        "title": "Remote Code Execution",
+        "published": "2026-01-01T00:00:00Z",
+        "url": "https://github.com/advisories/GHSA-aaaa-bbbb-cccc",
+        "source": "GitHub Advisory DB"
+      },
+      {
+        "id": "CVE-2026-2222",
+        "severity": "MEDIUM",
+        "score": 5.3,
+        "package": "other/lib",
+        "ecosystem": "pacchetti js",
+        "title": "Info leak",
+        "published": "2026-01-01T00:00:00Z",
+        "url": "https://github.com/advisories/GHSA-dddd-eeee-ffff",
+        "source": "FriendsOfPHP"
+      },
+      {
+        "id": "smzstudio-adv:e",
+        "severity": "UNKNOWN",
+        "score": null,
+        "package": "",
+        "ecosystem": "php",
+        "title": "Titolo senza formato",
+        "published": "2026-01-01T00:00:00Z",
+        "url": "https://example.org/e",
+        "source": ""
+      }
+    ],
+    "checkedAt": "2026-01-01T00:00:00Z",
+    "rc": 0
   }
 }

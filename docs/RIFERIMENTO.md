@@ -23,13 +23,14 @@ Ogni check stampa un solo oggetto JSON su stdout (`status`, `count`, `summary`, 
 | `scanDepth` | `4` | profondità massima della scansione (salta `node_modules`, `vendor`, `.git`) |
 | `dailyCheckTime` | `"09:00"` | ora in cui la scansione delle vulnerabilità viene forzata, solo con `vulnCheckEvery` = `"1d"` |
 | `vulnCheckEvery` | `"1d"` | ogni quanto rifare la scansione delle vulnerabilità: `"12h"`, `"1d"`, `"1w"` |
+| `advisoriesDays` | `7` | finestra delle advisory recenti in giorni (1-90); fuori intervallo torna a 7 |
 | `brewCheckHours` | `6` | ogni quante ore rifare `brew update` (1, 3, 6, 12, 24); `brew outdated` gira a ogni controllo |
 | `harnesses` | `[]` | harness AI gestiti |
 | `brewExclude` | `[]` | pacchetti Homebrew da ignorare |
 | `terminal` | `"Terminal"` | terminale per "apri": `Terminal`, `iTerm`, `Ghostty` |
 | `launchAtLogin` | `true` | avvio al login |
 
-Cache in `~/.cache/devbar/` (override `DEVBAR_CACHE_DIR`): le vulnerabilità (`brew vulns`, `npm audit`, `composer audit`) durano quanto dice `vulnCheckEvery`, `brew update` si rifà ogni `brewCheckHours` ore; `--force` salta la cache. I valori non validi tornano al default. Un solo `devbar check all` alla volta.
+Cache in `~/.cache/devbar/` (override `DEVBAR_CACHE_DIR`): le vulnerabilità (`brew vulns`, `npm audit`, `composer audit`) durano quanto dice `vulnCheckEvery`, `brew update` si rifà ogni `brewCheckHours` ore; le advisory (feed di `smzstudio.it/advisories`, che si rigenera ogni 6 ore) durano 6 ore; `--force` salta la cache. I valori non validi tornano al default. Un solo `devbar check all` alla volta.
 
 ## Comandi
 
@@ -44,7 +45,7 @@ devbar undo [<id>] [--yes] [--force]
 devbar version
 ```
 
-Check: `brew-outdated`, `brew-vulns`, `npm-audit`, `composer-audit`, `colima`, `rtk`, `tokensave`, `tokeneconomizer`, `caveman`, `claude-usage`, `harnesses`.
+Check: `brew-outdated`, `brew-vulns`, `npm-audit`, `composer-audit`, `colima`, `rtk`, `tokensave`, `tokeneconomizer`, `caveman`, `claude-usage`, `harnesses`, `advisories`.
 
 Azioni (`devbar run ...`): `ai-status <tool>`, `ai-install <tool> <id...>`, `tool-install <tool>`, `project-status <dir>`, `project-apply <dir>`, `brew-upgrade [pkg]`, `brew-exclude <pkg>`, `cork-open`, `cork-install`, `colima-start|colima-stop [profilo]`, `colima-install`, `colima-logs <id>`, `container-stop <id>`, `open-terminal <dir>`.
 

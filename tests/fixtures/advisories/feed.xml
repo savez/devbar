@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Advisory</title>
+    <link>https://smzstudio.it/advisories/</link>
+    <description>Advisory di sicurezza</description>
+    <language>it-IT</language>
+    <ttl>360</ttl>
+    <item>
+      <title>[CRITICAL 9.1] vendor/pkg — Remote Code Execution</title>
+      <link>https://github.com/advisories/GHSA-aaaa-bbbb-cccc</link>
+      <guid isPermaLink="false">smzstudio-adv:vendor/pkg:CVE-2026-1111</guid>
+      <pubDate>@DATE_a@</pubDate>
+      <category>composer</category>
+      <category>critical</category>
+      <description>&lt;p&gt;&lt;strong&gt;CRITICAL&lt;/strong&gt; &lt;code&gt;vendor/pkg&lt;/code&gt; (composer) CVE-2026-1111 GHSA-aaaa-bbbb-cccc patch: 4.3.1 &lt;a href="x"&gt;fonte&lt;/a&gt; fonte: GitHub Advisory DB&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>[MEDIUM 5.3] other/lib — Info leak</title>
+      <link>https://github.com/advisories/GHSA-dddd-eeee-ffff</link>
+      <guid isPermaLink="false">smzstudio-adv:other/lib:CVE-2026-2222</guid>
+      <pubDate>@DATE_b@</pubDate>
+      <category>pacchetti js</category>
+      <category>medium</category>
+      <description>&lt;p&gt;MEDIUM other/lib CVE-2026-2222 fonte: FriendsOfPHP&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>[HIGH 7.5] old/pkg — Vecchia</title>
+      <link>https://github.com/advisories/GHSA-old</link>
+      <guid isPermaLink="false">smzstudio-adv:old/pkg:CVE-2026-3333</guid>
+      <pubDate>@DATE_c@</pubDate>
+      <category>composer</category>
+      <category>high</category>
+      <description>&lt;p&gt;HIGH old/pkg CVE-2026-3333 fonte: GitHub Advisory DB&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>[ALERT CSIRT Italia] Vulnerabilità in prodotti X</title>
+      <link>https://www.acn.gov.it/portale/w/vulnerabilita-x</link>
+      <guid isPermaLink="false">smzstudio-alert:https://www.acn.gov.it/portale/w/vulnerabilita-x</guid>
+      <pubDate>@DATE_d@</pubDate>
+      <category>alert</category>
+      <description>&lt;p&gt;Alert CSIRT Italia: CVE-2026-4444 +2 fonte: CSIRT Italia&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Titolo senza formato</title>
+      <link>https://example.org/e</link>
+      <guid isPermaLink="false">smzstudio-adv:e</guid>
+      <pubDate>@DATE_e@</pubDate>
+      <category>php</category>
+      <description>&lt;p&gt;nessun id&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

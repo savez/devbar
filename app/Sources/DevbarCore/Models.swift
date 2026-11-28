@@ -187,6 +187,43 @@ public struct BrewVulns: Decodable, Equatable, Sendable {
     }
 }
 
+/// Una advisory del feed di smzstudio.it (check `advisories`).
+public struct AdvisoryItem: Decodable, Equatable, Sendable {
+    public var id: String
+    /// CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN o ALERT (avvisi CERT).
+    public var severity: String
+    public var score: Double?
+    public var package: String
+    public var ecosystem: String
+    public var title: String
+    /// ISO 8601 UTC.
+    public var published: String
+    public var url: String
+    public var source: String
+    public init(from decoder: Decoder) throws {
+        let c = try top(decoder)
+        id = c.opt("id") ?? ""
+        severity = c.opt("severity") ?? "UNKNOWN"
+        score = c.opt("score")
+        package = c.opt("package") ?? ""
+        ecosystem = c.opt("ecosystem") ?? ""
+        title = c.opt("title") ?? ""
+        published = c.opt("published") ?? ""
+        url = c.opt("url") ?? ""
+        source = c.opt("source") ?? ""
+    }
+}
+
+public struct Advisories: Decodable, Equatable, Sendable {
+    public var result: CheckResult
+    public var items: [AdvisoryItem]
+    public init(from decoder: Decoder) throws {
+        result = try CheckResult(from: decoder)
+        let c = try top(decoder)
+        items = c.list("items")
+    }
+}
+
 public struct AuditItem: Decodable, Equatable, Sendable {
     public var repo: String
     public var critical: Int

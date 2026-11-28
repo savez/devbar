@@ -39,7 +39,7 @@ struct PanelView: View {
     /// Righe nell'ordine del pannello; la linea di separazione va tra una riga e la successiva,
     /// mai sopra la prima.
     @ViewBuilder private func rows(_ model: PanelModel, open: DetailsOpener) -> some View {
-        let shown = [model.brewState == .shown, model.showsVulns, actions.colima.readout != nil,
+        let shown = [model.brewState == .shown, model.showsVulns || model.advisoryState == .shown, actions.colima.readout != nil,
                      model.showsTokenSection, model.showsLimits, model.caveman != nil, model.showsAISetup]
         let line = { (i: Int) in shown[..<i].contains(true) }
         if shown[0] {
@@ -47,7 +47,11 @@ struct PanelView: View {
         }
         if shown[1] {
             if line(1) { Divider() }
-            VulnsRow(model: model, open: open)
+            if model.showsVulns { VulnsRow(model: model, open: open) }
+            if model.advisoryState == .shown {
+                if model.showsVulns { Divider() }
+                AdvisoriesRow(model: model, open: open)
+            }
         }
         if shown[2] {
             if line(2) { Divider() }
@@ -100,6 +104,17 @@ struct VulnsRow: View {
         ReadoutRow(title: "Vulnerabilità", subtitle: r.subtitle, note: r.note, readout: r.value, tone: r.tone,
                    onDetails: { open(model.vulnRows.contains { $0.id == "brew" } ? .vulns : .audit) },
                    content: { EmptyView() }, accessory: { EmptyView() })
+    }
+}
+
+struct AdvisoriesRow: View {
+    let model: PanelModel
+    let open: DetailsOpener
+
+    var body: some View {
+        let r = model.advisoryReadout
+        ReadoutRow(title: "Advisory", subtitle: r.subtitle, readout: r.value, tone: r.tone,
+                   onDetails: { open(.advisories) }, content: { EmptyView() }, accessory: { EmptyView() })
     }
 }
 
