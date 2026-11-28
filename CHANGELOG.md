@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/savez/devbar/compare/v0.5.0...v0.5.1) (2026-11-28)
+
+
+### Bug Fixes
+
+* **menubar:** icona statica template ([bedcbf3](https://github.com/savez/devbar/commit/bedcbf35e69ac0131cf593cff2676ef0a131fc08))
+* **menubar:** icona statica template al posto di quella dinamica ([b67ea4b](https://github.com/savez/devbar/commit/b67ea4b2f924ff3c6354f3d6eef08b0f6df88683))
+
 ## [0.5.0](https://github.com/savez/devbar/compare/v0.4.2...v0.5.0) (2026-11-25)
 
 
