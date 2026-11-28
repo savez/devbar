@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.0](https://github.com/savez/devbar/compare/v0.6.0...v0.7.0) (2026-11-28)
+
+
+### Features
+
+* advisory di sicurezza recenti (smzstudio.it) ([593c705](https://github.com/savez/devbar/commit/593c705bd33da97d9184f314ea0ec6491b15f8bf))
+* **app:** modello e store per le advisory ([276eff7](https://github.com/savez/devbar/commit/276eff780c61d837cf74e8df371ee2c13b20403b))
+* **app:** riga Advisory nel pannello e tabella con ricerca in Dettagli ([4aca4b2](https://github.com/savez/devbar/commit/4aca4b2f3e9ee25722b2f0bc05471f287291a136))
+* **engine:** check advisories dal feed di smzstudio.it ([3ab10d2](https://github.com/savez/devbar/commit/3ab10d236274e64789fb2729a8617d3d5aa2b947))
+
+
+### Bug Fixes
+
+* **advisories:** rifiuta feed con DTD, nessun ok se il feed non è leggibile, test senza rete ([e9a981a](https://github.com/savez/devbar/commit/e9a981ad599076f87593236fcbab5f2682ef7393))
+
 ## [0.6.0](https://github.com/savez/devbar/compare/v0.5.1...v0.6.0) (2026-11-28)
 
 
