@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "check advisories",
+  "description": "Advisory di sicurezza recenti dal feed di smzstudio.it (lib/checks/advisories.sh). Con status ok o action `items` ha le voci degli ultimi advisoriesDays giorni; con error c'è solo la busta.",
+  "allOf": [{ "$ref": "defs.schema.json#/$defs/checkEnvelope" }],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "severity", "score", "package", "ecosystem", "title", "published", "url", "source"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "CVE o GHSA se presente nel testo, altrimenti il guid del feed." },
+          "severity": { "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN", "ALERT"], "description": "ALERT per gli avvisi CERT (CSIRT Italia)." },
+          "score": { "type": ["number", "null"], "description": "Punteggio CVSS; null se il feed non lo dà." },
+          "package": { "type": "string", "description": "Vuoto per gli alert e per i titoli senza formato." },
+          "ecosystem": { "type": "string", "description": "Prima categoria del feed che non è una gravità (composer, pacchetti js, php, alert, ...)." },
+          "title": { "type": "string" },
+          "published": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" },
+          "url": { "type": "string" },
+          "source": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

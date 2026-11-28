@@ -20,7 +20,7 @@ export BATS_TEST_TMPDIR="$TMP"
 # shellcheck source=helpers.bash
 source "$REPO/tests/helpers.bash"
 setup_env
-make_stub brew colima docker npm composer rtk tokensave claude claude-usage osascript
+make_stub brew colima docker npm composer rtk tokensave claude claude-usage osascript curl
 
 # PATH ristretto: stub, jq, git e strumenti di sistema. Nessun harness o tool reale visibile.
 mkdir -p "$TMP/bin"
@@ -63,7 +63,8 @@ normalize() {
     sed -i '' "s#$p#/tmp/devbar-contract#g" "$f"
   done
   jq 'walk(if type == "object" and has("checkedAt") then .checkedAt = "2026-01-01T00:00:00Z" else . end
-    | if type == "object" and (.time | type) == "string" then .time = "2026-01-01T00:00:00Z" else . end)' "$f" >"$f.n"
+    | if type == "object" and (.time | type) == "string" then .time = "2026-01-01T00:00:00Z" else . end
+    | if type == "object" and (.published | type) == "string" then .published = "2026-01-01T00:00:00Z" else . end)' "$f" >"$f.n"
   mv "$f.n" "$f"
   if grep -qiE "$(id -un)|$TMP" "$f"; then
     echo "contract-fixtures: dati locali in $f" >&2
@@ -91,6 +92,16 @@ export STUB_COLIMA_FIXTURE=list-running.json STUB_DOCKER_FIXTURE=stats-two.json
 export STUB_RTK_GAIN_FIXTURE=gain-10days.json
 export STUB_TOKENSAVE_GAIN_FIXTURE=gain.json STUB_TOKENSAVE_DISCOVER_FIXTURE=discover-empty.json
 export STUB_CLAUDE_USAGE_FIXTURE=status.json
+# Feed delle advisory: date relative a ora (il motore filtra per finestra), normalize le fissa.
+# STUB_FIXTURES_DIR = copia di tests/fixtures (symlink) più il feed generato in curl/.
+mkdir -p "$TMP/fx-all/curl"
+for d in "$REPO"/tests/fixtures/*; do [ -e "$TMP/fx-all/$(basename "$d")" ] || ln -s "$d" "$TMP/fx-all/$(basename "$d")"; done
+export STUB_FIXTURES_DIR="$TMP/fx-all"
+adv_date() { LC_ALL=C date -u -v-"$1"d "+%a, %d %b %Y %H:%M:%S +0000"; }
+sed -e "s/@DATE_a@/$(adv_date 1)/" -e "s/@DATE_b@/$(adv_date 2)/" -e "s/@DATE_c@/$(adv_date 30)/" \
+  -e "s/@DATE_d@/$(adv_date 1)/" -e "s/@DATE_e@/$(adv_date 3)/" \
+  "$REPO/tests/fixtures/advisories/feed.xml" >"$TMP/fx-all/curl/feed.xml"
+export STUB_CURL_FIXTURE=feed.xml
 
 fixture brew-outdated check brew-outdated
 fixture brew-vulns check brew-vulns
@@ -106,6 +117,7 @@ write_config "{\"repoRoots\":[\"$ROOT\"],\"scanDepth\":4,\"harnesses\":[]}"
 fixture caveman check caveman
 fixture claude-usage check claude-usage
 fixture harnesses check harnesses
+fixture advisories check advisories
 fixture all check all
 fixture detect detect
 fixture repos repos

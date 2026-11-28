@@ -155,7 +155,7 @@ S
   [ "$(jq -r '."composer-audit"' <<<"$output")" = 300 ]
   [ "$(jq -r '."brew-vulns"' <<<"$output")" = 60 ]
   [ "$(jq -r '."brew-outdated"' <<<"$output")" = 300 ]
-  [ "$(jq -r 'keys|length' <<<"$output")" = 11 ]
+  [ "$(jq -r 'keys|length' <<<"$output")" = 12 ]
   DEVBAR_CHECK_TIMEOUT=7 run --separate-stderr "$DEVBAR" check-timeouts
   [ "$(jq -r '[.[]]|unique|join(",")' <<<"$output")" = 7 ]
 }
