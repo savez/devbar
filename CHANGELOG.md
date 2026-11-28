@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/savez/devbar/compare/v0.5.1...v0.6.0) (2026-11-28)
+
+
+### Features
+
+* **menubar:** icona della barra con la d. dell'app ([14f34cf](https://github.com/savez/devbar/commit/14f34cfe5d59c876c09296d2f89068073d2f4f17))
+* **menubar:** icona della barra con la d. dell'app ([77f4889](https://github.com/savez/devbar/commit/77f4889acd3d070b1fd18b8e59d2190289315214))
+
 ## [0.5.1](https://github.com/savez/devbar/compare/v0.5.0...v0.5.1) (2026-11-28)
 
 
