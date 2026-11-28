@@ -12,7 +12,7 @@ public final class StatusStore {
     /// verificati da un test). Il motore uccide il check oltre il suo timeout.
     public nonisolated static let checkTimeouts: [String: TimeInterval] = [
         "brew-outdated": 300, "brew-vulns": 60, "npm-audit": 300, "composer-audit": 300,
-        "colima": 60, "rtk": 60, "tokensave": 60, "tokeneconomizer": 60, "caveman": 60, "claude-usage": 60, "harnesses": 60,
+        "colima": 60, "rtk": 60, "tokensave": 60, "tokeneconomizer": 60, "caveman": 60, "claude-usage": 60, "harnesses": 60, "advisories": 60,
     ]
     /// Riserva per `check all`: caso peggiore del motore (somma dei timeout) + 5 s per check.
     public nonisolated static var defaultAllTimeout: TimeInterval {

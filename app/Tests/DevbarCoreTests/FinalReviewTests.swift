@@ -153,6 +153,7 @@ struct BackstopTests {
         let t = StatusStore.checkTimeouts
         #expect(StatusStore.defaultAllTimeout == t.values.reduce(0, +) + 5 * TimeInterval(t.count))
         #expect(t["npm-audit"] == 300)
+        #expect(t["advisories"] == 60)
     }
 
     @Test func tableMatchesEngine() throws {

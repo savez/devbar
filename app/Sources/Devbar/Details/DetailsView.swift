@@ -24,6 +24,7 @@ struct DetailsView: View {
                 switch actions.detailsArea ?? .homebrew {
                 case .homebrew: BrewDetails(model: model, actions: actions)
                 case .vulns: VulnDetails(model: model, actions: actions)
+                case .advisories: EmptyArea(title: "Advisory", message: "In arrivo.")
                 case .audit: AuditDetails(model: model, actions: actions)
                 case .colima: ColimaDetails(feature: actions.colima)
                 case .tokens, .aiSetup: TokenDetails(model: model)

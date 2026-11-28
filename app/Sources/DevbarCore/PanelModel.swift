@@ -141,6 +141,13 @@ public struct PanelModel: Equatable, Sendable {
     public var composerItems: [AuditItem]
     public var brewVulnError: String?
 
+    // Advisory recenti (smzstudio.it)
+    public var advisoryState: SectionKind
+    public var advisoryItems: [AdvisoryItem]
+    public var advisorySummary: String
+    /// Messaggio del check se è in errore.
+    public var advisoryError: String?
+
     // Token
     public var rtkState: SectionKind
     /// "RTK 18%" o il riassunto del check.
@@ -212,6 +219,13 @@ public struct PanelModel: Equatable, Sendable {
             rows.append(.init(id: "composer", title: "composer", summary: r.summary, hasDetails: !(comp?.items.isEmpty ?? true)))
         }
         vulnRows = rows
+
+        // Advisory recenti
+        let adv = all.typed(Advisories.self, "advisories")
+        advisoryState = SectionKind.of(all.rows["advisories"]?.state)
+        advisoryItems = adv?.items ?? []
+        advisorySummary = all.rows["advisories"]?.summary ?? ""
+        advisoryError = all.rows["advisories"]?.state == .error ? (all.rows["advisories"]?.summary ?? "errore") : nil
 
         // RTK
         let rtk = all.typed(RtkGain.self, "rtk")
