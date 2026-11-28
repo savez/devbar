@@ -10,6 +10,10 @@ setup_env() {
   export DEVBAR_CACHE_DIR="$BATS_TEST_TMPDIR/cache"
   export STUB_FIXTURES_DIR="$DEVBAR_REPO/tests/fixtures"
   mkdir -p "$BATS_TEST_TMPDIR/stubs"
+  # curl è sempre uno stub che fallisce: nessun test fa rete (advisories scarica un feed).
+  # File a sé, non un symlink: i test che scrivono il proprio curl non devono toccare tests/stubs/_stub.
+  printf '#!/bin/sh\nexit 6\n' >"$BATS_TEST_TMPDIR/stubs/curl"
+  chmod +x "$BATS_TEST_TMPDIR/stubs/curl"
   # stub per-test (make_stub) davanti, poi tests/stubs
   export PATH="$BATS_TEST_TMPDIR/stubs:$DEVBAR_REPO/tests/stubs:$PATH"
 }

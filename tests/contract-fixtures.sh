@@ -101,7 +101,7 @@ adv_date() { LC_ALL=C date -u -v-"$1"d "+%a, %d %b %Y %H:%M:%S +0000"; }
 sed -e "s/@DATE_a@/$(adv_date 1)/" -e "s/@DATE_b@/$(adv_date 2)/" -e "s/@DATE_c@/$(adv_date 30)/" \
   -e "s/@DATE_d@/$(adv_date 1)/" -e "s/@DATE_e@/$(adv_date 3)/" \
   "$REPO/tests/fixtures/advisories/feed.xml" >"$TMP/fx-all/curl/feed.xml"
-export STUB_CURL_FIXTURE=feed.xml
+export STUB_CURL_FIXTURE=feed.xml STUB_CURL_RC=0
 
 fixture brew-outdated check brew-outdated
 fixture brew-vulns check brew-vulns

@@ -19,12 +19,17 @@ advisories_days() {
 # advisories_fetch: scarica il feed e stampa le voci come JSON (tutte, non filtrate).
 # Il feed passa da xsltproc (campi separati da tab, una voce per riga), poi jq.
 advisories_fetch() {
-  local xml sheet tsv
+  local xml sheet tsv parsed
   xml="$(mktemp "${TMPDIR:-/tmp}/devbar-adv.XXXXXX")"
   sheet="$(mktemp "${TMPDIR:-/tmp}/devbar-adv.XXXXXX")"
   # shellcheck disable=SC2064
   trap "rm -f '$xml' '$sheet'" RETURN
   curl -fsS --max-time 30 "$DEVBAR_ADVISORIES_URL" >"$xml" 2>/dev/null || return 1
+  # Il feed è esterno: con una DTD xsltproc espanderebbe entità che leggono file o fanno rete (XXE).
+  if grep -qiE '<!(DOCTYPE|ENTITY)' "$xml"; then
+    echo "devbar: il feed delle advisory contiene una DTD, rifiutato" >&2
+    return 1
+  fi
   cat >"$sheet" <<'XSL'
 <?xml version="1.0"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -46,7 +51,7 @@ XSL
   tsv="$(xsltproc "$sheet" "$xml" 2>/dev/null)" || return 1
   # un feed senza nessuna voce non è un feed valido: meglio un errore che "tutto a posto"
   [ -n "$tsv" ] || return 1
-  printf '%s\n' "$tsv" | jq -R -s -c '
+  parsed="$(printf '%s\n' "$tsv" | jq -R -s -c '
     def sev: ["CRITICAL","HIGH","MEDIUM","LOW","UNKNOWN"];
     # Data RFC 822 senza strptime: i nomi di giorno e mese seguono la lingua del Mac.
     def parse_date:
@@ -74,12 +79,15 @@ XSL
           severity: $t.severity, score: $t.score, package: $t.package,
           ecosystem: (($r.cats | map(select(ascii_downcase | IN("critical","high","medium","low","unknown") | not)) | .[0]) // ""),
           title: $t.title, published: ($r.date | todate), url: $r.url,
-          source: (($r.text | capture("fonte: (?<s>.*)$").s) // "" | sub("\\s+$"; "")) } ]'
+          source: (($r.text | capture("fonte: (?<s>.*)$").s) // "" | sub("\\s+$"; "")) } ]')" || return 1
+  # nessuna voce interpretabile (formato delle date cambiato?): meglio un errore che "tutto a posto"
+  [ "$parsed" != "[]" ] || return 1
+  printf '%s\n' "$parsed"
 }
 
 # check_advisories: advisory degli ultimi advisoriesDays giorni. Cache 6 ore, --force la salta.
 check_advisories() {
-  local force="${1:-}" days all items count cutoff
+  local force="${1:-}" days all items count cutoff stale=0
   require_tool curl
   require_tool xsltproc
   days="$(advisories_days)"
@@ -88,6 +96,7 @@ check_advisories() {
       printf '%s\n' "$all" | cache_write advisories
     elif [ -f "$(devbar_cache_dir)/advisories.json" ]; then
       echo "devbar: feed delle advisory non raggiungibile, uso la cache" >&2
+      stale=1
     else
       emit error 0 "feed delle advisory non raggiungibile"
     fi
@@ -96,6 +105,10 @@ check_advisories() {
   items="$(cache_read advisories | jq -c --argjson cut "$cutoff" '
     [ .[] | select((.published | fromdateiso8601) >= $cut) ] | sort_by(.published) | reverse')" ||
     emit error 0 "cache delle advisory non valida"
+  # cache usata al posto del feed e ormai tutta fuori finestra: non si sa com'è la situazione
+  if [ "$stale" -eq 1 ] && [ "$(jq 'length' <<<"$items")" -eq 0 ]; then
+    emit error 0 "feed delle advisory non raggiungibile e cache troppo vecchia"
+  fi
   count="$(jq '[.[] | select(.severity | IN("CRITICAL","HIGH","ALERT"))] | length' <<<"$items")"
   local per="negli ultimi $days giorni"
   [ "$days" -eq 1 ] && per="nell'ultimo giorno"

@@ -20,7 +20,7 @@ make_feed() {
     -e "s/@DATE_c@/$(date_ago 30)/" -e "s/@DATE_d@/$(date_ago "${D_DAYS:-1}")/" \
     -e "s/@DATE_e@/${1:-$(date_ago 3)}/" \
     "$DEVBAR_REPO/tests/fixtures/advisories/feed.xml" >"$fx/curl/feed.xml"
-  export STUB_FIXTURES_DIR="$fx" STUB_CURL_FIXTURE=feed.xml
+  export STUB_FIXTURES_DIR="$fx" STUB_CURL_FIXTURE=feed.xml STUB_CURL_RC=0
 }
 
 @test "advisories: voci recenti, count e rc" {
@@ -106,6 +106,37 @@ make_feed() {
   export LC_ALL=it_IT.UTF-8 LANG=it_IT.UTF-8
   run --separate-stderr "$DEVBAR" check advisories
   [ "$(jq -r .count <<<"$output")" = 2 ]
+}
+
+@test "advisories: feed con entità XML esterne -> rc 2, nessun file letto (XXE)" {
+  make_feed
+  printf '<?xml version="1.0"?>\n<!DOCTYPE rss [<!ENTITY x SYSTEM "file:///etc/hosts">]>\n<rss version="2.0"><channel><item><title>[HIGH 7.5] a/b — &x;</title><link>https://example.org</link><guid>g</guid><pubDate>%s</pubDate><description>d</description></item></channel></rss>\n' "$(date_ago 1)" >"$STUB_FIXTURES_DIR/curl/feed.xml"
+  run --separate-stderr "$DEVBAR" check advisories
+  [ "$status" -eq 2 ]
+  [ "$(jq -r .status <<<"$output")" = error ]
+  [[ "$output" != *localhost* ]]
+}
+
+@test "advisories: feed leggibile ma nessuna voce interpretabile -> rc 2, non ok" {
+  make_feed "2026-11-28T01:00:00Z"
+  sed -i '' -E 's#<pubDate>[^<]*</pubDate>#<pubDate>2026-11-28T01:00:00Z</pubDate>#' "$STUB_FIXTURES_DIR/curl/feed.xml"
+  run --separate-stderr "$DEVBAR" check advisories
+  [ "$status" -eq 2 ]
+  [ "$(jq -r .status <<<"$output")" = error ]
+  [ ! -f "$DEVBAR_CACHE_DIR/advisories.json" ]
+}
+
+@test "advisories: rete assente e cache più vecchia della finestra -> rc 2, non ok" {
+  A_DAYS=3 D_DAYS=3 make_feed
+  run --separate-stderr "$DEVBAR" check advisories
+  [ "$status" -eq 0 ]
+  # finestra di 1 giorno: tutta la cache (voci di 2-30 giorni fa) è fuori, e il feed non risponde
+  write_config '{"advisoriesDays":1}'
+  export STUB_CURL_RC=6 STUB_CURL_FIXTURE=
+  touch -t 202001010000 "$DEVBAR_CACHE_DIR/advisories.json"
+  run --separate-stderr "$DEVBAR" check advisories
+  [ "$status" -eq 2 ]
+  [ "$(jq -r .status <<<"$output")" = error ]
 }
 
 @test "advisories: --force salta la cache" {
